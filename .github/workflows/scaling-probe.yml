@@ -1,0 +1,75 @@
+name: Scaling probe (GPU)
+
+# Manually-triggered A4500 scaling sweep. Walks each (function, optimizer)
+# pair through a dim ladder until OOM or --max-sec-per-gen, and uploads
+# the JSON results file as an artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dims:
+        description: "Space-separated dim ladder (e.g. '40 80 160 320 640 1280 2560 5120 10240 20480')."
+        required: false
+        default: "40 80 160 320 640 1280 2560 5120 10240 20480"
+      optimizers:
+        description: "Space-separated optimizer names."
+        required: false
+        default: "CMAES SHADE NelderMead PhasedDFO DLRPortfolio"
+      functions:
+        description: "Space-separated classical benchmark functions."
+        required: false
+        default: "sphere rosenbrock rastrigin ackley griewank levy"
+      dtype:
+        description: "float32 or float64."
+        required: false
+        default: "float64"
+      max_sec_per_gen:
+        description: "Safety cap on a single generation's wall-clock."
+        required: false
+        default: "300"
+      warmup:
+        description: "Warmup generations (untimed)."
+        required: false
+        default: "2"
+      timed:
+        description: "Timed generations."
+        required: false
+        default: "5"
+
+jobs:
+  scaling:
+    runs-on: [self-hosted, cuda]
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Report device
+        run: |
+          echo "== nvidia-smi =="
+          nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || true
+          echo "== python / torch =="
+          /workspace/torch-dfo/.venv/bin/python -c "import torch; print(f'torch={torch.__version__} cuda={torch.cuda.is_available()} device={torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"n/a\"}')"
+
+      - name: Install checked-out source into pod venv
+        run: |
+          /workspace/torch-dfo/.venv/bin/pip install -e . --no-deps --quiet
+
+      - name: Run scaling sweep
+        run: |
+          /workspace/torch-dfo/.venv/bin/python benchmarks/run_scaling_sweep.py \
+            --out scaling_results.json \
+            --device cuda \
+            --dtype "${{ github.event.inputs.dtype }}" \
+            --dims ${{ github.event.inputs.dims }} \
+            --optimizers ${{ github.event.inputs.optimizers }} \
+            --functions ${{ github.event.inputs.functions }} \
+            --warmup "${{ github.event.inputs.warmup }}" \
+            --timed "${{ github.event.inputs.timed }}" \
+            --max-sec-per-gen "${{ github.event.inputs.max_sec_per_gen }}"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scaling-results
+          path: scaling_results.json

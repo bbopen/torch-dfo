@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use torch-dfo in your research, please cite it as below."
+type: software
+title: "torch-dfo: GPU-accelerated derivative-free optimization for PyTorch"
+version: 0.9.0
+date-released: 2026-04-17
+license: MIT
+repository-code: https://github.com/bbopen/torch-dfo
+authors:
+  - family-names: Bonner
+    given-names: Brett G.
+    alias: bbopen
+keywords:
+  - derivative-free optimization
+  - black-box optimization
+  - CMA-ES
+  - differential evolution
+  - GPU
+  - PyTorch

@@ -1,0 +1,3 @@
+[codespell]
+ignore-words-list = cmaes,nelder,covariance,eigendecomp,rosenbrock,rastrigin,ackley,griewank,schwefel,levy,zakharov,nd,ot,parms,ans
+skip = *.json,*.lock,dist,_build,.git,benchmarks/run_benchmarks.py

@@ -1,0 +1,44 @@
+name: Feature request
+description: Suggest a new feature or enhancement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement to torch-dfo.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or motivation
+      description: What problem are you trying to solve? What limitation are you running into?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the feature or change you'd like to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative approaches you considered?
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - New optimizer / algorithm
+        - Performance / GPU scaling
+        - API / usability
+        - Documentation
+        - CI / tooling
+        - Other
+    validations:
+      required: true

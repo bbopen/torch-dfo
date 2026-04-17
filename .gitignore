@@ -1,0 +1,19 @@
+__pycache__/
+*.py[oc]
+build/
+dist/
+*.egg-info
+.venv
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.worktrees/
+uv.lock
+.DS_Store
+.fx-baseline.ndjson
+
+# Sphinx build artifacts
+docs/_build/
+docs/api/generated/
+docs/auto_examples/
+docs/sg_execution_times.rst

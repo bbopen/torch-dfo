@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write   # required for OIDC Trusted Publisher
+
+jobs:
+  # ------------------------------------------------------------------ #
+  # 1. Build sdist + wheel                                               #
+  # ------------------------------------------------------------------ #
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: pip install build twine
+
+      - name: Build distributions
+        run: python -m build
+
+      - name: Verify distributions
+        run: twine check dist/*
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  # ------------------------------------------------------------------ #
+  # 2. Publish to TestPyPI and smoke-test                                #
+  # ------------------------------------------------------------------ #
+  publish-testpypi:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  smoke-test:
+    needs: publish-testpypi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install CPU-only PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install from TestPyPI
+        run: |
+          pip install torch-dfo \
+            --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple/
+
+      - name: Smoke test
+        run: |
+          python -c "
+          from torch_dfo import CMAES
+          opt = CMAES(dim=3, bounds=1.0)
+          x = opt.ask()
+          opt.tell(x, (x**2).sum(-1))
+          best_x, best_f = opt.best()
+          print('smoke ok  best_f =', best_f.item())
+          "
+
+  # ------------------------------------------------------------------ #
+  # 3. Publish to PyPI (only after smoke passes)                         #
+  # ------------------------------------------------------------------ #
+  publish-pypi:
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    environment: pypi
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

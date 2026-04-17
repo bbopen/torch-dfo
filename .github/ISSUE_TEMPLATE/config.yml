@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussion / question
+    url: https://github.com/bbopen/torch-dfo/discussions
+    about: Ask questions and discuss usage in GitHub Discussions.

@@ -1,0 +1,119 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "torch-dfo"
+version = "0.9.0"
+description = "GPU-accelerated derivative-free optimization for PyTorch"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "Brett Bonner" }]
+keywords = [
+    "pytorch",
+    "optimization",
+    "derivative-free",
+    "black-box",
+    "evolution-strategy",
+    "cma-es",
+    "differential-evolution",
+    "gpu",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
+]
+dependencies = [
+    "torch>=2.4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/bbopen/torch-dfo"
+Repository = "https://github.com/bbopen/torch-dfo"
+Documentation = "https://torch-dfo.readthedocs.io"
+Issues = "https://github.com/bbopen/torch-dfo/issues"
+Changelog = "https://github.com/bbopen/torch-dfo/blob/master/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4.0",
+    "mypy>=1.0",
+    # numpy: required by the optional benchmark harness
+    # (`benchmarks/run_benchmarks.py`) which the test suite's
+    # `test_benchmark_harness.py` imports transitively. The library
+    # itself does NOT depend on numpy at runtime.
+    "numpy>=1.26",
+]
+docs = [
+    "sphinx>=7.0",
+    "furo>=2024.1.29",
+    "myst-parser>=3.0",
+    "sphinx-autodoc-typehints>=2.0",
+    "sphinx-copybutton>=0.5",
+    "sphinx-gallery>=0.17",
+]
+benchmarks = [
+    "matplotlib>=3.9.0",
+    "pandas>=2.2.0",
+    "scipy>=1.11.0",
+    "coco-experiment>=2.6",
+    # yahpo-gym pins numpy<2; install manually: pip install yahpo-gym
+    # then pip install -e ".[benchmarks]"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+torch_dfo = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "RUF", "SIM", "C4", "PERF", "RET"]
+ignore = [
+    # Greek letters and math notation are intentional in this library (σ, μ, ε, ×, 𝒩).
+    "RUF002",
+    "RUF003",
+    # __all__ is grouped by category, not sorted alphabetically.
+    "RUF022",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["torch_dfo.phased", "torch_dfo._polish", "torch_dfo.dlr_cma"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=torch_dfo --cov-report=xml --cov-fail-under=85"
+
+[tool.coverage.run]
+source = ["torch_dfo"]
+omit = ["*/tests/*"]
