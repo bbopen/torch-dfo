@@ -115,6 +115,7 @@ jobs:
     # required signal for every workflow run; runner availability is part of
     # the release contract.
     runs-on: [self-hosted, cuda]
+    environment: gpu-runner
     timeout-minutes: 30
     env:
       CUDA_VENV: /workspace/torch-dfo/.venv
