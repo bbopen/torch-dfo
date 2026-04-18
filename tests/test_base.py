@@ -407,9 +407,7 @@ class TestRandomHelpers:
             f"Expected CPU-backed generator on MPS device, got {opt._gen_device}"
         )
         t = opt._rand(4, 3)
-        assert t.device.type == "mps", (
-            f"_rand did not move to target device: got {t.device}"
-        )
+        assert t.device.type == "mps", f"_rand did not move to target device: got {t.device}"
         # Same check for _randn, _randperm, _randint.
         assert opt._randn(4, 3).device.type == "mps"
         assert opt._randperm(5).device.type == "mps"

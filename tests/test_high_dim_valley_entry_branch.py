@@ -79,6 +79,50 @@ def test_dim40_portfolio_has_incumbent_lm_valley_branch(device: torch.device) ->
 
 
 @pytest.mark.parametrize("device", [torch.device("cpu")])
+def test_dim40_portfolio_roundtrip_preserves_cma_modes(device: torch.device) -> None:
+    dtype = best_float_dtype(device)
+    opt1 = PhasedDFO(
+        dim=40,
+        bounds=5.0,
+        budget=80000,
+        pop_size=48,
+        device=device,
+        dtype=dtype,
+        seed=42,
+    )
+    _seed_high_dim_elite_state(opt1)
+    opt1._phase = 1
+
+    candidates = opt1.ask()
+    opt1.tell(candidates, sphere(candidates))
+    state = opt1.state_dict()
+
+    opt2 = PhasedDFO(
+        dim=40,
+        bounds=5.0,
+        budget=80000,
+        pop_size=48,
+        device=device,
+        dtype=dtype,
+        seed=99,
+    )
+    opt2.load_state_dict(state)
+
+    assert opt1._cmaes_portfolio is not None
+    assert opt2._cmaes_portfolio is not None
+    assert opt2._portfolio_generation == opt1._portfolio_generation
+    assert opt2._portfolio_active_indices == opt1._portfolio_active_indices
+
+    for branch1, branch2 in zip(opt1._cmaes_portfolio, opt2._cmaes_portfolio, strict=True):
+        assert branch2.active is branch1.active
+        assert branch2.mirrored is branch1.mirrored
+        assert branch2.path_memory == branch1.path_memory
+        assert branch2.path_line_samples == branch1.path_line_samples
+
+    assert torch.allclose(opt1.ask(), opt2.ask())
+
+
+@pytest.mark.parametrize("device", [torch.device("cpu")])
 def test_dim20_portfolio_keeps_all_random_cma_branches(device: torch.device) -> None:
     dtype = best_float_dtype(device)
     opt = PhasedDFO(

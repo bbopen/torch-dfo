@@ -26,13 +26,14 @@ Glasmachers et al. (2010). "Exponential Natural Evolution Strategies."
 from __future__ import annotations
 
 import math
+import warnings
 from collections.abc import Sequence
 from typing import Any
 
 import torch
 from torch import Tensor
 
-from torch_dfo.utils import clamp_to_bounds
+from torch_dfo.utils import clamp_to_bounds, make_generator, normalize_bounds, resolve_device
 
 # ------------------------------------------------------------------
 # Default K=4 portfolio configuration
@@ -74,7 +75,7 @@ def _woodbury_solve(
         L = torch.linalg.cholesky(M + eps * torch.eye(k, device=V.device, dtype=V.dtype))
         rhs = torch.bmm(V.transpose(-1, -2), dinv_x.unsqueeze(-1))  # (K, k, 1)
         sol = torch.cholesky_solve(rhs, L)  # (K, k, 1)
-    except Exception:
+    except RuntimeError:
         # Fallback: direct solve (more stable)
         rhs = torch.bmm(V.transpose(-1, -2), dinv_x.unsqueeze(-1))  # (K, k, 1)
         sol = torch.linalg.solve(M, rhs)  # (K, k, 1)
@@ -150,17 +151,11 @@ class DLRPortfolio:
     --------
     >>> import torch
     >>> from torch_dfo.dlr_cma import DLRPortfolio
-    >>> dim = 20
-    >>> lb = torch.full((dim,), -5.0, dtype=torch.float64)
-    >>> ub = torch.full((dim,), 5.0, dtype=torch.float64)
-    >>> rng = torch.Generator(device="cpu").manual_seed(42)
     >>> dlr = DLRPortfolio(
-    ...     dim=dim, lb=lb, ub=ub,
+    ...     dim=20, bounds=5.0,
     ...     lambdas=(24, 12, 12, 12),
     ...     sigma_fracs=(0.2, 0.043, 0.0093, 0.002),
-    ...     device=torch.device("cpu"),
-    ...     dtype=torch.float64,
-    ...     rng=rng,
+    ...     seed=42,
     ... )
     >>> candidates = dlr.ask()          # shape (60, 20) — sum of lambdas
     >>> fitness = (candidates ** 2).sum(dim=-1)
@@ -170,18 +165,53 @@ class DLRPortfolio:
     def __init__(
         self,
         dim: int,
-        lb: Tensor,
-        ub: Tensor,
-        lambdas: Sequence[int],
-        sigma_fracs: Sequence[float],
+        bounds: float | tuple[float, float] | tuple[Tensor, Tensor] | None = None,
         *,
+        lb: Tensor | None = None,
+        ub: Tensor | None = None,
+        lambdas: Sequence[int] = (12, 12),
+        sigma_fracs: Sequence[float] = (0.3, 0.1),
         k_rank: int | None = None,
         sigma_factors: Sequence[float] | None = None,
         cma_budget: int | None = None,
-        device: torch.device,
+        seed: int | None = None,
+        rng: torch.Generator | None = None,
+        device: str | torch.device | None = None,
         dtype: torch.dtype = torch.float64,
-        rng: torch.Generator,
     ) -> None:
+        # ---- resolve device (accepts None / str / torch.device) ----
+        device = resolve_device(device)
+
+        # ---- disambiguate bounds vs lb/ub ----
+        has_lbub = lb is not None or ub is not None
+        if bounds is not None and has_lbub:
+            raise ValueError(
+                "Pass either bounds= or (lb=, ub=), not both. "
+                "lb/ub kwargs are deprecated; prefer bounds=."
+            )
+        if bounds is None and not has_lbub:
+            raise ValueError("Must pass bounds= (preferred) or both lb= and ub=.")
+
+        if bounds is not None:
+            lb_t, ub_t = normalize_bounds(bounds, dim, device, dtype)
+        else:
+            if lb is None or ub is None:
+                raise ValueError(
+                    "When using the deprecated lb/ub API, both lb and ub are required."
+                )
+            warnings.warn(
+                "lb/ub kwargs are deprecated; pass bounds= instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            lb_t, ub_t = normalize_bounds((lb, ub), dim, device, dtype)
+
+        # ---- disambiguate seed vs rng ----
+        if seed is not None and rng is not None:
+            raise ValueError("Pass either seed= or rng=, not both.")
+        if rng is None:
+            rng = make_generator(seed, device)
+
         self.dim = dim
         self.K = len(lambdas)
         self.lambdas = list(lambdas)
@@ -197,8 +227,8 @@ class DLRPortfolio:
             k_rank = max(4, min(dim // 2, 16))
         self.k_rank = k_rank
 
-        self.lb = lb.to(device=device, dtype=dtype)
-        self.ub = ub.to(device=device, dtype=dtype)
+        self.lb = lb_t
+        self.ub = ub_t
         span = (self.ub - self.lb).mean().item()
 
         # ---- NIPOP restart scheduler state ----

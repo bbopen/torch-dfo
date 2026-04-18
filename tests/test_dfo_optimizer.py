@@ -220,6 +220,7 @@ def test_step_returns_best_loss():
     assert loss.ndim == 0  # scalar
     assert loss.item() >= 0.0
 
+
 # ------------------------------------------------------------------
 # D2 — state_dict / load_state_dict roundtrip
 # ------------------------------------------------------------------
@@ -284,9 +285,7 @@ def test_dfo_optimizer_state_dict_roundtrip_preserves_inner_and_evals():
     candidates.
     """
     p1 = torch.zeros(3, dtype=torch.float64)
-    opt1 = DFOOptimizer(
-        [p1], algorithm="shade", bounds=(-1.0, 1.0), pop_size=10, seed=42
-    )
+    opt1 = DFOOptimizer([p1], algorithm="shade", bounds=(-1.0, 1.0), pop_size=10, seed=42)
     opt1.step(closure_batched=lambda c: (c**2).sum(-1))
     sd = opt1.state_dict()
 
@@ -294,9 +293,7 @@ def test_dfo_optimizer_state_dict_roundtrip_preserves_inner_and_evals():
     assert sd["_evals"] == opt1._evals
 
     p2 = torch.zeros(3, dtype=torch.float64)
-    opt2 = DFOOptimizer(
-        [p2], algorithm="shade", bounds=(-1.0, 1.0), pop_size=10, seed=99
-    )
+    opt2 = DFOOptimizer([p2], algorithm="shade", bounds=(-1.0, 1.0), pop_size=10, seed=99)
     opt2.load_state_dict(sd)
     assert opt2._evals == opt1._evals
 
@@ -330,9 +327,7 @@ def test_step_raises_when_budget_exhausted():
     stated budget.
     """
     params = [torch.zeros(3, dtype=torch.float64)]
-    opt = DFOOptimizer(
-        params, algorithm="shade", bounds=(-1, 1), budget=20, pop_size=10
-    )
+    opt = DFOOptimizer(params, algorithm="shade", bounds=(-1, 1), budget=20, pop_size=10)
     opt.step(closure_batched=lambda c: (c**2).sum(-1))
     opt.step(closure_batched=lambda c: (c**2).sum(-1))
     assert opt.is_exhausted

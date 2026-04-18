@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
 
@@ -49,17 +49,44 @@ jobs:
           files: coverage.xml
           fail_ci_if_error: false
 
-  gpu-tests:
-    # Runs on a self-hosted CUDA runner (RunPod A4500). Runs on every
-    # push / PR / dispatch so CUDA correctness is part of every merge
-    # gate. `continue-on-error: true` keeps the pipeline unblocked if
-    # the pod is offline — the CPU lane remains authoritative then.
-    # `timeout-minutes: 30` bounds queued jobs when the pod is down.
-    runs-on: [self-hosted, cuda]
-    timeout-minutes: 30
-    continue-on-error: true
+  build-docs:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install CPU-only PyTorch
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install package and docs extras
+        run: pip install -e ".[docs]"
+
+      - name: Build docs
+        run: sphinx-build -W --keep-going -b html docs _build/html
+
+  gpu-tests:
+    # Runs on a self-hosted CUDA runner (RunPod A4500). CUDA correctness is a
+    # required signal for every workflow run; runner availability is part of
+    # the release contract.
+    runs-on: [self-hosted, cuda]
+    timeout-minutes: 30
+    env:
+      CUDA_VENV: /workspace/torch-dfo/.venv
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate CUDA runner environment
+        run: |
+          test -x "${CUDA_VENV}/bin/python"
+          test -x "${CUDA_VENV}/bin/pip"
+          test -x "${CUDA_VENV}/bin/ruff"
+          test -x "${CUDA_VENV}/bin/pytest"
 
       - name: Report device
         run: |
@@ -67,21 +94,23 @@ jobs:
           nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || true
           echo "== python / torch =="
           python3 --version
-          /workspace/torch-dfo/.venv/bin/python -c "import torch; print(f'torch={torch.__version__} cuda={torch.cuda.is_available()} device={torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"n/a\"}')"
+          "${CUDA_VENV}/bin/python" -c "import torch; print(f'torch={torch.__version__} cuda={torch.cuda.is_available()} device={torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"n/a\"}')"
 
       - name: Install the checked-out source into the pod venv
         run: |
-          /workspace/torch-dfo/.venv/bin/pip install -e . --no-deps --quiet
+          "${CUDA_VENV}/bin/pip" install -e . --no-deps --quiet
 
       - name: Ruff lint
-        run: /workspace/torch-dfo/.venv/bin/ruff check src/ tests/
+        run: |
+          "${CUDA_VENV}/bin/ruff" check src/ tests/
 
       - name: Pytest (CUDA device fixture will activate automatically)
-        run: /workspace/torch-dfo/.venv/bin/pytest tests/ -q --maxfail=5
+        run: |
+          "${CUDA_VENV}/bin/pytest" tests/ -q --maxfail=5
 
   build-dist:
     runs-on: ubuntu-latest
-    needs: lint-and-test
+    needs: [lint-and-test, build-docs, gpu-tests]
     steps:
       - uses: actions/checkout@v4
 

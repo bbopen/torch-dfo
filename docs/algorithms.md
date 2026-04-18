@@ -19,7 +19,8 @@ opt = torch_dfo.CMAES(
 )
 ```
 
-**Ceiling:** O(d³) eigendecomposition per generation. Practical ceiling on A4500 TBD (see scaling sweep).
+**Ceiling:** O(d³) eigendecomposition per generation; prefer `SHADE` or
+`DLRPortfolio` when full covariance updates dominate runtime at large dimension.
 
 ## SHADE
 

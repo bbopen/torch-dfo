@@ -2,6 +2,38 @@
 
 All notable changes to torch-dfo.
 
+## [Unreleased]
+
+## 0.10.0 — 2026-04-18
+
+### Internal State
+
+- Extracted SHADE success-history memory, archive, trial buffers, and
+  initialization flag into `SHADEMemory`.
+- Extracted CMA-ES evolution-path buffers into `CMAPathState` and
+  Hansen adaptation constants into `CMAAdaptationRates`.
+- Extracted PhasedDFO runtime state into four state bundles:
+  `PhasedPolishState`, `PhasedValleyState`, `PhasedDEState`, and
+  `PhasedCMAState`.
+- Preserved compatibility accessors for existing internal test and
+  downstream access patterns while moving real storage out of the flat
+  optimizer instance layout.
+
+### Serialization
+
+- Nested SHADE memory now serializes under `state["memory"]`.
+- Nested CMA-ES path state now serializes under `state["path"]`.
+- PhasedDFO state serialization now delegates DE, valley, polish, and
+  CMA phase state to the new state bundles, including CMA phase budgets
+  and nested CMA-ES portfolio state.
+
+### Quality
+
+- Restored repo-wide `ruff check .`, `ruff format --check .`, and strict
+  mypy cleanliness.
+- Default optimizer construction now falls back to CPU when `device=None`
+  would otherwise select MPS with unsupported `float64` tensors.
+
 ## 0.9.0 — 2026-04-17
 
 First public release.

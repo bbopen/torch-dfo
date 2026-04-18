@@ -354,7 +354,6 @@ class TestBenchmarkSuite:
         dims_found = {p.dim for p in problems}
         assert dims_found == {5, 20}
 
-
     def test_classical_canonical_bounds(self) -> None:
         """D4: pin BBOB/CEC canonical bounds for each classical problem.
 

@@ -22,6 +22,7 @@ from torch_dfo._operators import (
     de_current_to_pbest_mutation,
     opposition_init,
 )
+from torch_dfo._shade_state import SHADEMemory
 from torch_dfo.base import BaseOptimizer
 
 
@@ -90,9 +91,8 @@ class SHADE(BaseOptimizer):
 
         # SHADE memory (circular buffer for F and CR)
         self.memory_size = memory_size
-        self.memory_F = torch.full((memory_size,), 0.7, device=self.device, dtype=self.dtype)
-        self.memory_CR = torch.full((memory_size,), 0.7, device=self.device, dtype=self.dtype)
-        self._memory_pos = 0
+        memory_F = torch.full((memory_size,), 0.7, device=self.device, dtype=self.dtype)
+        memory_CR = torch.full((memory_size,), 0.7, device=self.device, dtype=self.dtype)
 
         # p-best parameters (adaptive from p_max to p_min over generations)
         self.p_min = p_min
@@ -101,17 +101,24 @@ class SHADE(BaseOptimizer):
         # Archive (JADE-style: stores replaced parents)
         self.archive_ratio = archive_ratio
         self._archive_max = int(pop_size * archive_ratio)
-        self._archive = torch.empty(0, dim, device=self.device, dtype=self.dtype)
+        archive = torch.empty(0, dim, device=self.device, dtype=self.dtype)
 
         # Per-offspring trial parameters (pre-allocated)
-        self._trial_F = torch.empty(pop_size, device=self.device, dtype=self.dtype)
-        self._trial_CR = torch.empty(pop_size, device=self.device, dtype=self.dtype)
+        trial_F = torch.empty(pop_size, device=self.device, dtype=self.dtype)
+        trial_CR = torch.empty(pop_size, device=self.device, dtype=self.dtype)
 
         # Trial vectors storage
-        self._trials = torch.empty(pop_size, dim, device=self.device, dtype=self.dtype)
-
-        # Initialization flag
-        self._initialized = False
+        trials = torch.empty(pop_size, dim, device=self.device, dtype=self.dtype)
+        self._memory = SHADEMemory(
+            memory_F=memory_F,
+            memory_CR=memory_CR,
+            _memory_pos=0,
+            _archive=archive,
+            _trial_F=trial_F,
+            _trial_CR=trial_CR,
+            _trials=trials,
+            _initialized=False,
+        )
 
         # Warm-start: optional initial population to seed first n rows
         self._initial_population: torch.Tensor | None = (
@@ -120,37 +127,89 @@ class SHADE(BaseOptimizer):
             else None
         )
 
+    @property
+    def memory_F(self) -> torch.Tensor:
+        """Success-history F memory."""
+        return self._memory.memory_F
+
+    @memory_F.setter
+    def memory_F(self, value: torch.Tensor) -> None:
+        self._memory.memory_F = value
+
+    @property
+    def memory_CR(self) -> torch.Tensor:
+        """Success-history CR memory."""
+        return self._memory.memory_CR
+
+    @memory_CR.setter
+    def memory_CR(self, value: torch.Tensor) -> None:
+        self._memory.memory_CR = value
+
+    @property
+    def _memory_pos(self) -> int:
+        return self._memory._memory_pos
+
+    @_memory_pos.setter
+    def _memory_pos(self, value: int) -> None:
+        self._memory._memory_pos = int(value)
+
+    @property
+    def _archive(self) -> torch.Tensor:
+        return self._memory._archive
+
+    @_archive.setter
+    def _archive(self, value: torch.Tensor) -> None:
+        self._memory._archive = value
+
+    @property
+    def _trial_F(self) -> torch.Tensor:
+        return self._memory._trial_F
+
+    @_trial_F.setter
+    def _trial_F(self, value: torch.Tensor) -> None:
+        self._memory._trial_F = value
+
+    @property
+    def _trial_CR(self) -> torch.Tensor:
+        return self._memory._trial_CR
+
+    @_trial_CR.setter
+    def _trial_CR(self, value: torch.Tensor) -> None:
+        self._memory._trial_CR = value
+
+    @property
+    def _trials(self) -> torch.Tensor:
+        return self._memory._trials
+
+    @_trials.setter
+    def _trials(self, value: torch.Tensor) -> None:
+        self._memory._trials = value
+
+    @property
+    def _initialized(self) -> bool:
+        return self._memory._initialized
+
+    @_initialized.setter
+    def _initialized(self, value: bool) -> None:
+        self._memory._initialized = bool(value)
+
     # ------------------------------------------------------------------
     # Serialization
     # ------------------------------------------------------------------
     def state_dict(self) -> dict[str, Any]:
         """Return SHADE state as a serializable dict."""
         state = super().state_dict()
-        state.update(
-            {
-                "memory_F": self.memory_F.clone(),
-                "memory_CR": self.memory_CR.clone(),
-                "_memory_pos": self._memory_pos,
-                "_archive": self._archive.clone(),
-                "_trial_F": self._trial_F.clone(),
-                "_trial_CR": self._trial_CR.clone(),
-                "_trials": self._trials.clone(),
-                "_initialized": self._initialized,
-            }
-        )
+        state["memory"] = self._memory.to_dict()
         return state
 
     def load_state_dict(self, state: dict[str, Any]) -> None:
         """Restore SHADE state from a dict produced by :meth:`state_dict`."""
         super().load_state_dict(state)
-        self.memory_F.copy_(state["memory_F"])
-        self.memory_CR.copy_(state["memory_CR"])
-        self._memory_pos = state["_memory_pos"]
-        self._archive = state["_archive"].clone()
-        self._trial_F.copy_(state["_trial_F"])
-        self._trial_CR.copy_(state["_trial_CR"])
-        self._trials.copy_(state["_trials"])
-        self._initialized = state["_initialized"]
+        self._memory = SHADEMemory.from_dict(
+            state["memory"],
+            device=self.device,
+            dtype=self.dtype,
+        )
 
     # ------------------------------------------------------------------
     # ask
@@ -170,14 +229,14 @@ class SHADE(BaseOptimizer):
             (pop_size, dim) candidate solutions.
 
         """
-        if not self._initialized:
+        if not self._memory._initialized:
             pop = opposition_init(self.pop_size, self.dim, self.lb, self.ub, generator=self._gen)
             self.population.copy_(pop)
             if self._initial_population is not None:
                 n = min(self._initial_population.shape[0], self.pop_size)
                 self.population[:n].copy_(self._initial_population[:n].clamp(self.lb, self.ub))
                 self._initial_population = None  # free memory after use
-            self._initialized = True
+            self._memory._initialized = True
             return self.population.clone()
 
         # --- Sample F and CR from memory ---
@@ -185,18 +244,18 @@ class SHADE(BaseOptimizer):
         mem_idx = self._randint(0, self.memory_size, (self.pop_size,))
 
         # F_i ~ Normal(memory_F[k], 0.1), clamped to [0.05, 1.0]
-        loc_F = self.memory_F[mem_idx]
+        loc_F = self._memory.memory_F[mem_idx]
         trial_F = loc_F + 0.1 * self._randn(self.pop_size)
         trial_F = trial_F.clamp(0.05, 1.0)
 
         # CR_i ~ Normal(memory_CR[k], 0.1), clamped to [0.0, 1.0]
-        loc_CR = self.memory_CR[mem_idx]
+        loc_CR = self._memory.memory_CR[mem_idx]
         trial_CR = loc_CR + 0.1 * self._randn(self.pop_size)
         trial_CR = trial_CR.clamp(0.0, 1.0)
 
         # Store for tell() memory update
-        self._trial_F.copy_(trial_F)
-        self._trial_CR.copy_(trial_CR)
+        self._memory._trial_F.copy_(trial_F)
+        self._memory._trial_CR.copy_(trial_CR)
 
         # --- Adaptive p_fraction: linear decay from p_max to p_min ---
         # Use a logistic-like schedule; for simplicity, linear over 5000 gens
@@ -207,7 +266,7 @@ class SHADE(BaseOptimizer):
         p_fraction = max(p_fraction, 1.0 / self.pop_size)
 
         # --- Mutation: current-to-pbest/1 ---
-        archive = self._archive if self._archive.shape[0] > 0 else None
+        archive = self._memory._archive if self._memory._archive.shape[0] > 0 else None
         donor = de_current_to_pbest_mutation(
             self.population,
             self.fitness,
@@ -228,7 +287,7 @@ class SHADE(BaseOptimizer):
         # --- Clamp to bounds ---
         trials = torch.clamp(trials, self.lb, self.ub)
 
-        self._trials.copy_(trials)
+        self._memory._trials.copy_(trials)
         return trials
 
     # ------------------------------------------------------------------
@@ -264,16 +323,16 @@ class SHADE(BaseOptimizer):
         # --- Archive: add replaced parents for successful trials ---
         if improved.any():
             replaced_parents = self.population[improved]
-            self._archive = torch.cat([self._archive, replaced_parents], dim=0)
+            self._memory._archive = torch.cat([self._memory._archive, replaced_parents], dim=0)
             # Truncate archive if over capacity by keeping random subset
-            if self._archive.shape[0] > self._archive_max:
-                perm = self._randperm(self._archive.shape[0])
-                self._archive = self._archive[perm[: self._archive_max]]
+            if self._memory._archive.shape[0] > self._archive_max:
+                perm = self._randperm(self._memory._archive.shape[0])
+                self._memory._archive = self._memory._archive[perm[: self._archive_max]]
 
         # --- SHADE memory update for successful offspring ---
         if improved.any():
-            succ_F = self._trial_F[improved]
-            succ_CR = self._trial_CR[improved]
+            succ_F = self._memory._trial_F[improved]
+            succ_CR = self._memory._trial_CR[improved]
 
             # Improvement weights: delta_f_j = f_parent_j - f_offspring_j
             delta_f = self.fitness[improved] - fitness[improved]
@@ -283,14 +342,16 @@ class SHADE(BaseOptimizer):
             wF = weights * succ_F
             wF2 = weights * succ_F * succ_F
             denom = wF.sum()
-            lehmer_F = wF2.sum() / denom if denom > 0 else self.memory_F[self._memory_pos]
+            lehmer_F = (
+                wF2.sum() / denom if denom > 0 else self._memory.memory_F[self._memory._memory_pos]
+            )
 
             # Weighted arithmetic mean for CR
             mean_CR = (weights * succ_CR).sum()
 
-            self.memory_F[self._memory_pos] = lehmer_F
-            self.memory_CR[self._memory_pos] = mean_CR
-            self._memory_pos = (self._memory_pos + 1) % self.memory_size
+            self._memory.memory_F[self._memory._memory_pos] = lehmer_F
+            self._memory.memory_CR[self._memory._memory_pos] = mean_CR
+            self._memory._memory_pos = (self._memory._memory_pos + 1) % self.memory_size
 
         # --- Update population and fitness ---
         self.population.copy_(new_pop)

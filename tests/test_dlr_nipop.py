@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 
+import pytest
 import torch
 
 from torch_dfo.dlr_cma import DLRPortfolio
@@ -141,6 +142,7 @@ def test_restart_resets_state_with_nipop() -> None:
     assert dlr.stag_count[0].item() == 0
     assert dlr._rank_mu_col[0] == 0
 
+
 def test_ask_partial_skip_some_branches_active() -> None:
     """D6: remaining_budget chosen so SOME branches are skipped but not all.
 
@@ -171,3 +173,65 @@ def test_ask_partial_skip_some_branches_active() -> None:
         f"_last_active wrong: got {dlr._last_active}, expected [0, 1]"
     )
 
+
+# ----------------------------------------------------------------------
+# Constructor API unification (B4): bounds= / seed= alignment with peers
+# ----------------------------------------------------------------------
+def test_dlrportfolio_accepts_bounds_kwarg() -> None:
+    """Happy path: new unified API (bounds= + seed=) constructs and samples."""
+    lambdas = (12, 12)
+    # Pin to CPU so float64 works on MPS-equipped test hosts (matches how
+    # sibling optimizer tests — CMAES, SHADE — are written).
+    dlr = DLRPortfolio(dim=5, bounds=5.0, lambdas=lambdas, seed=42, device="cpu")
+    assert dlr.lb.shape == (5,)
+    assert dlr.ub.shape == (5,)
+    # Bounds resolved symmetrically via normalize_bounds.
+    assert torch.allclose(dlr.lb, torch.full((5,), -5.0, dtype=dlr.dtype))
+    assert torch.allclose(dlr.ub, torch.full((5,), 5.0, dtype=dlr.dtype))
+    candidates = dlr.ask()
+    assert candidates.shape == (sum(lambdas), 5)
+
+
+def test_dlrportfolio_seed_kwarg_produces_deterministic_output() -> None:
+    """The seed= kwarg must actually reach the internal generator.
+
+    If __init__ silently ignored seed= (e.g. ``seed or rng`` ordering flipped),
+    two optimizers constructed with the same seed would diverge. Check that
+    they agree bit-exactly on the first ask.
+    """
+    kwargs = {"dim": 5, "bounds": 5.0, "lambdas": (12, 12), "device": "cpu"}
+    a = DLRPortfolio(seed=1234, **kwargs)
+    b = DLRPortfolio(seed=1234, **kwargs)
+    assert torch.equal(a.ask(), b.ask()), "same seed produced divergent asks"
+    c = DLRPortfolio(seed=9999, **kwargs)
+    assert not torch.equal(a.ask(), c.ask()), "different seeds produced identical asks"
+
+
+def test_dlrportfolio_lb_ub_emits_deprecation_warning() -> None:
+    """Back-compat path: lb=/ub= still works but raises DeprecationWarning."""
+    dim = 5
+    lb = torch.full((dim,), -5.0, dtype=torch.float64)
+    ub = torch.full((dim,), 5.0, dtype=torch.float64)
+    rng = torch.Generator(device="cpu").manual_seed(7)
+    with pytest.warns(DeprecationWarning, match="lb/ub"):
+        dlr = DLRPortfolio(
+            dim=dim,
+            lb=lb,
+            ub=ub,
+            lambdas=(12, 12),
+            sigma_fracs=(0.3, 0.1),
+            device=torch.device("cpu"),
+            dtype=torch.float64,
+            rng=rng,
+        )
+    candidates = dlr.ask()
+    assert candidates.shape == (24, dim)
+
+
+def test_dlrportfolio_rejects_both_bounds_and_lb() -> None:
+    """Passing both bounds= and lb=/ub= must raise ValueError with a clear message."""
+    dim = 5
+    lb = torch.full((dim,), -5.0, dtype=torch.float64)
+    ub = torch.full((dim,), 5.0, dtype=torch.float64)
+    with pytest.raises(ValueError, match="bounds"):
+        DLRPortfolio(dim=dim, bounds=5.0, lb=lb, ub=ub, seed=0)

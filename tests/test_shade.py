@@ -180,7 +180,7 @@ class TestTellUpdates:
         assert torch.allclose(opt.fitness, fitness)
 
     def test_population_changes_after_tell(self, device: torch.device) -> None:
-        """Run enough generations to move the population off its init state, robustly across seeds."""
+        """Move the population off its init state robustly across seeds."""
         dtype = best_float_dtype(device)
         opt = SHADE(dim=5, bounds=5.0, pop_size=30, device=device, dtype=dtype, seed=42)
         # Init
@@ -333,11 +333,9 @@ class TestMemoryUpdate:
     """Validate SHADE's success-history memory adaptation."""
 
     def test_memory_changes_after_improvements(self, device: torch.device) -> None:
-        """memory_F should update after improvements and stay in the sampling clamp range [0.05, 1.0]."""
+        """memory_F updates after improvements and stays in range."""
         dtype = best_float_dtype(device)
         opt = SHADE(dim=5, bounds=5.0, pop_size=40, device=device, dtype=dtype, seed=42)
-        initial_F = opt.memory_F.clone()
-        initial_CR = opt.memory_CR.clone()
         # Init generation
         c = opt.ask()
         opt.tell(c, sphere(c))
@@ -494,7 +492,7 @@ class TestArchive:
         )
 
     def test_archive_on_correct_device(self, device: torch.device) -> None:
-        """After enough generations the archive is guaranteed non-empty and on the correct device."""
+        """The archive becomes non-empty and stays on the correct device."""
         dtype = best_float_dtype(device)
         opt = SHADE(dim=5, bounds=5.0, pop_size=30, device=device, dtype=dtype, seed=42)
         for _ in range(30):
@@ -577,7 +575,7 @@ class TestMultiDevice:
     """Verify SHADE works on all available devices."""
 
     def test_ask_tell_loop_runs(self, device: torch.device) -> None:
-        """Ask/tell loop runs cleanly and makes measurable progress after a few generations on the sphere."""
+        """Ask/tell runs cleanly and makes measurable sphere progress."""
         dtype = best_float_dtype(device)
         opt = SHADE(dim=5, bounds=5.0, pop_size=20, device=device, dtype=dtype, seed=42)
         for _ in range(5):
@@ -728,7 +726,7 @@ class TestFirstGeneration:
     """Validate the first generation (gen=0) early return behavior."""
 
     def test_first_generation_early_return(self, device: torch.device) -> None:
-        """After the first ask/tell, gen=1, the population matches what was told, and the archive is empty."""
+        """First ask/tell stores the told population and leaves archive empty."""
         dtype = best_float_dtype(device)
         opt = SHADE(dim=5, bounds=5.0, pop_size=20, device=device, dtype=dtype, seed=42)
         candidates = opt.ask()

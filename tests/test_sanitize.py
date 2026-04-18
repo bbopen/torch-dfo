@@ -49,6 +49,7 @@ def test_no_mutation_of_input():
     assert torch.isnan(f[1])
     assert torch.equal(torch.isnan(f), torch.isnan(f_before))
 
+
 # ---------------------------------------------------------------------------
 # D3 — sanitize_fitness end-to-end integration with CMAES / SHADE.
 # ---------------------------------------------------------------------------
@@ -56,7 +57,7 @@ def test_no_mutation_of_input():
 
 def _nan_interleaved_sphere(x: torch.Tensor) -> torch.Tensor:
     """Sphere fitness with NaN injected at every other row."""
-    f = (x ** 2).sum(dim=-1)
+    f = (x**2).sum(dim=-1)
     mask = torch.arange(f.shape[0], device=f.device) % 2 == 0
     f = f.clone()
     f[mask] = float("nan")
@@ -66,8 +67,14 @@ def _nan_interleaved_sphere(x: torch.Tensor) -> torch.Tensor:
 def test_sanitize_fitness_integration_cmaes() -> None:
     """D3: CMAES sees NaN fitness → sanitize → tell → internal state clean."""
     from torch_dfo.cmaes import CMAES
+
     opt = CMAES(
-        dim=5, bounds=5.0, pop_size=10, device="cpu", dtype=torch.float64, seed=42,
+        dim=5,
+        bounds=5.0,
+        pop_size=10,
+        device="cpu",
+        dtype=torch.float64,
+        seed=42,
     )
     for _ in range(3):
         c = opt.ask()
@@ -83,8 +90,14 @@ def test_sanitize_fitness_integration_cmaes() -> None:
 def test_sanitize_fitness_integration_shade() -> None:
     """D3: SHADE sees NaN fitness → sanitize → tell → internal state clean."""
     from torch_dfo.shade import SHADE
+
     opt = SHADE(
-        dim=5, bounds=5.0, pop_size=10, device="cpu", dtype=torch.float64, seed=42,
+        dim=5,
+        bounds=5.0,
+        pop_size=10,
+        device="cpu",
+        dtype=torch.float64,
+        seed=42,
     )
     for _ in range(3):
         c = opt.ask()
@@ -97,16 +110,15 @@ def test_sanitize_fitness_integration_shade() -> None:
     assert not torch.isnan(opt.memory_CR).any(), "SHADE.memory_CR contains NaN"
 
 
-
 def test_sanitize_fitness_integration_phased() -> None:
     """D3 (round-2): PhasedDFO sees NaN fitness → sanitize → tell → state clean.
 
-    PhasedDFO was not covered alongside CMAES/SHADE in the original sanitize
-    integration tests despite being the headline optimizer for 0.9.0. A NaN
-    leaking into SHADE.memory_F via PhasedDFO's tell path would silently
-    corrupt subsequent generations.
+    PhasedDFO should be covered alongside CMAES/SHADE so a NaN leaking into
+    SHADE.memory_F via PhasedDFO's tell path cannot silently corrupt subsequent
+    generations.
     """
     from torch_dfo import PhasedDFO
+
     opt = PhasedDFO(
         dim=5,
         bounds=5.0,
@@ -129,9 +141,5 @@ def test_sanitize_fitness_integration_phased() -> None:
     assert torch.isfinite(opt._shade.population).all(), (
         "PhasedDFO SHADE population corrupted by NaN fitness"
     )
-    assert not torch.isnan(opt._shade.memory_F).any(), (
-        "PhasedDFO SHADE memory_F contains NaN"
-    )
-    assert not torch.isnan(opt._shade.memory_CR).any(), (
-        "PhasedDFO SHADE memory_CR contains NaN"
-    )
+    assert not torch.isnan(opt._shade.memory_F).any(), "PhasedDFO SHADE memory_F contains NaN"
+    assert not torch.isnan(opt._shade.memory_CR).any(), "PhasedDFO SHADE memory_CR contains NaN"

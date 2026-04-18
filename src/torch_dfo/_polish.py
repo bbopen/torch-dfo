@@ -776,7 +776,7 @@ def _estimate_envelope_offset(
     targets = torch.tensor(responses, device=device, dtype=dtype).unsqueeze(1)  # (K, 1)
     try:
         offset = torch.linalg.lstsq(design, targets).solution.squeeze(1)
-    except Exception:
+    except RuntimeError:
         # Fallback: ridge regression
         gram = design.T @ design
         gram_scale = float(torch.trace(gram).item() / max(dim, 1))
@@ -787,7 +787,7 @@ def _estimate_envelope_offset(
                 gram + ridge * torch.eye(dim, device=device, dtype=dtype),
                 rhs,
             ).squeeze(1)
-        except Exception:
+        except RuntimeError:
             return None, fe_used
 
     offset = torch.nan_to_num(offset, nan=0.0, posinf=0.0, neginf=0.0)

@@ -212,7 +212,7 @@ class DFOOptimizer(torch.optim.Optimizer):
     # Serialization
     # ------------------------------------------------------------------
 
-    def state_dict(self) -> dict[str, Any]:  # type: ignore[override]
+    def state_dict(self) -> dict[str, Any]:
         """Return optimizer state including the wrapped inner DFO optimizer.
 
         Extends :class:`torch.optim.Optimizer.state_dict` with the keys
@@ -224,7 +224,7 @@ class DFOOptimizer(torch.optim.Optimizer):
         state["_evals"] = self._evals
         return state
 
-    def load_state_dict(self, state_dict: dict[str, Any]) -> None:  # type: ignore[override]
+    def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Restore optimizer state produced by :meth:`state_dict`.
 
         The ``_inner`` and ``_evals`` extensions are consumed here; the

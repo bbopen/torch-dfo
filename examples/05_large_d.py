@@ -93,5 +93,3 @@ for name, dim, pop in configs:
 
     except torch.cuda.OutOfMemoryError:  # noqa: PERF203
         print(f"{name:<16} {dim:>6} {pop:>6}  {'OOM':>10}")
-    except Exception as exc:
-        print(f"{name:<16} {dim:>6} {pop:>6}  {'ERROR':>10}  ({exc})")

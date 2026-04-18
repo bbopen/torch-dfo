@@ -117,7 +117,7 @@ class TestStrategyParameters:
 
     @pytest.mark.parametrize("device", [torch.device("cpu")])
     def test_strategy_parameter_formulas(self, device: torch.device) -> None:
-        """CMA-ES strategy parameters c_sigma, d_sigma, c_c, c_1, c_mu match Hansen's formulas at dim=10."""
+        """CMA-ES strategy parameters match Hansen's formulas at dim=10."""
         dtype = torch.float64
         dim = 10
         opt = CMAES(dim=dim, bounds=5.0, device=device, dtype=dtype, seed=42)
@@ -234,7 +234,7 @@ class TestTell:
         assert not torch.equal(opt.mean, old_mean)
 
     def test_mean_moves_toward_better_solutions(self, device: torch.device) -> None:
-        """Given enough generations, the mean migrates from the off-center bounds toward the sphere optimum."""
+        """The mean migrates from off-center bounds toward the sphere optimum."""
         dtype = best_float_dtype(device)
         # Use asymmetric bounds so center (2.5) is far from the sphere optimum (0)
         opt = CMAES(
@@ -268,7 +268,7 @@ class TestTell:
         assert opt._generation == 2
 
     def test_sigma_decreases_on_sphere(self, device: torch.device) -> None:
-        """Sigma is not monotonic; check that it eventually decreases from its initial value on the sphere."""
+        """Sigma eventually decreases from its initial value on the sphere."""
         dtype = best_float_dtype(device)
         opt = CMAES(dim=5, bounds=5.0, pop_size=12, device=device, dtype=dtype, seed=42)
         initial_sigma = opt.sigma
@@ -607,6 +607,24 @@ class TestRestart:
             torch.tensor(1.0, dtype=dtype, device=device),
         )
 
+    @pytest.mark.parametrize("device", [torch.device("cpu")])
+    def test_active_restart_recomputes_negative_rate(self, device: torch.device) -> None:
+        dtype = torch.float64
+        opt = CMAES(
+            dim=10,
+            bounds=5.0,
+            pop_size=12,
+            device=device,
+            dtype=dtype,
+            seed=42,
+            active=True,
+        )
+
+        opt.restart(new_pop_size=24)
+
+        expected = min(0.25 * opt.c_mu, max(0.0, 1 - opt.c_1 - opt.c_mu))
+        assert opt._c_mu_neg == pytest.approx(expected, abs=ATOL_F64_TIGHT)
+
     def test_mean_reset_to_center(self, device: torch.device) -> None:
         dtype = best_float_dtype(device)
         opt = CMAES(dim=3, bounds=(-2.0, 4.0), device=device, dtype=dtype, seed=42)
@@ -660,7 +678,7 @@ class TestRestart:
         opt.tell(candidates, fitness)  # should not raise
 
     def test_restart_with_custom_c_init(self, device: torch.device) -> None:
-        """Restarting with an anisotropic C_init preserves its shape after the normalization step."""
+        """An anisotropic C_init keeps its shape after normalization."""
         dtype = best_float_dtype(device)
         dim = 5
         opt = CMAES(dim=dim, bounds=5.0, pop_size=10, device=device, dtype=dtype, seed=42)
@@ -939,6 +957,36 @@ class TestPathMemorySampling:
         assert opt2._path_count == opt1._path_count
         assert torch.allclose(opt1.ask(), opt2.ask())
 
+    def test_active_mirrored_roundtrip_preserves_modes(self, device: torch.device) -> None:
+        dtype = best_float_dtype(device)
+        opt1 = CMAES(
+            dim=6,
+            bounds=100.0,
+            pop_size=12,
+            device=device,
+            dtype=dtype,
+            seed=42,
+            active=True,
+            mirrored=True,
+        )
+        candidates = opt1.ask()
+        opt1.tell(candidates, sphere(candidates))
+
+        opt2 = CMAES(
+            dim=6,
+            bounds=100.0,
+            pop_size=12,
+            device=device,
+            dtype=dtype,
+            seed=99,
+        )
+        opt2.load_state_dict(opt1.state_dict())
+
+        assert opt2.active is True
+        assert opt2.mirrored is True
+        assert opt2._c_mu_neg == pytest.approx(opt1._c_mu_neg, abs=ATOL_F64_TIGHT)
+        assert torch.allclose(opt1.ask(), opt2.ask())
+
     def test_path_line_samples_follow_covariance_path(self, device: torch.device) -> None:
         dtype = best_float_dtype(device)
         opt = CMAES(
@@ -1041,6 +1089,7 @@ class TestHSigma:
         condition, not to the side effect of p_c being nonzero).
         """
         import math as _math
+
         dtype = torch.float64
         dim = 5
         opt = CMAES(dim=dim, bounds=5.0, pop_size=12, device=device, dtype=dtype, seed=42)
@@ -1070,19 +1119,15 @@ class TestZeroSpanBounds:
     """Zero-span bounds must raise ValueError via ``normalize_bounds``."""
 
     @pytest.mark.parametrize("device", [torch.device("cpu")])
-    def test_zero_span_scalar_bounds_raises_value_error(
-        self, device: torch.device
-    ) -> None:
+    def test_zero_span_scalar_bounds_raises_value_error(self, device: torch.device) -> None:
         """``CMAES(bounds=0)`` rejects at construction."""
         with pytest.raises(ValueError, match="positive span"):
-            CMAES(dim=3, bounds=0, pop_size=10, device=device,
-                  dtype=torch.float64, seed=42)
+            CMAES(dim=3, bounds=0, pop_size=10, device=device, dtype=torch.float64, seed=42)
 
     @pytest.mark.parametrize("device", [torch.device("cpu")])
-    def test_zero_span_tuple_bounds_raises_value_error(
-        self, device: torch.device
-    ) -> None:
+    def test_zero_span_tuple_bounds_raises_value_error(self, device: torch.device) -> None:
         """``CMAES(bounds=(v, v))`` rejects at construction."""
         with pytest.raises(ValueError, match="positive span"):
-            CMAES(dim=3, bounds=(5.0, 5.0), pop_size=10, device=device,
-                  dtype=torch.float64, seed=42)
+            CMAES(
+                dim=3, bounds=(5.0, 5.0), pop_size=10, device=device, dtype=torch.float64, seed=42
+            )

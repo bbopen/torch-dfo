@@ -18,6 +18,7 @@ from typing import Any
 
 import torch
 
+from torch_dfo._cmaes_state import CMAAdaptationRates, CMAPathState
 from torch_dfo.base import BaseOptimizer
 from torch_dfo.utils import clamp_to_bounds
 
@@ -25,6 +26,40 @@ from torch_dfo.utils import clamp_to_bounds
 def _default_pop_size(dim: int) -> int:
     """Default population size: 4 + floor(3 * ln(dim))."""
     return 4 + math.floor(3 * math.log(dim))
+
+
+def _compute_adaptation_rates(
+    dim: int,
+    pop_size: int,
+    mu: int,
+    *,
+    device: torch.device,
+    dtype: torch.dtype,
+) -> CMAAdaptationRates:
+    """Compute Hansen 2016 strategy rates for the given population size."""
+    raw = torch.log(torch.tensor((pop_size + 1) / 2, dtype=dtype)) - torch.log(
+        torch.arange(1, mu + 1, dtype=dtype),
+    )
+    weights = (raw / raw.sum()).to(device=device)
+
+    mu_eff = (1.0 / (weights**2).sum()).item()
+    c_sigma = (mu_eff + 2) / (dim + mu_eff + 5)
+    d_sigma = 1 + 2 * max(0.0, math.sqrt((mu_eff - 1) / (dim + 1)) - 1) + c_sigma
+    c_c = (mu_eff + 2) / (dim + 4 + 2 * mu_eff / dim)
+    c_1 = 2.0 / ((dim + 1.3) ** 2 + mu_eff)
+    c_mu = min(
+        1 - c_1,
+        2 * (mu_eff - 2 + 1.0 / mu_eff) / ((dim + 2) ** 2 + mu_eff),
+    )
+    return CMAAdaptationRates(
+        c_sigma=c_sigma,
+        d_sigma=d_sigma,
+        c_c=c_c,
+        c_1=c_1,
+        c_mu=c_mu,
+        mu_eff=mu_eff,
+        weights=weights,
+    )
 
 
 class CMAES(BaseOptimizer):
@@ -105,57 +140,71 @@ class CMAES(BaseOptimizer):
             seed=seed,
         )
 
-        self.mirrored = mirrored
-        self.active = active
-        self.path_memory = max(0, int(path_memory))
-        self.path_scale = max(0.0, float(path_scale))
-        self.path_line_samples = max(0, int(path_line_samples))
-        self.path_line_scale = max(0.0, float(path_line_scale))
+        self.mirrored = bool(mirrored)
+        self.active = bool(active)
+        path_memory = max(0, int(path_memory))
+        path_scale = max(0.0, float(path_scale))
+        path_line_samples = max(0, int(path_line_samples))
+        path_line_scale = max(0.0, float(path_line_scale))
 
         # ---------- strategy parameters (Hansen 2016, Table 1) ----------
-        self.mu = pop_size // 2
-        mu = self.mu
-
-        # Recombination weights (log-linear, positive only for now)
-        raw = torch.log(torch.tensor((pop_size + 1) / 2, dtype=dtype)) - torch.log(
-            torch.arange(1, mu + 1, dtype=dtype),
-        )
-        self.weights = (raw / raw.sum()).to(device=self.device)
-
-        # Variance-effective selection mass
-        self.mu_eff = (1.0 / (self.weights**2).sum()).item()
-        mu_eff = self.mu_eff
-
-        # Cumulation and adaptation rates
-        self.c_sigma = (mu_eff + 2) / (dim + mu_eff + 5)
-        self.d_sigma = 1 + 2 * max(0.0, math.sqrt((mu_eff - 1) / (dim + 1)) - 1) + self.c_sigma
-        self.c_c = (mu_eff + 2) / (dim + 4 + 2 * mu_eff / dim)
-        self.c_1 = 2.0 / ((dim + 1.3) ** 2 + mu_eff)
-        self.c_mu = min(
-            1 - self.c_1,
-            2 * (mu_eff - 2 + 1.0 / mu_eff) / ((dim + 2) ** 2 + mu_eff),
-        )
+        self._configure_strategy(pop_size)
 
         # Expected norm of N(0, I)
         self.chi_n = math.sqrt(dim) * (1 - 1 / (4 * dim) + 1 / (21 * dim**2))
 
-        # Active CMA parameters
-        if active:
-            mu_neg = min(mu, pop_size - mu)
-            self._mu_neg = mu_neg
-            neg_raw = torch.log(torch.tensor(mu_neg + 1, dtype=dtype)) - torch.log(
-                torch.arange(1, mu_neg + 1, dtype=dtype),
-            )
-            self._neg_weights = (neg_raw / neg_raw.sum()).to(device=self.device)
-            self._c_mu_neg = min(0.25 * self.c_mu, max(0.0, 1 - self.c_1 - self.c_mu))
-
-        # Eigendecomposition frequency
-        self._decomp_frequency = max(1, math.floor(1 / (10 * dim * (self.c_1 + self.c_mu))))
-
         # ---------- dynamic state ----------
-        self._init_state(sigma0)
+        self._init_state(
+            sigma0,
+            path_memory=path_memory,
+            path_scale=path_scale,
+            path_line_samples=path_line_samples,
+            path_line_scale=path_line_scale,
+        )
 
-    def _init_state(self, sigma0: float) -> None:
+    def _configure_strategy(self, pop_size: int) -> None:
+        """Recompute all population-size-dependent strategy parameters."""
+        self.pop_size = int(pop_size)
+        self.mu = self.pop_size // 2
+        self._rates = _compute_adaptation_rates(
+            self.dim,
+            self.pop_size,
+            self.mu,
+            device=self.device,
+            dtype=self.dtype,
+        )
+        self._decomp_frequency = max(
+            1,
+            math.floor(1 / (10 * self.dim * (self._rates.c_1 + self._rates.c_mu))),
+        )
+
+        if self.active:
+            mu_neg = min(self.mu, self.pop_size - self.mu)
+            self._mu_neg = mu_neg
+            neg_raw = torch.log(
+                torch.tensor(mu_neg + 1, device=self.device, dtype=self.dtype)
+            ) - torch.log(
+                torch.arange(1, mu_neg + 1, device=self.device, dtype=self.dtype),
+            )
+            self._neg_weights = neg_raw / neg_raw.sum()
+            self._c_mu_neg = min(
+                0.25 * self._rates.c_mu,
+                max(0.0, 1 - self._rates.c_1 - self._rates.c_mu),
+            )
+        else:
+            self._mu_neg = 0
+            self._neg_weights = torch.empty(0, device=self.device, dtype=self.dtype)
+            self._c_mu_neg = 0.0
+
+    def _init_state(
+        self,
+        sigma0: float,
+        *,
+        path_memory: int,
+        path_scale: float,
+        path_line_samples: int,
+        path_line_scale: float,
+    ) -> None:
         """Initialise or reset all mutable CMA-ES state tensors."""
         dim = self.dim
 
@@ -183,22 +232,135 @@ class CMAES(BaseOptimizer):
         self.C_invsqrt = torch.eye(dim, device=self.device, dtype=self.dtype)
 
         # Evolution paths
-        self.p_sigma = torch.zeros(dim, device=self.device, dtype=self.dtype)
-        self.p_c = torch.zeros(dim, device=self.device, dtype=self.dtype)
-        if self.path_memory > 0:
-            self._path_vectors = torch.zeros(
-                self.path_memory,
+        p_sigma = torch.zeros(dim, device=self.device, dtype=self.dtype)
+        p_c = torch.zeros(dim, device=self.device, dtype=self.dtype)
+        if path_memory > 0:
+            path_vectors = torch.zeros(
+                path_memory,
                 dim,
                 device=self.device,
                 dtype=self.dtype,
             )
         else:
-            self._path_vectors = torch.empty(0, dim, device=self.device, dtype=self.dtype)
-        self._path_count = 0
-        self._path_pos = 0
+            path_vectors = torch.empty(0, dim, device=self.device, dtype=self.dtype)
+        self._path = CMAPathState(
+            p_sigma=p_sigma,
+            p_c=p_c,
+            path_memory=path_memory,
+            path_scale=path_scale,
+            path_line_samples=path_line_samples,
+            path_line_scale=path_line_scale,
+            _path_vectors=path_vectors,
+            _path_count=0,
+            _path_pos=0,
+        )
 
         # Generation of last eigendecomposition
         self._decomp_gen = 0
+
+    @property
+    def weights(self) -> torch.Tensor:
+        """Positive recombination weights."""
+        return self._rates.weights
+
+    @property
+    def mu_eff(self) -> float:
+        """Variance-effective selection mass."""
+        return self._rates.mu_eff
+
+    @property
+    def c_sigma(self) -> float:
+        return self._rates.c_sigma
+
+    @property
+    def d_sigma(self) -> float:
+        return self._rates.d_sigma
+
+    @property
+    def c_c(self) -> float:
+        return self._rates.c_c
+
+    @property
+    def c_1(self) -> float:
+        return self._rates.c_1
+
+    @property
+    def c_mu(self) -> float:
+        return self._rates.c_mu
+
+    @property
+    def p_sigma(self) -> torch.Tensor:
+        """Conjugate evolution path."""
+        return self._path.p_sigma
+
+    @p_sigma.setter
+    def p_sigma(self, value: torch.Tensor) -> None:
+        self._path.p_sigma = value
+
+    @property
+    def p_c(self) -> torch.Tensor:
+        """Covariance evolution path."""
+        return self._path.p_c
+
+    @p_c.setter
+    def p_c(self, value: torch.Tensor) -> None:
+        self._path.p_c = value
+
+    @property
+    def path_memory(self) -> int:
+        return self._path.path_memory
+
+    @path_memory.setter
+    def path_memory(self, value: int) -> None:
+        self._path.path_memory = max(0, int(value))
+
+    @property
+    def path_scale(self) -> float:
+        return self._path.path_scale
+
+    @path_scale.setter
+    def path_scale(self, value: float) -> None:
+        self._path.path_scale = max(0.0, float(value))
+
+    @property
+    def path_line_samples(self) -> int:
+        return self._path.path_line_samples
+
+    @path_line_samples.setter
+    def path_line_samples(self, value: int) -> None:
+        self._path.path_line_samples = max(0, int(value))
+
+    @property
+    def path_line_scale(self) -> float:
+        return self._path.path_line_scale
+
+    @path_line_scale.setter
+    def path_line_scale(self, value: float) -> None:
+        self._path.path_line_scale = max(0.0, float(value))
+
+    @property
+    def _path_vectors(self) -> torch.Tensor:
+        return self._path._path_vectors
+
+    @_path_vectors.setter
+    def _path_vectors(self, value: torch.Tensor) -> None:
+        self._path._path_vectors = value
+
+    @property
+    def _path_count(self) -> int:
+        return self._path._path_count
+
+    @_path_count.setter
+    def _path_count(self, value: int) -> None:
+        self._path._path_count = int(value)
+
+    @property
+    def _path_pos(self) -> int:
+        return self._path._path_pos
+
+    @_path_pos.setter
+    def _path_pos(self, value: int) -> None:
+        self._path._path_pos = int(value)
 
     # ------------------------------------------------------------------
     # Serialization
@@ -216,15 +378,9 @@ class CMAES(BaseOptimizer):
                 "sigma": self.sigma,
                 "sigma_min": self.sigma_min,
                 "sigma_max": self.sigma_max,
-                "p_sigma": self.p_sigma.clone(),
-                "p_c": self.p_c.clone(),
-                "path_memory": self.path_memory,
-                "path_scale": self.path_scale,
-                "path_line_samples": self.path_line_samples,
-                "path_line_scale": self.path_line_scale,
-                "_path_vectors": self._path_vectors.clone(),
-                "_path_count": self._path_count,
-                "_path_pos": self._path_pos,
+                "active": self.active,
+                "mirrored": self.mirrored,
+                "path": self._path.to_dict(),
                 "_decomp_gen": self._decomp_gen,
                 "_normalize_on_decomp": self._normalize_on_decomp,
             }
@@ -234,6 +390,9 @@ class CMAES(BaseOptimizer):
     def load_state_dict(self, state: dict[str, Any]) -> None:
         """Restore CMA-ES state from a dict produced by :meth:`state_dict`."""
         super().load_state_dict(state)
+        self.active = bool(state.get("active", self.active))
+        self.mirrored = bool(state.get("mirrored", self.mirrored))
+        self._configure_strategy(self.pop_size)
         self.C.copy_(state["C"])
         self.B.copy_(state["B"])
         self.D_diag.copy_(state["D_diag"])
@@ -242,27 +401,11 @@ class CMAES(BaseOptimizer):
         self.sigma = state["sigma"]
         self.sigma_min = state["sigma_min"]
         self.sigma_max = state["sigma_max"]
-        self.p_sigma.copy_(state["p_sigma"])
-        self.p_c.copy_(state["p_c"])
-        self.path_memory = int(state.get("path_memory", self.path_memory))
-        self.path_scale = float(state.get("path_scale", self.path_scale))
-        self.path_line_samples = int(state.get("path_line_samples", self.path_line_samples))
-        self.path_line_scale = float(state.get("path_line_scale", self.path_line_scale))
-        if "_path_vectors" in state:
-            path_vectors = state["_path_vectors"].to(device=self.device, dtype=self.dtype)
-            self._path_vectors = path_vectors.clone()
-            self.path_memory = int(self._path_vectors.shape[0])
-        elif self.path_memory > 0:
-            self._path_vectors = torch.zeros(
-                self.path_memory,
-                self.dim,
-                device=self.device,
-                dtype=self.dtype,
-            )
-        else:
-            self._path_vectors = torch.empty(0, self.dim, device=self.device, dtype=self.dtype)
-        self._path_count = int(state.get("_path_count", 0))
-        self._path_pos = int(state.get("_path_pos", 0))
+        self._path = CMAPathState.from_dict(
+            state["path"],
+            device=self.device,
+            dtype=self.dtype,
+        )
         self._decomp_gen = state["_decomp_gen"]
         self._normalize_on_decomp = state["_normalize_on_decomp"]
 
@@ -297,9 +440,13 @@ class CMAES(BaseOptimizer):
         # BD = B * D_diag (broadcasting column-wise)
         BD = self.B * self.D_diag.unsqueeze(0)  # (dim, dim)
         y = z @ BD.T  # (pop_size, dim)
-        if self.path_memory > 0 and self.path_scale > 0.0 and self._path_count > 0:
-            active_paths = min(self._path_count, self.path_memory)
-            path_basis = self._path_vectors[:active_paths]
+        if (
+            self._path.path_memory > 0
+            and self._path.path_scale > 0.0
+            and self._path._path_count > 0
+        ):
+            active_paths = min(self._path._path_count, self._path.path_memory)
+            path_basis = self._path._path_vectors[:active_paths]
             if self.mirrored:
                 pair_count = pop_size // 2
                 base_coeff = self._randn(pair_count, active_paths)
@@ -309,13 +456,13 @@ class CMAES(BaseOptimizer):
                 coeff = coeff[self._randperm(coeff.shape[0])]
             else:
                 coeff = self._randn(pop_size, active_paths)
-            y = y + (self.path_scale / math.sqrt(active_paths)) * (coeff @ path_basis)
-        if self.path_line_samples > 0 and self.path_line_scale > 0.0:
-            line_count = min(self.path_line_samples, pop_size)
-            path_norm = torch.linalg.vector_norm(self.p_c)
+            y = y + (self._path.path_scale / math.sqrt(active_paths)) * (coeff @ path_basis)
+        if self._path.path_line_samples > 0 and self._path.path_line_scale > 0.0:
+            line_count = min(self._path.path_line_samples, pop_size)
+            path_norm = torch.linalg.vector_norm(self._path.p_c)
             safe_norm = torch.clamp(path_norm, min=torch.finfo(self.dtype).eps)
-            path_dir = self.p_c / safe_norm
-            line_len = torch.clamp(path_norm, max=math.sqrt(dim)) * self.path_line_scale
+            path_dir = self._path.p_c / safe_norm
+            line_len = torch.clamp(path_norm, max=math.sqrt(dim)) * self._path.path_line_scale
             line_step = path_dir * line_len
             signs = torch.ones(line_count, device=self.device, dtype=self.dtype)
             signs[1::2] = -1.0
@@ -357,7 +504,7 @@ class CMAES(BaseOptimizer):
         # 2. Update mean
         old_mean = self.mean.clone()
         selected = candidates[best_indices]  # (mu, dim)
-        self.mean = (self.weights.unsqueeze(1) * selected).sum(dim=0)
+        self.mean = (self._rates.weights.unsqueeze(1) * selected).sum(dim=0)
 
         # Mean displacement (unscaled)
         mean_diff = self.mean - old_mean  # (dim,)
@@ -365,36 +512,36 @@ class CMAES(BaseOptimizer):
         # 3. Update evolution paths
         #    p_sigma update (conjugate evolution path)
         invsqrt_diff = self.C_invsqrt @ mean_diff / self.sigma  # (dim,)
-        self.p_sigma = (1 - self.c_sigma) * self.p_sigma + math.sqrt(
-            max(self.c_sigma * (2 - self.c_sigma) * self.mu_eff, 0.0),
+        self._path.p_sigma = (1 - self._rates.c_sigma) * self._path.p_sigma + math.sqrt(
+            max(self._rates.c_sigma * (2 - self._rates.c_sigma) * self._rates.mu_eff, 0.0),
         ) * invsqrt_diff
 
         #    Heaviside function for stalling detection
         gen = self._generation + 1  # 1-based for this formula
-        lhs = torch.linalg.norm(self.p_sigma).item() / math.sqrt(
-            1 - (1 - self.c_sigma) ** (2 * gen),
+        lhs = torch.linalg.norm(self._path.p_sigma).item() / math.sqrt(
+            1 - (1 - self._rates.c_sigma) ** (2 * gen),
         )
         rhs = (1.4 + 2.0 / (dim + 1)) * self.chi_n
         h_sigma = 1.0 if lhs < rhs else 0.0
 
         #    p_c update (evolution path for rank-one update)
-        self.p_c = (1 - self.c_c) * self.p_c + h_sigma * math.sqrt(
-            max(self.c_c * (2 - self.c_c) * self.mu_eff, 0.0),
+        self._path.p_c = (1 - self._rates.c_c) * self._path.p_c + h_sigma * math.sqrt(
+            max(self._rates.c_c * (2 - self._rates.c_c) * self._rates.mu_eff, 0.0),
         ) * mean_diff / self.sigma
-        self._record_path_vector(self.p_c)
+        self._record_path_vector(self._path.p_c)
 
         # 4. Update covariance matrix
         y_selected = (selected - old_mean.unsqueeze(0)) / self.sigma  # (mu, dim)
 
         # Rank-mu update: weighted outer products of selected steps
         # rank_mu = y^T @ diag(w) @ y
-        rank_mu = (y_selected * self.weights.unsqueeze(1)).T @ y_selected  # (dim, dim)
+        rank_mu = (y_selected * self._rates.weights.unsqueeze(1)).T @ y_selected  # (dim, dim)
 
         # Rank-one update: outer product of p_c
-        rank_one = torch.outer(self.p_c, self.p_c)
+        rank_one = torch.outer(self._path.p_c, self._path.p_c)
 
         # Correction for h_sigma == 0 (stalled step-size)
-        delta_h = (1 - h_sigma) * self.c_c * (2 - self.c_c)
+        delta_h = (1 - h_sigma) * self._rates.c_c * (2 - self._rates.c_c)
 
         # Active CMA: compute negative rank update and balancing term
         if self.active:
@@ -410,16 +557,16 @@ class CMAES(BaseOptimizer):
         # Covariance update with active CMA trace-balancing term (c_mu_neg in old_C coeff)
         old_C = self.C
         self.C = (
-            (1 - self.c_1 - self.c_mu + c_mu_neg) * old_C
-            + self.c_1 * (rank_one + delta_h * old_C)
-            + self.c_mu * rank_mu
+            (1 - self._rates.c_1 - self._rates.c_mu + c_mu_neg) * old_C
+            + self._rates.c_1 * (rank_one + delta_h * old_C)
+            + self._rates.c_mu * rank_mu
             - c_mu_neg * rank_mu_neg
         )
 
         # 5. Update sigma (cumulative step-size adaptation)
-        ps_norm = torch.linalg.norm(self.p_sigma).item()
+        ps_norm = torch.linalg.norm(self._path.p_sigma).item()
         self.sigma = self.sigma * math.exp(
-            (self.c_sigma / self.d_sigma) * (ps_norm / self.chi_n - 1),
+            (self._rates.c_sigma / self._rates.d_sigma) * (ps_norm / self.chi_n - 1),
         )
         self.sigma = min(max(self.sigma, self.sigma_min), self.sigma_max)
 
@@ -434,14 +581,14 @@ class CMAES(BaseOptimizer):
 
     def _record_path_vector(self, path: torch.Tensor) -> None:
         """Store one normalized covariance path for limited-memory sampling."""
-        if self.path_memory <= 0:
+        if self._path.path_memory <= 0:
             return
         path_norm = torch.linalg.vector_norm(path)
         if not torch.isfinite(path_norm) or float(path_norm.item()) <= 1e-12:
             return
-        self._path_vectors[self._path_pos] = path / path_norm
-        self._path_pos = (self._path_pos + 1) % self.path_memory
-        self._path_count = min(self.path_memory, self._path_count + 1)
+        self._path._path_vectors[self._path._path_pos] = path / path_norm
+        self._path._path_pos = (self._path._path_pos + 1) % self._path.path_memory
+        self._path._path_count = min(self._path.path_memory, self._path._path_count + 1)
 
     # ------------------------------------------------------------------
     # eigensystem
@@ -511,55 +658,21 @@ class CMAES(BaseOptimizer):
 
         """
         if new_pop_size is not None and new_pop_size != self.pop_size:
-            self.pop_size = new_pop_size
-
-            # Recompute mu and weights for the new population size
-            self.mu = new_pop_size // 2
-            mu = self.mu
-            raw = torch.log(torch.tensor((new_pop_size + 1) / 2, dtype=self.dtype)) - torch.log(
-                torch.arange(1, mu + 1, dtype=self.dtype),
-            )
-            self.weights = (raw / raw.sum()).to(device=self.device)
-            self.mu_eff = (1.0 / (self.weights**2).sum()).item()
-
-            # Recompute strategy parameters that depend on mu_eff
-            mu_eff = self.mu_eff
-            dim = self.dim
-            self.c_sigma = (mu_eff + 2) / (dim + mu_eff + 5)
-            self.d_sigma = 1 + 2 * max(0.0, math.sqrt((mu_eff - 1) / (dim + 1)) - 1) + self.c_sigma
-            self.c_c = (mu_eff + 2) / (dim + 4 + 2 * mu_eff / dim)
-            self.c_1 = 2.0 / ((dim + 1.3) ** 2 + mu_eff)
-            self.c_mu = min(
-                1 - self.c_1,
-                2 * (mu_eff - 2 + 1.0 / mu_eff) / ((dim + 2) ** 2 + mu_eff),
-            )
-            self._decomp_frequency = max(
-                1,
-                math.floor(1 / (10 * dim * (self.c_1 + self.c_mu))),
-            )
+            self._configure_strategy(new_pop_size)
 
             # Re-allocate workspace tensors for the new population size
             self.population = torch.empty(
-                new_pop_size,
+                self.pop_size,
                 self.dim,
                 device=self.device,
                 dtype=self.dtype,
             )
             self.fitness = torch.full(
-                (new_pop_size,),
+                (self.pop_size,),
                 float("inf"),
                 device=self.device,
                 dtype=self.dtype,
             )
-
-            # Update active CMA weights if applicable
-            if self.active:
-                mu_neg = min(self.mu, new_pop_size - self.mu)
-                self._mu_neg = mu_neg
-                neg_raw = torch.log(torch.tensor(mu_neg + 1, dtype=self.dtype)) - torch.log(
-                    torch.arange(1, mu_neg + 1, dtype=self.dtype),
-                )
-                self._neg_weights = (neg_raw / neg_raw.sum()).to(device=self.device)
 
         # Widen sigma_max for restart phases (CMA_ES_RESTART_SIGMA_MAX * span).
         # Only applies when sigma bounds were explicitly set (e.g. by PhasedDFO);
@@ -569,11 +682,11 @@ class CMAES(BaseOptimizer):
             self.sigma_max = 0.30 * span
 
         # Reset evolution paths
-        self.p_sigma.zero_()
-        self.p_c.zero_()
-        self._path_vectors.zero_()
-        self._path_count = 0
-        self._path_pos = 0
+        self._path.p_sigma.zero_()
+        self._path.p_c.zero_()
+        self._path._path_vectors.zero_()
+        self._path._path_count = 0
+        self._path._path_pos = 0
 
         # Set mean
         if mean is not None:

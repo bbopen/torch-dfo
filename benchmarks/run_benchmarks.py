@@ -81,11 +81,11 @@ class SuiteReport:
     def yahpo_wins_vs_random(self) -> tuple[int, int]:
         """Count how many YAHPO problems torch-dfo beats random baseline."""
         problems = sorted(
-            set(
+            {
                 r.problem_name
                 for r in self.results
                 if r.suite == "yahpo" and r.optimizer == "torch-dfo"
-            )
+            }
         )
         wins, total = 0, 0
         for prob in problems:
@@ -98,8 +98,8 @@ class SuiteReport:
         return wins, total
 
     def summary(self) -> str:
-        optimizers = sorted(set(r.optimizer for r in self.results))
-        problems = len(set(r.problem_name for r in self.results))
+        optimizers = sorted({r.optimizer for r in self.results})
+        problems = len({r.problem_name for r in self.results})
         lines = [f"\n{'=' * 70}", f"Suite: {self.suite_name} ({problems} problems)", "=" * 70]
         for opt in optimizers:
             opt_results = [r for r in self.results if r.optimizer == opt]
@@ -371,10 +371,7 @@ def _extract_yahpo_metric(result: object, scenario: str) -> float:
     metric_name = YAHPO_METRICS.get(scenario)
     if metric_name is None:
         raise ValueError(f"Unknown YAHPO scenario: {scenario}")
-    if isinstance(result, list):
-        row = result[0]
-    else:
-        row = result
+    row = result[0] if isinstance(result, list) else result
     if metric_name not in row:
         raise KeyError(f"Metric '{metric_name}' not in result keys: {list(row.keys())}")
     return float(row[metric_name])
@@ -524,7 +521,7 @@ def _tensor_to_yahpo_config(x: torch.Tensor, config_space):
                 else:
                     decoded = hp.lower + val * (hp.upper - hp.lower)
                 if _CS_INT_HP_TYPES and isinstance(hp, _CS_INT_HP_TYPES):
-                    config[hp.name] = int(round(decoded))
+                    config[hp.name] = round(decoded)
                 else:
                     config[hp.name] = decoded
             elif hasattr(hp, "choices"):
@@ -632,7 +629,7 @@ def run_gymnasium(
                 )
             )
 
-        except Exception as e:
+        except Exception as e:  # noqa: PERF203
             print(f"  Gymnasium {env_name}: {e}", file=sys.stderr)
 
     return report
@@ -711,20 +708,20 @@ def main():
     if args.output:
         data = []
         for report in reports:
-            for r in report.results:
-                data.append(
-                    {
-                        "suite": r.suite,
-                        "problem": r.problem_name,
-                        "dim": r.dim,
-                        "optimizer": r.optimizer,
-                        "best_fitness": r.best_fitness,
-                        "precision": r.precision if math.isfinite(r.precision) else None,
-                        "fe_used": r.fe_used,
-                        "wall_time_s": r.wall_time_s,
-                        "solved": r.solved,
-                    }
-                )
+            data.extend(
+                {
+                    "suite": r.suite,
+                    "problem": r.problem_name,
+                    "dim": r.dim,
+                    "optimizer": r.optimizer,
+                    "best_fitness": r.best_fitness,
+                    "precision": r.precision if math.isfinite(r.precision) else None,
+                    "fe_used": r.fe_used,
+                    "wall_time_s": r.wall_time_s,
+                    "solved": r.solved,
+                }
+                for r in report.results
+            )
         Path(args.output).write_text(json.dumps(data, indent=2))
         print(f"Results saved to {args.output}")
 

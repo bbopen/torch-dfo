@@ -102,13 +102,14 @@ def test_shade_multi_generation_roundtrip():
 
     # Adaptive-state bit-exact equality. A C6-class regression in any of these
     # tensors would otherwise slip through a "next ask matches" check.
-    for attr in ("population", "fitness", "best_solution", "best_fitness",
-                 "memory_F", "memory_CR", "_archive",
-                 "_trial_F", "_trial_CR", "_trials"):
+    for attr in ("population", "fitness", "best_solution", "best_fitness"):
         a, b = getattr(opt1, attr), getattr(opt2, attr)
         assert torch.equal(a, b), f"SHADE state tensor '{attr}' diverged across roundtrip"
-    assert opt1._memory_pos == opt2._memory_pos
-    assert opt1._initialized == opt2._initialized
+    for attr in ("memory_F", "memory_CR", "_archive", "_trial_F", "_trial_CR", "_trials"):
+        a, b = getattr(opt1._memory, attr), getattr(opt2._memory, attr)
+        assert torch.equal(a, b), f"SHADE memory tensor '{attr}' diverged across roundtrip"
+    assert opt1._memory._memory_pos == opt2._memory._memory_pos
+    assert opt1._memory._initialized == opt2._memory._initialized
     assert opt1._generation == opt2._generation
 
     a1, a2 = opt1.ask(), opt2.ask()
@@ -126,14 +127,29 @@ def test_cmaes_multi_generation_roundtrip():
     opt2 = CMAES(dim=5, bounds=5.0, pop_size=POP_CMAES_STANDARD, seed=99, device="cpu")
     opt2.load_state_dict(state)
 
-    for attr in ("population", "fitness", "best_solution", "best_fitness",
-                 "C", "B", "D_diag", "C_invsqrt", "mean",
-                 "p_sigma", "p_c", "_path_vectors"):
+    for attr in (
+        "population",
+        "fitness",
+        "best_solution",
+        "best_fitness",
+        "C",
+        "B",
+        "D_diag",
+        "C_invsqrt",
+        "mean",
+    ):
         a, b = getattr(opt1, attr), getattr(opt2, attr)
         assert torch.equal(a, b), f"CMAES state tensor '{attr}' diverged across roundtrip"
-    for attr in ("sigma", "_path_count", "_path_pos", "_decomp_gen", "_generation"):
+    for attr in ("p_sigma", "p_c", "_path_vectors"):
+        a, b = getattr(opt1._path, attr), getattr(opt2._path, attr)
+        assert torch.equal(a, b), f"CMAES path tensor '{attr}' diverged across roundtrip"
+    for attr in ("sigma", "_decomp_gen", "_generation"):
         assert getattr(opt1, attr) == getattr(opt2, attr), (
             f"CMAES scalar '{attr}' diverged across roundtrip"
+        )
+    for attr in ("_path_count", "_path_pos"):
+        assert getattr(opt1._path, attr) == getattr(opt2._path, attr), (
+            f"CMAES path scalar '{attr}' diverged across roundtrip"
         )
 
     a1, a2 = opt1.ask(), opt2.ask()
@@ -244,14 +260,11 @@ def test_shade_roundtrip_cpu_to_mps() -> None:
     """State saved on CPU loads cleanly into an MPS-device optimizer.
 
     MPS uses the CPU-backed torch Generator under the hood, so the RNG
-    state saved from a CPU optimizer has the right byte layout for a
-    subsequent MPS load. CUDA is deliberately excluded here because its
-    Generator state uses a different, larger binary representation;
-    the relevant error in that case is
-    ``RuntimeError: RNG state is wrong size`` from
-    ``src/torch_dfo/base.py::BaseOptimizer.load_state_dict``. A proper
-    cross-device load that translates RNG state across device classes
-    is a v1.1 item tracked alongside the PhasedDFO state_dict override.
+    state saved from a CPU optimizer has the right byte layout for a subsequent
+    MPS load. CUDA is deliberately excluded here because its Generator state
+    uses a different, larger binary representation; the relevant error in that
+    case is ``RuntimeError: RNG state is wrong size`` from
+    ``src/torch_dfo/base.py::BaseOptimizer.load_state_dict``.
     """
     from torch_dfo import SHADE
 

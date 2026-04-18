@@ -265,6 +265,7 @@ class TestCompiledTellCMAESKnownFailure:
         # lenient — that would be an improvement worth investigating, so we
         # log via pytest.xfail rather than asserting a specific exception type.
         import pytest as _pytest
+
         try:
             for _ in range(10):
                 x = compiled_ask()

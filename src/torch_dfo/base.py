@@ -28,6 +28,8 @@ class BaseOptimizer:
         self.dim = dim
         self.pop_size = pop_size
         self.device = resolve_device(device)
+        if device is None and self.device.type == "mps" and dtype == torch.float64:
+            self.device = torch.device("cpu")
         self.dtype = dtype
         self.lb, self.ub = normalize_bounds(bounds, dim, self.device, self.dtype)
         self._rng_seed = seed  # stored for cross-device serialization

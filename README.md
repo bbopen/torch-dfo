@@ -176,7 +176,7 @@ for _ in range(opt.budget):
   title   = {torch-dfo: GPU-accelerated derivative-free optimization for PyTorch},
   year    = {2026},
   url     = {https://github.com/bbopen/torch-dfo},
-  version = {0.9.0}
+  version = {0.10.0}
 }
 ```
 

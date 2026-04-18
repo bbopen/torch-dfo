@@ -57,18 +57,19 @@ range up by roughly one doubling of ``d``.
 Solution quality at low dim
 ---------------------------
 
+.. warning::
+
+   This is not a fair comparison. The ``d=40`` slice below fixes
+   *wall-clock* (7 generations), not evaluation count. Within that
+   budget, ``CMAES`` ran ~105 fevals, ``DLRPortfolio`` ~420, ``SHADE``
+   ~560, and ``PhasedDFO`` up to ~137 000. A fevals-equalized race
+   would change the picture; read the numbers below as "what a user
+   gets if they cap wall-clock", not as an algorithm ranking.
+
 Separately from ceiling, the ``d=40`` slice of the sweep — a 7-generation
 wall-clock budget — shows ``DLRPortfolio`` reaching one to three orders
 of magnitude lower ``final_loss`` than the other four optimizers on
 every multimodal function (ackley, griewank, rastrigin, levy).
-
-.. warning::
-
-   This is a *fixed wall-clock*, not fixed-``fevals``, comparison. In
-   the 7-generation slice, ``CMAES`` saw ~105 fevals, ``DLRPortfolio``
-   ~420, ``SHADE`` ~560, and ``PhasedDFO`` up to ~137 000. A
-   fevals-equalized race would change the picture; treat the numbers
-   above as "what a user gets if they cap wall-clock, not budget".
 
 Reproducing the sweep
 ---------------------

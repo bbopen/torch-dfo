@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 import pytest
 import torch
 
@@ -30,6 +29,7 @@ from torch_dfo.phased import (
     CMA_ES_RESTART_MODES,
     ELITE_FRACTION,
     STEP_SIZE_MAX,
+    PhasedConfig,
     PhasedDFO,
     _compute_basin_explore_budget_frac,
     _compute_basin_explore_restarts,
@@ -38,6 +38,78 @@ from torch_dfo.phased import (
     _compute_step_size_init,
     _merge_search_pool,
 )
+from torch_dfo.phased._basin_explore import multistart_basin_explore
+
+
+# ---------------------------------------------------------------------------
+# PhasedConfig plumbing: constructor kwarg actually reaches internal logic
+# ---------------------------------------------------------------------------
+class TestPhasedConfigKwarg:
+    """B1 added ``PhasedDFO(config=PhasedConfig(...))``. These tests guard
+    the plumbing so a future refactor that silently drops the kwarg fails."""
+
+    def test_default_config_matches_module_alias_defaults(self) -> None:
+        """Unspecified config must match the module-level alias values."""
+        opt = PhasedDFO(dim=5, bounds=5.0, seed=42, device="cpu", dtype=torch.float64)
+        assert opt._config.elite_fraction == ELITE_FRACTION
+        assert opt._config.cma_es_restart_modes == CMA_ES_RESTART_MODES
+        assert opt._config.step_size_max == STEP_SIZE_MAX
+
+    def test_custom_config_flows_through_init(self) -> None:
+        """An explicit ``config=`` kwarg must replace the default values."""
+        cfg = PhasedConfig(elite_fraction=0.5, cma_es_restart_modes=2)
+        opt = PhasedDFO(dim=5, bounds=5.0, seed=42, device="cpu", dtype=torch.float64, config=cfg)
+        assert opt._config is cfg
+        assert opt._config.elite_fraction == 0.5
+        assert opt._config.cma_es_restart_modes == 2
+        # Field not overridden: still the default.
+        assert opt._config.step_size_max == STEP_SIZE_MAX
+
+    def test_custom_elite_fraction_affects_low_dim_partial_restart(self) -> None:
+        """Raising ``elite_fraction`` from 0.1 to 0.8 must preserve more DE elites.
+
+        ``_low_dim_pop_restart`` on odd restart counts keeps ``max(2, int(pop*ELITE))``
+        individuals — if the constructor ignored ``config=``, the elite count would
+        stay at int(20*0.1)=2 instead of int(20*0.8)=16.
+        """
+        cfg = PhasedConfig(elite_fraction=0.8)
+        opt = PhasedDFO(
+            dim=5,
+            bounds=5.0,
+            pop_size=20,
+            seed=42,
+            device="cpu",
+            dtype=torch.float64,
+            config=cfg,
+        )
+        opt._fitness_fn = sphere
+        # Prime the population so fitness argsort is meaningful.
+        c = opt.ask()
+        opt.tell(c, sphere(c))
+        # Odd-count restart keeps the elite fraction.
+        opt._de_restart_count = 0  # next call lands on 1 -> partial restart path
+        pop_before = opt._shade.population.clone()
+        fit_before = opt._shade.fitness.clone()
+        opt._low_dim_pop_restart()
+        # elite_count = max(2, int(20 * 0.8)) = 16 -> first 16 rows by sort order preserved
+        elite_count = max(2, int(20 * 0.8))
+        sorted_idx = fit_before.argsort()
+        preserved_idx = sorted_idx[:elite_count]
+        for i in preserved_idx.tolist():
+            assert torch.allclose(opt._shade.population[i], pop_before[i]), (
+                f"elite row {i} mutated despite elite_fraction=0.8"
+            )
+
+
+def test_basin_explore_propagates_objective_errors() -> None:
+    opt = PhasedDFO(dim=2, bounds=5.0, budget=100, seed=42, device="cpu", dtype=torch.float64)
+    opt._basin_explore_restarts = 1
+
+    def broken_objective(_x: torch.Tensor) -> torch.Tensor:
+        raise RuntimeError("objective failed")
+
+    with pytest.raises(RuntimeError, match="objective failed"):
+        multistart_basin_explore(opt, broken_objective, budget_limit=100)
 
 
 # ---------------------------------------------------------------------------
@@ -819,6 +891,7 @@ class TestAdaptiveStepSize:
             f"step_size did not change: still {opt._step_size}"
         )
 
+
 # ---------------------------------------------------------------------------
 # CMA-ES restart mean cycling.
 # ---------------------------------------------------------------------------
@@ -1002,10 +1075,9 @@ class TestLowDimRestart:
             assert opt._shade.fitness[i].item() == pytest.approx(float(i))
         # Solutions themselves must be preserved too — a bug that preserves
         # fitness labels but permutes solutions is caught here.
-        assert torch.allclose(
-            opt._shade.population[:elite_count], elite_population_before
-        ), "Elite solutions changed across restart (only fitness labels preserved)"
-
+        assert torch.allclose(opt._shade.population[:elite_count], elite_population_before), (
+            "Elite solutions changed across restart (only fitness labels preserved)"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -1257,6 +1329,7 @@ class TestMidpointProbing:
         assert opt._fe_count == fe_after_first, (
             "Second _probe_midpoint call should not spend additional FE"
         )
+
 
 # ---------------------------------------------------------------------------
 # Differential restart mode
@@ -1735,6 +1808,7 @@ class TestLowDimPolishUsesScipy:
         # substantial budget should be consumed
         assert opt.fe_count > 5000, f"Expected significant FE consumption, got {opt.fe_count}"
 
+
 # ---------------------------------------------------------------------------
 # D1 — reset() sub-optimizer reset verification
 # ---------------------------------------------------------------------------
@@ -1816,9 +1890,7 @@ class TestBudgetAndResetEdgeCases:
         opt.optimize(sphere)
         assert opt.done
         c = opt.ask()
-        assert c.shape == (0, 3), (
-            f"ask() after done must return (0, dim); got {tuple(c.shape)}"
-        )
+        assert c.shape == (0, 3), f"ask() after done must return (0, dim); got {tuple(c.shape)}"
         # tell() on empty must also be a safe no-op.
         opt.tell(c, torch.empty(0, device=device, dtype=dtype))
         # best() remains finite and unchanged.
@@ -1856,6 +1928,4 @@ class TestBudgetAndResetEdgeCases:
             assert c.shape[0] > 0, "ask() empty immediately after reset"
             opt.tell(c, sphere(c))
         assert opt._fe_count > 0, "fe_count did not advance after reset+continue"
-        assert torch.isfinite(opt.best_fitness), (
-            "best_fitness not finite after reset+continue"
-        )
+        assert torch.isfinite(opt.best_fitness), "best_fitness not finite after reset+continue"
