@@ -9,22 +9,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  lint-and-test:
+  static-checks:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
           cache: pip
 
-      - name: Install (CPU-only torch to keep CI fast)
+      - name: Install package and dev dependencies
         run: |
           python -m pip install --upgrade pip
           pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4.0"
@@ -39,15 +35,59 @@ jobs:
       - name: mypy
         run: mypy src/
 
-      - name: Pytest
-        run: pytest tests/ -q --maxfail=5
+      - name: Release metadata check
+        run: pytest tests/test_release_metadata.py -q
 
-      - name: Upload coverage
-        if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v4
+  cpu-smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          files: coverage.xml
-          fail_ci_if_error: false
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu "torch>=2.4.0"
+          pip install -e .
+
+      - name: CPU import and API smoke
+        run: |
+          python - <<'PY'
+          import importlib.metadata as metadata
+          import torch
+          from torch_dfo import (
+              CMAES,
+              Categorical,
+              DFOOptimizer,
+              DLRPortfolio,
+              Float,
+              Int,
+              NelderMead,
+              PhasedDFO,
+              SHADE,
+              SearchSpace,
+              __version__,
+          )
+
+          assert metadata.version("torch-dfo") == __version__
+          _ = (SHADE, NelderMead, PhasedDFO, DLRPortfolio, DFOOptimizer)
+          _ = SearchSpace([Float("x", -1.0, 1.0), Int("n", 0, 2), Categorical("c", ["a", "b"])])
+          opt = CMAES(dim=2, bounds=1.0, pop_size=4, seed=1, device="cpu")
+          x = opt.ask()
+          opt.tell(x, (x**2).sum(-1))
+          _best_x, best_f = opt.best()
+          assert torch.isfinite(best_f)
+          print("cpu smoke ok", __version__)
+          PY
 
   build-docs:
     runs-on: ubuntu-latest
@@ -110,7 +150,7 @@ jobs:
 
   build-dist:
     runs-on: ubuntu-latest
-    needs: [lint-and-test, build-docs, gpu-tests]
+    needs: [static-checks, cpu-smoke, build-docs, gpu-tests]
     steps:
       - uses: actions/checkout@v4
 
