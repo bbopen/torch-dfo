@@ -51,11 +51,6 @@ population sizes). If you need a new threshold:
    `CONV_SPHERE_10D_TIGHT`).
 3. Never inline a numeric threshold in a new test.
 
-## Known limitations
-
-- `PhasedDFO.state_dict()` inherits from `BaseOptimizer` and captures only the common state (population, fitness, best, RNG, generation counter). It does not serialize the nested SHADE and CMA-ES sub-optimizers, phase-transition state, budget trackers, or the CMA covariance path. The failing case is pinned by `tests/test_serialization.py::test_phased_roundtrip`.
-- `load_state_dict` across device classes (CPU → CUDA) raises `RuntimeError: RNG state is wrong size` because CUDA's Generator state uses a different binary layout. CPU → MPS works (MPS Generator is CPU-backed). Pinned by `tests/test_serialization.py::test_shade_roundtrip_cpu_to_cuda_xfail`.
-
 ## Opening a PR
 
 1. Branch off `master`. Include a one-paragraph description of what
