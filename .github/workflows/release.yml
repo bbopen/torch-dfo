@@ -80,7 +80,7 @@ jobs:
         run: mypy src/
 
       - name: Release metadata check
-        run: pytest tests/test_release_metadata.py -q
+        run: pytest tests/test_release_metadata.py -q -o "addopts="
 
   cpu-smoke:
     needs: preflight
