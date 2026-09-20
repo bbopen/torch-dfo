@@ -1,0 +1,62 @@
+{
+  "denominators": {
+    "failed_runs": 180,
+    "grid_cells": 900,
+    "jsonl_lines": 903,
+    "run_events": 900,
+    "selected_test_rows": 720,
+    "successful_runs": 720,
+    "trace_rows": 723600
+  },
+  "failure_patterns": [
+    {
+      "attempted": 20,
+      "completed": 20,
+      "error_type": "UncapturedHigherOrderOpError",
+      "method": "evox_cmaes_cpu",
+      "runs": 90
+    },
+    {
+      "attempted": 20,
+      "completed": 20,
+      "error_type": "UncapturedHigherOrderOpError",
+      "method": "evox_cmaes_cuda",
+      "runs": 90
+    }
+  ],
+  "first_issues": [],
+  "issue_counts": {},
+  "max_absolute_differences": {
+    "selected_test_mean": 0.0,
+    "validation": 0.0
+  },
+  "pass": true,
+  "scope": "Independent stdlib audit of raw quality JSONL; no optimization or Torch import",
+  "sources": {
+    "events_sha256": "3d7279333351e90e993c0f445d855a6180959e445eae839a82dd505b76a37f8c",
+    "final_test_sha256": "bb120e83d82c386fc986a72b33322d90b4f966f14568e83c4d09360f72973a41",
+    "summary_sha256": "450ca6eaa4e0591bcfaa81d554e700bf99b3637599588e25f6a06006088f78c8",
+    "validation_sha256": "afe4bce58d24c83144ad12f8ff718425c59027203de945d12e1f8ca8a5b04c20"
+  },
+  "status_by_dataset": {
+    "ImageNet16-120/failed": 60,
+    "ImageNet16-120/ok": 240,
+    "cifar10/failed": 60,
+    "cifar10/ok": 240,
+    "cifar100/failed": 60,
+    "cifar100/ok": 240
+  },
+  "status_by_method": {
+    "aging_cpu/ok": 90,
+    "evox_cmaes_cpu/failed": 90,
+    "evox_cmaes_cuda/failed": 90,
+    "evox_de_cpu/ok": 90,
+    "evox_de_cuda/ok": 90,
+    "random_cpu/ok": 90,
+    "torch_dfo_cmaes_cpu/ok": 90,
+    "torch_dfo_cmaes_cuda/ok": 90,
+    "torch_dfo_shade_cpu/ok": 90,
+    "torch_dfo_shade_cuda/ok": 90
+  },
+  "timestamp_utc": "2026-09-20T09:32:27.990056+00:00"
+}

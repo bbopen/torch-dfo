@@ -1,0 +1,69 @@
+{
+  "denominators": {
+    "compiled_searches_audited": 30,
+    "compiled_warmups_checked": 6,
+    "complete_searches": 90,
+    "expected_lanes": 120,
+    "recorded_lanes": 120,
+    "trace_rows_audited": 120000
+  },
+  "failure_patterns": [
+    {
+      "device": "cpu",
+      "error_type": "UncapturedHigherOrderOpError",
+      "runs": 15,
+      "status": "failed",
+      "workload": "optimizer_floor"
+    },
+    {
+      "device": "cuda",
+      "error_type": "UncapturedHigherOrderOpError",
+      "runs": 15,
+      "status": "failed",
+      "workload": "optimizer_floor"
+    },
+    {
+      "device": "cpu",
+      "error_type": "UncapturedHigherOrderOpError",
+      "runs": 15,
+      "status": "failed",
+      "workload": "search"
+    },
+    {
+      "device": "cuda",
+      "error_type": "UncapturedHigherOrderOpError",
+      "runs": 15,
+      "status": "failed",
+      "workload": "search"
+    }
+  ],
+  "first_issues": [],
+  "issue_counts": {},
+  "max_validation_absolute_difference": 0.0,
+  "pass": true,
+  "scope": "Independent stdlib audit of corrected device report; no Torch import or GPU jobs",
+  "sources": {
+    "report_sha256": "ed80ee3776ba9dff15639f5ee9450a51f5ce468080acf2792b8be3f2f860f49f",
+    "reported_evox_git_head": "1c242cc9533fbd7e2e0c0342456f4e0f52449e5d",
+    "reported_source_sha256": {
+      "benchmarks/nasbench201.py": "df3b91df1eb4a3512c5069e3ab82e9959209f7113d4fcc93c7a8bb7b82c75131",
+      "benchmarks/nasbench201_device.py": "dda6b49243ef29e1314e0291a0eb5939c0cc312d53233e20e60ba5e0f0d6c7d9",
+      "research/redesign/nasbench201-protocol.md": "c98a97a963c8fce398bdd9ee785697a3464c61e49008a72c3a99174e278068fa",
+      "src/torch_dfo/cmaes.py": "ecd49f62513f23dcb3211a5dbe28dc265b00309c395c717f3707c3ef2f55e955",
+      "src/torch_dfo/run.py": "0a0e9ad4b68e1258a7b386189409a7495be513ece38b2795e42fb0f5cd34ca0a",
+      "src/torch_dfo/shade.py": "27952a9ede7b8d3b25b9484f3f388ce139d690a1926d48b731eb8a3d1a315ede"
+    },
+    "validation_sha256": "afe4bce58d24c83144ad12f8ff718425c59027203de945d12e1f8ca8a5b04c20"
+  },
+  "status_by_lane": {
+    "evox_cmaes/cpu/failed": 15,
+    "evox_cmaes/cuda/failed": 15,
+    "evox_de/cpu/complete": 15,
+    "evox_de/cuda/complete": 15,
+    "torch_dfo_cmaes/cpu/complete": 15,
+    "torch_dfo_cmaes/cuda/complete": 15,
+    "torch_dfo_shade/cpu/complete": 15,
+    "torch_dfo_shade/cuda/complete": 15
+  },
+  "timestamp_utc": "2026-09-20T09:45:05.567479+00:00"
+}

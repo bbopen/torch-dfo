@@ -1,0 +1,116 @@
+{
+  "validation_sha256": "afe4bce58d24c83144ad12f8ff718425c59027203de945d12e1f8ca8a5b04c20",
+  "test_data_opened": false,
+  "datasets": {
+    "cifar10": {
+      "degenerate_all_none_mean_error": 90.28799999949138,
+      "ceiling_all_conv3x3_mean_error": 9.80133334635417,
+      "exhaustive_validation_minimum_mean_error": 8.393333349609378,
+      "exhaustive_validation_minimum_ops": [
+        3,
+        3,
+        3,
+        1,
+        3,
+        2
+      ],
+      "cheap_shortcut_all_skip_mean_error": 60.23066667683919,
+      "repeat_exploit": {
+        "architecture": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "hypothetical_observation_budget": 1000,
+        "unique_architectures": 1,
+        "mean_validation_error": 9.80133334635417,
+        "minimum_recorded_trial_error": 9.612000019531251,
+        "potential_optimistic_gap": 0.18933332682291848,
+        "interpretation": "Repeated draws can lower the observed minimum without improving the network. Charge every draw and report final held-out performance."
+      },
+      "null_uniform_1000": {
+        "mean_error_median": 12.83733332845052,
+        "best_mean_error": 8.66600001708985,
+        "interpretation": "Reference audit of mean validation scores, not a search run."
+      },
+      "floor_above_known_good_and_ceiling": true
+    },
+    "cifar100": {
+      "degenerate_all_none_mean_error": 99.00000000076294,
+      "ceiling_all_conv3x3_mean_error": 29.293333337402345,
+      "exhaustive_validation_minimum_mean_error": 26.506666674804688,
+      "exhaustive_validation_minimum_ops": [
+        3,
+        3,
+        3,
+        1,
+        3,
+        3
+      ],
+      "cheap_shortcut_all_skip_mean_error": 84.96666666870117,
+      "repeat_exploit": {
+        "architecture": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "hypothetical_observation_budget": 1000,
+        "unique_architectures": 1,
+        "mean_validation_error": 29.293333337402345,
+        "minimum_recorded_trial_error": 28.44000002441406,
+        "potential_optimistic_gap": 0.8533333129882834,
+        "interpretation": "Repeated draws can lower the observed minimum without improving the network. Charge every draw and report final held-out performance."
+      },
+      "null_uniform_1000": {
+        "mean_error_median": 35.01666670328776,
+        "best_mean_error": 27.040000030517575,
+        "interpretation": "Reference audit of mean validation scores, not a search run."
+      },
+      "floor_above_known_good_and_ceiling": true
+    },
+    "ImageNet16-120": {
+      "degenerate_all_none_mean_error": 99.16666666709052,
+      "ceiling_all_conv3x3_mean_error": 59.222222340901695,
+      "exhaustive_validation_minimum_mean_error": 53.26666678365072,
+      "exhaustive_validation_minimum_ops": [
+        3,
+        2,
+        2,
+        1,
+        3,
+        3
+      ],
+      "cheap_shortcut_all_skip_mean_error": 83.56666666497125,
+      "repeat_exploit": {
+        "architecture": [
+          3,
+          3,
+          3,
+          3,
+          3,
+          3
+        ],
+        "hypothetical_observation_budget": 1000,
+        "unique_architectures": 1,
+        "mean_validation_error": 59.222222340901695,
+        "minimum_recorded_trial_error": 58.63333346557617,
+        "potential_optimistic_gap": 0.588888875325523,
+        "interpretation": "Repeated draws can lower the observed minimum without improving the network. Charge every draw and report final held-out performance."
+      },
+      "null_uniform_1000": {
+        "mean_error_median": 63.55555556911892,
+        "best_mean_error": 53.500000066121416,
+        "interpretation": "Reference audit of mean validation scores, not a search run."
+      },
+      "floor_above_known_good_and_ceiling": true
+    }
+  },
+  "scope": "Metric audit only; exhaustive validation information is not search feedback.",
+  "passed": true
+}

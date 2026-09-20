@@ -455,9 +455,7 @@ def run_search(
             step(False)
             sync(device)
             first_compiled_seconds = time.perf_counter() - compiled_start
-            first_compiled_graphs = (
-                int(dynamo_counters["stats"]["unique_graphs"]) - graphs_before
-            )
+            first_compiled_graphs = int(dynamo_counters["stats"]["unique_graphs"]) - graphs_before
             remaining_steps = BUDGET // POPULATION - 2
         else:
             remaining_steps = BUDGET // POPULATION - 1
@@ -468,9 +466,7 @@ def run_search(
         steady_seconds = time.perf_counter() - steady_start
         search_seconds = time.perf_counter() - start
         if compile_evox:
-            total_compiled_graphs = (
-                int(dynamo_counters["stats"]["unique_graphs"]) - graphs_before
-            )
+            total_compiled_graphs = int(dynamo_counters["stats"]["unique_graphs"]) - graphs_before
             if first_compiled_graphs < 1 or total_compiled_graphs != first_compiled_graphs:
                 raise RuntimeError(
                     "compiled EvoX graph count differs: "

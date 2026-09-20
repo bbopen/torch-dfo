@@ -1,0 +1,18 @@
+/workspace/upstream-evox/src/evox/algorithms/so/es_variants/cma_es.py:128: UserWarning: The use of `x.T` on tensors of dimension other than 2 to reverse their shape is deprecated and it will throw an error in a future release. Consider `x.mT` to transpose batches of matrices or `x.permute(*torch.arange(x.ndim - 1, -1, -1))` to reverse the dimensions of a tensor. (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/native/TensorShape.cpp:4314.)
+  + self.c_1 * (p_c @ p_c.T + (1 - h_sigma) * self.c_c * (2 - self.c_c) * C)
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8] torch._dynamo hit config.recompile_limit (8)
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]    function: 'step' (/workspace/upstream-evox/src/evox/workflows/std_workflow.py:225)
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]    last reason: 0/7: ___check_type_id(self._modules['problem'], 1811668288), type=<class '__main__.make_workflow.<locals>.TableProblem'>  # fitness = self.problem.evaluate(population)  # orkspace/upstream-evox/src/evox/workflows/std_workflow.py:191 in _evaluate (HINT: type make_workflow.<locals>.TableProblem)
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8] User stack trace:
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]   File "/workspace/upstream-evox/src/evox/workflows/std_workflow.py", line 227, in step
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]     self._step()
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]   File "/workspace/upstream-evox/src/evox/workflows/std_workflow.py", line 204, in _step
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]     self.algorithm.step()
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]   File "/workspace/upstream-evox/src/evox/algorithms/so/de_variants/de.py", line 154, in step
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]     new_fitness = self.evaluate(new_pop)
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]   File "/workspace/upstream-evox/src/evox/workflows/std_workflow.py", line 135, in evaluate
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]     return self._evaluate(pop)
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]   File "/workspace/upstream-evox/src/evox/workflows/std_workflow.py", line 191, in _evaluate
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8]     fitness = self.problem.evaluate(population)
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+W0920 09:33:43.118000 619 torch/_dynamo/convert_frame.py:1994] [0/8] To diagnose recompilation issues, see https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.recompilation.html

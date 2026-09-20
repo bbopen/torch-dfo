@@ -4,6 +4,10 @@ All notable changes to torch-dfo.
 
 ## [Unreleased]
 
+- Add a frozen NASBench201 comparison using official EvoXBench records and separate test scores.
+- Compare CPU and CUDA execution, including stock EvoX DE and verified full-graph compilation.
+- Preserve repeated-query costs, failed runs, independent audits, and rejected timing results.
+
 ## 0.11.0b1 — 2026-09-19
 
 ### Budgeted search

@@ -1,0 +1,6 @@
+{
+  "change": "Ruff joined two parenthesized arithmetic expressions onto single lines.",
+  "ast_equal": true,
+  "measured_sha256": "dda6b49243ef29e1314e0291a0eb5939c0cc312d53233e20e60ba5e0f0d6c7d9",
+  "formatted_sha256": "1d95b4b54817ac41fc4b8d4f3c12c289bcf6e1ee78bb6750ddc799e22676e8ce"
+}
