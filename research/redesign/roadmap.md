@@ -125,13 +125,21 @@ outside the core library.
 
 ## Discrete architecture-search benchmark
 
-EvoXBench is the selected next benchmark for discrete architecture search. Start with NASBench201 and a fixed scalar objective under counted evaluation budgets.
-Compare against random search and a categorical evolutionary baseline. Keep validation scores for search and test scores for final assessment.
-Record duplicate architectures, evaluator randomness, and unique evaluated designs. Add Pareto search only with a separate multi-objective protocol.
+The first NASBench201 panel is complete. It uses official EvoXBench records,
+30 seeds, counted observations, and separate validation and test scores.
+Native CMA-ES and SHADE improved on random search. Categorical aging evolution
+and stock EvoX DE remain strong comparators. See [the results](nasbench201-results.md).
 
-EvoXBench uses stored results or predictive evaluators. It does not establish CUDA acceleration or network latency on DGX Spark.
-Measure selected networks on GB10 in a separate deployment study. Keep benchmark data and optional dependencies outside the core package.
-This is planned work and does not block merging the foundation beta.
+A separate Spark panel measures objective lookup, optimizer overhead, and full
+search on CPU and CUDA. It includes compiled EvoX DE with verified graph reuse.
+CPU won this small float64 lookup workload. The result does not settle GPU
+performance for large populations, float32, or expensive tensor objectives.
+
+The next GPU study should compare both libraries on a larger tensor workload,
+with common objective arithmetic and separate cold and warm measurements.
+Keep a categorical baseline when extending NAS search. Add Pareto search only
+under a separate protocol. Measure selected networks on GB10 in a deployment study.
+Keep benchmark data and optional dependencies outside the core package.
 
 ## Maintenance and decision rules
 

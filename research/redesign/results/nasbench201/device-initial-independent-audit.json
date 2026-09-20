@@ -1,0 +1,59 @@
+{
+  "denominators": {
+    "compiled_searches_audited": 30,
+    "complete_searches": 90,
+    "expected_lanes": 120,
+    "recorded_lanes": 120,
+    "trace_rows_audited": 120000
+  },
+  "failure_patterns": [
+    {
+      "device": "cpu",
+      "error_type": "UncapturedHigherOrderOpError",
+      "runs": 15,
+      "status": "failed",
+      "workload": "optimizer_floor"
+    },
+    {
+      "device": "cuda",
+      "error_type": "UncapturedHigherOrderOpError",
+      "runs": 15,
+      "status": "failed",
+      "workload": "optimizer_floor"
+    },
+    {
+      "device": "cpu",
+      "error_type": "UncapturedHigherOrderOpError",
+      "runs": 15,
+      "status": "failed",
+      "workload": "search"
+    },
+    {
+      "device": "cuda",
+      "error_type": "UncapturedHigherOrderOpError",
+      "runs": 15,
+      "status": "failed",
+      "workload": "search"
+    }
+  ],
+  "first_issues": [],
+  "issue_counts": {},
+  "max_validation_absolute_difference": 0.0,
+  "pass": true,
+  "scope": "Independent stdlib audit of completed device report; no Torch import or GPU jobs",
+  "sources": {
+    "report_sha256": "f2d9a6a8286cda2fc3bbe671f2cd7a9cf493806b79c1227a285a0b2a4d3e5de4",
+    "validation_sha256": "afe4bce58d24c83144ad12f8ff718425c59027203de945d12e1f8ca8a5b04c20"
+  },
+  "status_by_lane": {
+    "evox_cmaes/cpu/failed": 15,
+    "evox_cmaes/cuda/failed": 15,
+    "evox_de/cpu/complete": 15,
+    "evox_de/cuda/complete": 15,
+    "torch_dfo_cmaes/cpu/complete": 15,
+    "torch_dfo_cmaes/cuda/complete": 15,
+    "torch_dfo_shade/cpu/complete": 15,
+    "torch_dfo_shade/cuda/complete": 15
+  },
+  "timestamp_utc": "2026-09-20T09:37:14.703558+00:00"
+}

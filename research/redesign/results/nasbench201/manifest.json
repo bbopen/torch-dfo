@@ -1,0 +1,100 @@
+{
+  "quality_measurement_commit": "c898ec5",
+  "device_measurement_commit": "22ad9f4bcd22c84dce260f0c60eb3dc5b1255e6d",
+  "base_library_commit": "f7dddf64765f05db51c3bbf2c9c2a6f75d5f839b",
+  "container_image": "local/blockwright-paddleocr-transformers:3.6.0-torch2.13-cu130",
+  "gpu": "NVIDIA GB10",
+  "torch": "2.13.0+cu130",
+  "cpu_threads": 1,
+  "measurement_order": [
+    "quality-full",
+    "device-initial-rejected-compiled-labels",
+    "device-corrected-full"
+  ],
+  "corrected_compiler_cache": {
+    "TORCHINDUCTOR_CACHE_DIR": "/workspace/results/compiler-cache-corrected",
+    "TRITON_CACHE_DIR": "/workspace/results/triton-cache-corrected",
+    "CUDA_CACHE_PATH": "/workspace/results/cuda-cache-corrected"
+  },
+  "rejected_artifact": "device-initial.json.gz",
+  "rejection_reason": "Default partial-graph compile reached recompile_limit8 and could fall back to eager.",
+  "source_note": "The final device runner differs from measured code only by Ruff line wrapping. format-equivalence.json verifies identical Python ASTs.",
+  "files": {
+    "analysis.json": {
+      "bytes": 65820,
+      "sha256": "403c3421114889e73874d47e4e90fe180899e270c95aef825a25ec8855cbf99b"
+    },
+    "audit_device.py": {
+      "bytes": 16934,
+      "sha256": "c42bdae124bf1a97b3ea70a01aae9268a94649e097c6a9d551ddba3a735cc329"
+    },
+    "audit_quality.py": {
+      "bytes": 15649,
+      "sha256": "3038a30c0bbf77111b76acdd6bdc51c15be7ff51bb64b2d2fa5d6b7d34fc07de"
+    },
+    "data-manifest.json": {
+      "bytes": 2928,
+      "sha256": "d87f9aad341a917b072e807b05737711df257ba470f2371c57365250fad0ae59"
+    },
+    "device-corrected-full.json.gz": {
+      "bytes": 1015737,
+      "sha256": "ad080cb7cb772a85bf98d47a2ea1e8669d468c0f1d2d10020ce55cf795159ceb"
+    },
+    "device-corrected.log": {
+      "bytes": 532,
+      "sha256": "6fe030dfb85a7b3de9d2787085fc2828f5bb9caf054cee73fd8bca68527cddca"
+    },
+    "device-independent-audit.json": {
+      "bytes": 2418,
+      "sha256": "f91af6be531cf7a40292767f16f7229454271fa261aaa07be0022074c99faf7b"
+    },
+    "device-initial.json.gz": {
+      "bytes": 1063695,
+      "sha256": "2c7d91be7a9f00258d2c02220860b9f583e6a4210df3bdbefccf635be40ba41a"
+    },
+    "device-initial.log": {
+      "bytes": 2922,
+      "sha256": "561eed5ad8c38110370ead428361894e641c773bb6756e645b39c4e7b00af8e8"
+    },
+    "evaluator-probes.json": {
+      "bytes": 3939,
+      "sha256": "4ee4cbfc3ca444c17af5ec566ad051b19b8ccff10316d41fa6da115e503ff3b6"
+    },
+    "format-equivalence.json": {
+      "bytes": 290,
+      "sha256": "0c9b8b3100ecab86fff66ae1ecd79123a2f3d4ab0c8885b4272ba90fed8494c5"
+    },
+    "protocol-initial.md": {
+      "bytes": 7464,
+      "sha256": "ebf73f4ded7f67886bdf008313d375c1f8363ccf112b7940ebc3ab49879efc1d"
+    },
+    "quality-full.jsonl.gz": {
+      "bytes": 11071186,
+      "sha256": "f6cbb0cf963fe466d0ef7a79f1639c26c82c5b8ec71af4faa1ba4d6aec9d5454"
+    },
+    "quality-full.summary.json": {
+      "bytes": 2127373,
+      "sha256": "450ca6eaa4e0591bcfaa81d554e700bf99b3637599588e25f6a06006088f78c8"
+    },
+    "quality-independent-audit.json": {
+      "bytes": 1768,
+      "sha256": "0daa73653035a29c7e5d384368300d68ce27243a9b873f41b4804a8676c19c31"
+    },
+    "regression.log": {
+      "bytes": 5247,
+      "sha256": "d1c6a76546ef51a8ca8f501f7186061f9bc8c5b64b45e152c42056c8f85c8687"
+    },
+    "upstream-parity.json": {
+      "bytes": 2414,
+      "sha256": "53fd2d12a2a19fd8a2c17de585463527e59757f00ebaf043af26cc8fe06f26e2"
+    },
+    "device-initial-independent-audit.json": {
+      "bytes": 1641,
+      "sha256": "592f6e1b178f6dbefb83f6268e4bed3abc5aaa7249f120a4633cbe5614d6b1de"
+    },
+    "focused-tests.log": {
+      "bytes": 99,
+      "sha256": "dba9aa5bad917bf17d50688b8043eff465fe886aa2361e4416da7a4be3354efc"
+    }
+  }
+}

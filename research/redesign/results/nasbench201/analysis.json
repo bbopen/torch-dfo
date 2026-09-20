@@ -1,0 +1,2443 @@
+{
+  "quality": [
+    {
+      "dataset": "ImageNet16-120",
+      "method": "aging_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 53.6774074033384,
+        "median": 53.7222222120497,
+        "q1": 53.7222222120497,
+        "q3": 53.7222222120497,
+        "min": 52.68888894314236,
+        "max": 53.7666666531033
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 436.76666666666665,
+        "median": 436.0,
+        "q1": 419.25,
+        "q3": 454.75,
+        "min": 359,
+        "max": 498
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 0,
+        "median": 0.0,
+        "q1": 0.0,
+        "q3": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.34000006323919957,
+          "bootstrap_95_pointwise": [
+            -0.6288889559145278,
+            -0.0685185778582491
+          ],
+          "lower_error_seeds": 17,
+          "equal_error_seeds": 1,
+          "higher_error_seeds": 12
+        }
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "evox_cmaes_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 0,
+      "failed_runs": 30,
+      "attempted_observations": 600,
+      "test_error": null,
+      "unique_architectures": null,
+      "decoder_tied_edges": null,
+      "comparisons": {}
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "evox_cmaes_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 0,
+      "failed_runs": 30,
+      "attempted_observations": 600,
+      "test_error": null,
+      "unique_architectures": null,
+      "decoder_tied_edges": null,
+      "comparisons": {}
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "evox_de_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 53.467037080722385,
+        "median": 53.41111117214626,
+        "q1": 52.86944448682997,
+        "q3": 53.7666666531033,
+        "min": 52.68888894314236,
+        "max": 55.050000010172525
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 352.3,
+        "median": 336.5,
+        "q1": 301.5,
+        "q3": 388.0,
+        "min": 228,
+        "max": 559
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 472.3666666666667,
+        "median": 434.0,
+        "q1": 292.75,
+        "q3": 535.5,
+        "min": 234,
+        "max": 1736
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.5503703858552157,
+          "bootstrap_95_pointwise": [
+            -0.9777777866504809,
+            -0.15111112422236583
+          ],
+          "lower_error_seeds": 19,
+          "equal_error_seeds": 0,
+          "higher_error_seeds": 11
+        },
+        "aging_cpu": {
+          "mean_difference": -0.21037032261601615,
+          "bootstrap_95_pointwise": [
+            -0.44611105199743645,
+            0.030370416937929433
+          ],
+          "lower_error_seeds": 20,
+          "equal_error_seeds": 2,
+          "higher_error_seeds": 8
+        }
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "evox_de_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 53.70444447761818,
+        "median": 53.65555559285482,
+        "q1": 53.41111117214626,
+        "q3": 53.7222222120497,
+        "min": 52.68888894314236,
+        "max": 55.050000010172525
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 380.1666666666667,
+        "median": 380.0,
+        "q1": 341.0,
+        "q3": 415.25,
+        "min": 259,
+        "max": 550
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 473.3,
+        "median": 401.0,
+        "q1": 307.75,
+        "q3": 628.25,
+        "min": 141,
+        "max": 1187
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.31296298895941727,
+          "bootstrap_95_pointwise": [
+            -0.6633333426016336,
+            0.04592590055112637
+          ],
+          "lower_error_seeds": 18,
+          "equal_error_seeds": 0,
+          "higher_error_seeds": 12
+        },
+        "aging_cpu": {
+          "mean_difference": 0.027037074279782303,
+          "bootstrap_95_pointwise": [
+            -0.15703699312563563,
+            0.22407410515679066
+          ],
+          "lower_error_seeds": 16,
+          "equal_error_seeds": 6,
+          "higher_error_seeds": 8
+        }
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "random_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 54.0174074665776,
+        "median": 53.9638889541626,
+        "q1": 53.41111113145616,
+        "q3": 54.6305556687249,
+        "min": 52.68888894314236,
+        "max": 55.70000009155274
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 969.5666666666667,
+        "median": 968.0,
+        "q1": 965.0,
+        "q3": 973.0,
+        "min": 960,
+        "max": 984
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 0,
+        "median": 0.0,
+        "q1": 0.0,
+        "q3": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "comparisons": {
+        "aging_cpu": {
+          "mean_difference": 0.34000006323919957,
+          "bootstrap_95_pointwise": [
+            0.06796303501835155,
+            0.6287037705598014
+          ],
+          "lower_error_seeds": 12,
+          "equal_error_seeds": 1,
+          "higher_error_seeds": 17
+        }
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "torch_dfo_cmaes_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 53.64555558415166,
+        "median": 53.7222222120497,
+        "q1": 53.416666788736975,
+        "q3": 53.7666666531033,
+        "min": 52.68888894314236,
+        "max": 54.322222229003906
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 258.1666666666667,
+        "median": 258.5,
+        "q1": 228.5,
+        "q3": 284.5,
+        "min": 189,
+        "max": 353
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 49.166666666666664,
+        "median": 48.0,
+        "q1": 36.25,
+        "q3": 62.25,
+        "min": 13,
+        "max": 95
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.37185188242594264,
+          "bootstrap_95_pointwise": [
+            -0.6701852207890241,
+            -0.09629632161458232
+          ],
+          "lower_error_seeds": 18,
+          "equal_error_seeds": 2,
+          "higher_error_seeds": 10
+        },
+        "aging_cpu": {
+          "mean_difference": -0.031851819186743076,
+          "bootstrap_95_pointwise": [
+            -0.11481476434778556,
+            0.05703707077591223
+          ],
+          "lower_error_seeds": 10,
+          "equal_error_seeds": 12,
+          "higher_error_seeds": 8
+        }
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "torch_dfo_cmaes_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 53.72444446874548,
+        "median": 53.7222222120497,
+        "q1": 53.47638898976644,
+        "q3": 53.7666666531033,
+        "min": 52.68888894314236,
+        "max": 55.050000010172525
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 254.86666666666667,
+        "median": 251.5,
+        "q1": 233.25,
+        "q3": 263.75,
+        "min": 176,
+        "max": 361
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 54.63333333333333,
+        "median": 47.0,
+        "q1": 30.25,
+        "q3": 73.5,
+        "min": 12,
+        "max": 115
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.2929629978321207,
+          "bootstrap_95_pointwise": [
+            -0.5966666837904192,
+            -0.020000048376011628
+          ],
+          "lower_error_seeds": 17,
+          "equal_error_seeds": 1,
+          "higher_error_seeds": 12
+        },
+        "aging_cpu": {
+          "mean_difference": 0.04703706540707889,
+          "bootstrap_95_pointwise": [
+            -0.12518514890317836,
+            0.2135185415762405
+          ],
+          "lower_error_seeds": 11,
+          "equal_error_seeds": 6,
+          "higher_error_seeds": 13
+        }
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "torch_dfo_shade_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 53.48962966150354,
+        "median": 53.65555559285482,
+        "q1": 53.41111117214626,
+        "q3": 53.7222222120497,
+        "min": 52.68888894314236,
+        "max": 55.050000010172525
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 379.7,
+        "median": 359.5,
+        "q1": 317.0,
+        "q3": 427.5,
+        "min": 195,
+        "max": 617
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 629.8666666666667,
+        "median": 599.0,
+        "q1": 440.0,
+        "q3": 763.5,
+        "min": 252,
+        "max": 1247
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.5277778050740558,
+          "bootstrap_95_pointwise": [
+            -0.8790741031788012,
+            -0.18925928158230196
+          ],
+          "lower_error_seeds": 19,
+          "equal_error_seeds": 1,
+          "higher_error_seeds": 10
+        },
+        "aging_cpu": {
+          "mean_difference": -0.18777774183485624,
+          "bootstrap_95_pointwise": [
+            -0.3857406979031076,
+            0.0214815026177277
+          ],
+          "lower_error_seeds": 19,
+          "equal_error_seeds": 4,
+          "higher_error_seeds": 7
+        }
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "torch_dfo_shade_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 53.59351855208786,
+        "median": 53.68888890245226,
+        "q1": 53.41111117214626,
+        "q3": 53.7666666531033,
+        "min": 52.68888894314236,
+        "max": 54.322222229003906
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 401.96666666666664,
+        "median": 389.0,
+        "q1": 353.25,
+        "q3": 444.75,
+        "min": 177,
+        "max": 606
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 712.6333333333333,
+        "median": 621.5,
+        "q1": 544.5,
+        "q3": 892.25,
+        "min": 210,
+        "max": 1428
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.42388891448974536,
+          "bootstrap_95_pointwise": [
+            -0.691666695375794,
+            -0.1690741065696429
+          ],
+          "lower_error_seeds": 18,
+          "equal_error_seeds": 0,
+          "higher_error_seeds": 12
+        },
+        "aging_cpu": {
+          "mean_difference": -0.0838888512505458,
+          "bootstrap_95_pointwise": [
+            -0.2570369819923729,
+            0.07759261508517477
+          ],
+          "lower_error_seeds": 13,
+          "equal_error_seeds": 7,
+          "higher_error_seeds": 10
+        }
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "aging_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 5.626666666666661,
+        "median": 5.626666666666661,
+        "q1": 5.626666666666661,
+        "q3": 5.626666666666661,
+        "min": 5.626666666666661,
+        "max": 5.626666666666661
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 368.6333333333333,
+        "median": 371.0,
+        "q1": 347.5,
+        "q3": 390.75,
+        "min": 298,
+        "max": 409
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 0,
+        "median": 0.0,
+        "q1": 0.0,
+        "q3": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.33244444444444937,
+          "bootstrap_95_pointwise": [
+            -0.42216666666667174,
+            -0.24566666666667183
+          ],
+          "lower_error_seeds": 27,
+          "equal_error_seeds": 3,
+          "higher_error_seeds": 0
+        }
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "evox_cmaes_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 0,
+      "failed_runs": 30,
+      "attempted_observations": 600,
+      "test_error": null,
+      "unique_architectures": null,
+      "decoder_tied_edges": null,
+      "comparisons": {}
+    },
+    {
+      "dataset": "cifar10",
+      "method": "evox_cmaes_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 0,
+      "failed_runs": 30,
+      "attempted_observations": 600,
+      "test_error": null,
+      "unique_architectures": null,
+      "decoder_tied_edges": null,
+      "comparisons": {}
+    },
+    {
+      "dataset": "cifar10",
+      "method": "evox_de_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 5.690666666666663,
+        "median": 5.626666666666661,
+        "q1": 5.626666666666661,
+        "q3": 5.636666666666666,
+        "min": 5.626666666666661,
+        "max": 6.240000000000002
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 332.4,
+        "median": 327.5,
+        "q1": 298.25,
+        "q3": 354.75,
+        "min": 208,
+        "max": 457
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 439.46666666666664,
+        "median": 398.5,
+        "q1": 219.0,
+        "q3": 547.75,
+        "min": 115,
+        "max": 1160
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.26844444444444704,
+          "bootstrap_95_pointwise": [
+            -0.3551666666666692,
+            -0.17750000000000268
+          ],
+          "lower_error_seeds": 25,
+          "equal_error_seeds": 3,
+          "higher_error_seeds": 2
+        },
+        "aging_cpu": {
+          "mean_difference": 0.0640000000000023,
+          "bootstrap_95_pointwise": [
+            0.01700000000000171,
+            0.12388888888889235
+          ],
+          "lower_error_seeds": 0,
+          "equal_error_seeds": 17,
+          "higher_error_seeds": 13
+        }
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "evox_de_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 5.7526666666666655,
+        "median": 5.636666666666666,
+        "q1": 5.626666666666662,
+        "q3": 5.749166666666668,
+        "min": 5.626666666666661,
+        "max": 6.486666666666665
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 366.26666666666665,
+        "median": 359.5,
+        "q1": 308.75,
+        "q3": 410.0,
+        "min": 264,
+        "max": 542
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 405.3666666666667,
+        "median": 377.0,
+        "q1": 263.25,
+        "q3": 521.5,
+        "min": 159,
+        "max": 781
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.20644444444444499,
+          "bootstrap_95_pointwise": [
+            -0.346333333333335,
+            -0.059944444444443246
+          ],
+          "lower_error_seeds": 23,
+          "equal_error_seeds": 0,
+          "higher_error_seeds": 7
+        },
+        "aging_cpu": {
+          "mean_difference": 0.1260000000000044,
+          "bootstrap_95_pointwise": [
+            0.048500000000004324,
+            0.21716666666667214
+          ],
+          "lower_error_seeds": 0,
+          "equal_error_seeds": 8,
+          "higher_error_seeds": 22
+        }
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "random_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 5.95911111111111,
+        "median": 5.949999999999999,
+        "q1": 5.720000000000001,
+        "q3": 6.157499999999997,
+        "min": 5.626666666666661,
+        "max": 6.479999999999997
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 969.5666666666667,
+        "median": 968.0,
+        "q1": 965.0,
+        "q3": 973.0,
+        "min": 960,
+        "max": 984
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 0,
+        "median": 0.0,
+        "q1": 0.0,
+        "q3": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "comparisons": {
+        "aging_cpu": {
+          "mean_difference": 0.33244444444444937,
+          "bootstrap_95_pointwise": [
+            0.24561111111111583,
+            0.422111111111116
+          ],
+          "lower_error_seeds": 0,
+          "equal_error_seeds": 3,
+          "higher_error_seeds": 27
+        }
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "torch_dfo_cmaes_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 5.664722222222218,
+        "median": 5.626666666666661,
+        "q1": 5.626666666666661,
+        "q3": 5.6341666666666645,
+        "min": 5.626666666666661,
+        "max": 6.180000000000002
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 238.6,
+        "median": 234.0,
+        "q1": 224.25,
+        "q3": 247.75,
+        "min": 170,
+        "max": 324
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 54.2,
+        "median": 49.5,
+        "q1": 38.75,
+        "q3": 66.25,
+        "min": 25,
+        "max": 120
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.29438888888889225,
+          "bootstrap_95_pointwise": [
+            -0.38938888888889306,
+            -0.20238888888889214
+          ],
+          "lower_error_seeds": 25,
+          "equal_error_seeds": 3,
+          "higher_error_seeds": 2
+        },
+        "aging_cpu": {
+          "mean_difference": 0.03805555555555709,
+          "bootstrap_95_pointwise": [
+            0.0016666666666675194,
+            0.09255555555555789
+          ],
+          "lower_error_seeds": 0,
+          "equal_error_seeds": 22,
+          "higher_error_seeds": 8
+        }
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "torch_dfo_cmaes_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 5.694555555555552,
+        "median": 5.626666666666661,
+        "q1": 5.626666666666661,
+        "q3": 5.636666666666666,
+        "min": 5.626666666666661,
+        "max": 6.513333333333335
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 241.4,
+        "median": 232.0,
+        "q1": 212.25,
+        "q3": 260.25,
+        "min": 163,
+        "max": 362
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 45,
+        "median": 41.5,
+        "q1": 33.25,
+        "q3": 55.0,
+        "min": 15,
+        "max": 86
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.26455555555555815,
+          "bootstrap_95_pointwise": [
+            -0.38233333333333747,
+            -0.13283333333333486
+          ],
+          "lower_error_seeds": 23,
+          "equal_error_seeds": 2,
+          "higher_error_seeds": 5
+        },
+        "aging_cpu": {
+          "mean_difference": 0.0678888888888912,
+          "bootstrap_95_pointwise": [
+            0.0071111111111132885,
+            0.14966666666666992
+          ],
+          "lower_error_seeds": 0,
+          "equal_error_seeds": 18,
+          "higher_error_seeds": 12
+        }
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "torch_dfo_shade_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 5.650111111111107,
+        "median": 5.626666666666661,
+        "q1": 5.626666666666661,
+        "q3": 5.6341666666666645,
+        "min": 5.626666666666661,
+        "max": 5.909999999999997
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 359.5,
+        "median": 357.0,
+        "q1": 283.5,
+        "q3": 423.25,
+        "min": 168,
+        "max": 558
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 598.7666666666667,
+        "median": 544.5,
+        "q1": 427.5,
+        "q3": 705.5,
+        "min": 208,
+        "max": 1498
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.30900000000000355,
+          "bootstrap_95_pointwise": [
+            -0.39861111111111536,
+            -0.22188888888889222
+          ],
+          "lower_error_seeds": 25,
+          "equal_error_seeds": 3,
+          "higher_error_seeds": 2
+        },
+        "aging_cpu": {
+          "mean_difference": 0.02344444444444583,
+          "bootstrap_95_pointwise": [
+            0.004444444444445613,
+            0.04855555555555681
+          ],
+          "lower_error_seeds": 0,
+          "equal_error_seeds": 22,
+          "higher_error_seeds": 8
+        }
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "torch_dfo_shade_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 5.661111111111107,
+        "median": 5.626666666666661,
+        "q1": 5.626666666666661,
+        "q3": 5.636666666666666,
+        "min": 5.626666666666661,
+        "max": 6.059999999999998
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 360,
+        "median": 338.0,
+        "q1": 294.5,
+        "q3": 383.75,
+        "min": 217,
+        "max": 632
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 621.7,
+        "median": 559.5,
+        "q1": 274.5,
+        "q3": 778.75,
+        "min": 199,
+        "max": 1481
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.29800000000000293,
+          "bootstrap_95_pointwise": [
+            -0.3894444444444479,
+            -0.2044444444444467
+          ],
+          "lower_error_seeds": 25,
+          "equal_error_seeds": 2,
+          "higher_error_seeds": 3
+        },
+        "aging_cpu": {
+          "mean_difference": 0.03444444444444642,
+          "bootstrap_95_pointwise": [
+            0.0033333333333350388,
+            0.07744444444444663
+          ],
+          "lower_error_seeds": 0,
+          "equal_error_seeds": 18,
+          "higher_error_seeds": 12
+        }
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "aging_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 26.906666784667973,
+        "median": 26.906666784667973,
+        "q1": 26.906666784667973,
+        "q3": 26.906666784667973,
+        "min": 26.906666784667973,
+        "max": 26.906666784667973
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 350.6333333333333,
+        "median": 348.0,
+        "q1": 335.5,
+        "q3": 361.0,
+        "min": 311,
+        "max": 406
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 0,
+        "median": 0.0,
+        "q1": 0.0,
+        "q3": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.40222214647080856,
+          "bootstrap_95_pointwise": [
+            -0.5605554922824407,
+            -0.24388882541232396
+          ],
+          "lower_error_seeds": 21,
+          "equal_error_seeds": 1,
+          "higher_error_seeds": 8
+        }
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "evox_cmaes_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 0,
+      "failed_runs": 30,
+      "attempted_observations": 600,
+      "test_error": null,
+      "unique_architectures": null,
+      "decoder_tied_edges": null,
+      "comparisons": {}
+    },
+    {
+      "dataset": "cifar100",
+      "method": "evox_cmaes_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 0,
+      "failed_runs": 30,
+      "attempted_observations": 600,
+      "test_error": null,
+      "unique_architectures": null,
+      "decoder_tied_edges": null,
+      "comparisons": {}
+    },
+    {
+      "dataset": "cifar100",
+      "method": "evox_de_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 26.977555637749568,
+        "median": 26.906666784667973,
+        "q1": 26.833333386230464,
+        "q3": 26.906666784667973,
+        "min": 26.486666739908856,
+        "max": 27.980000036621092
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 343.06666666666666,
+        "median": 320.0,
+        "q1": 303.0,
+        "q3": 396.25,
+        "min": 231,
+        "max": 521
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 433.5,
+        "median": 340.5,
+        "q1": 282.25,
+        "q3": 487.0,
+        "min": 170,
+        "max": 1412
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.33133329338921497,
+          "bootstrap_95_pointwise": [
+            -0.4905555011664491,
+            -0.1675555091688383
+          ],
+          "lower_error_seeds": 21,
+          "equal_error_seeds": 2,
+          "higher_error_seeds": 7
+        },
+        "aging_cpu": {
+          "mean_difference": 0.07088885308159358,
+          "bootstrap_95_pointwise": [
+            -0.028666695285376777,
+            0.19466662163628096
+          ],
+          "lower_error_seeds": 11,
+          "equal_error_seeds": 13,
+          "higher_error_seeds": 6
+        }
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "evox_de_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 27.03911118496365,
+        "median": 26.906666784667973,
+        "q1": 26.833333386230464,
+        "q3": 26.906666784667973,
+        "min": 26.486666739908856,
+        "max": 27.980000036621092
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 369.8333333333333,
+        "median": 355.0,
+        "q1": 309.0,
+        "q3": 416.25,
+        "min": 270,
+        "max": 517
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 465.8333333333333,
+        "median": 370.0,
+        "q1": 263.25,
+        "q3": 666.0,
+        "min": 126,
+        "max": 1153
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.26977774617513134,
+          "bootstrap_95_pointwise": [
+            -0.4891110771348747,
+            -0.044333321261937425
+          ],
+          "lower_error_seeds": 18,
+          "equal_error_seeds": 0,
+          "higher_error_seeds": 12
+        },
+        "aging_cpu": {
+          "mean_difference": 0.13244440029567717,
+          "bootstrap_95_pointwise": [
+            0.0011110687933988098,
+            0.2853332870144276
+          ],
+          "lower_error_seeds": 12,
+          "equal_error_seeds": 11,
+          "higher_error_seeds": 7
+        }
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "random_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 27.30888893113878,
+        "median": 27.30666668395996,
+        "q1": 26.871666723632817,
+        "q3": 27.71500006561279,
+        "min": 26.486666739908856,
+        "max": 28.126666760253908
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 969.5666666666667,
+        "median": 968.0,
+        "q1": 965.0,
+        "q3": 973.0,
+        "min": 960,
+        "max": 984
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 0,
+        "median": 0.0,
+        "q1": 0.0,
+        "q3": 0.0,
+        "min": 0,
+        "max": 0
+      },
+      "comparisons": {
+        "aging_cpu": {
+          "mean_difference": 0.40222214647080856,
+          "bootstrap_95_pointwise": [
+            0.243777706705727,
+            0.5605554884846972
+          ],
+          "lower_error_seeds": 8,
+          "equal_error_seeds": 1,
+          "higher_error_seeds": 21
+        }
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "torch_dfo_cmaes_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 27.0176667505561,
+        "median": 26.906666784667973,
+        "q1": 26.833333386230464,
+        "q3": 26.906666784667973,
+        "min": 26.486666739908856,
+        "max": 29.360000042724614
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 235.06666666666666,
+        "median": 229.5,
+        "q1": 207.0,
+        "q3": 258.0,
+        "min": 175,
+        "max": 319
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 38.833333333333336,
+        "median": 36.0,
+        "q1": 31.25,
+        "q3": 47.25,
+        "min": 12,
+        "max": 75
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.2912221805826827,
+          "bootstrap_95_pointwise": [
+            -0.5128888521999806,
+            -0.04922217976888111
+          ],
+          "lower_error_seeds": 19,
+          "equal_error_seeds": 2,
+          "higher_error_seeds": 9
+        },
+        "aging_cpu": {
+          "mean_difference": 0.11099996588812584,
+          "bootstrap_95_pointwise": [
+            -0.05222225680881441,
+            0.3288888469780781
+          ],
+          "lower_error_seeds": 12,
+          "equal_error_seeds": 13,
+          "higher_error_seeds": 5
+        }
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "torch_dfo_cmaes_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 26.948000087348092,
+        "median": 26.906666784667973,
+        "q1": 26.833333386230464,
+        "q3": 26.906666784667973,
+        "min": 26.486666739908856,
+        "max": 29.64666667480469
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 245.16666666666666,
+        "median": 242.0,
+        "q1": 214.25,
+        "q3": 280.75,
+        "min": 189,
+        "max": 306
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 44.63333333333333,
+        "median": 40.5,
+        "q1": 34.5,
+        "q3": 51.75,
+        "min": 13,
+        "max": 113
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.36088884379068964,
+          "bootstrap_95_pointwise": [
+            -0.6006666204155788,
+            -0.048666618041990975
+          ],
+          "lower_error_seeds": 23,
+          "equal_error_seeds": 1,
+          "higher_error_seeds": 6
+        },
+        "aging_cpu": {
+          "mean_difference": 0.041333302680118915,
+          "bootstrap_95_pointwise": [
+            -0.08111115478516086,
+            0.24711108289930336
+          ],
+          "lower_error_seeds": 11,
+          "equal_error_seeds": 17,
+          "higher_error_seeds": 2
+        }
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "torch_dfo_shade_cpu",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 26.979111190524634,
+        "median": 26.906666784667973,
+        "q1": 26.840000048828124,
+        "q3": 26.906666784667973,
+        "min": 26.833333386230464,
+        "max": 27.800000059000652
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 346.2,
+        "median": 334.5,
+        "q1": 291.75,
+        "q3": 392.5,
+        "min": 223,
+        "max": 542
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 614.6,
+        "median": 526.0,
+        "q1": 370.75,
+        "q3": 811.5,
+        "min": 114,
+        "max": 1652
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.32977774061414905,
+          "bootstrap_95_pointwise": [
+            -0.5065555240885432,
+            -0.1473333123101136
+          ],
+          "lower_error_seeds": 20,
+          "equal_error_seeds": 3,
+          "higher_error_seeds": 7
+        },
+        "aging_cpu": {
+          "mean_difference": 0.07244440585665947,
+          "bootstrap_95_pointwise": [
+            -0.0037778162977466206,
+            0.16199994608560964
+          ],
+          "lower_error_seeds": 9,
+          "equal_error_seeds": 16,
+          "higher_error_seeds": 5
+        }
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "torch_dfo_shade_cuda",
+      "attempted_runs": 30,
+      "successful_runs": 30,
+      "failed_runs": 0,
+      "attempted_observations": 30000,
+      "test_error": {
+        "n": 30,
+        "mean": 27.076111196763783,
+        "median": 26.906666784667973,
+        "q1": 26.906666784667973,
+        "q3": 26.906666784667973,
+        "min": 26.833333386230464,
+        "max": 28.350000012207033
+      },
+      "unique_architectures": {
+        "n": 30,
+        "mean": 354.3333333333333,
+        "median": 346.0,
+        "q1": 306.0,
+        "q3": 405.5,
+        "min": 226,
+        "max": 553
+      },
+      "decoder_tied_edges": {
+        "n": 30,
+        "mean": 674.1,
+        "median": 587.0,
+        "q1": 505.5,
+        "q3": 827.25,
+        "min": 244,
+        "max": 1219
+      },
+      "comparisons": {
+        "random_cpu": {
+          "mean_difference": -0.23277773437499955,
+          "bootstrap_95_pointwise": [
+            -0.43299995747884146,
+            -0.03433330430772455
+          ],
+          "lower_error_seeds": 16,
+          "equal_error_seeds": 1,
+          "higher_error_seeds": 13
+        },
+        "aging_cpu": {
+          "mean_difference": 0.169444412095809,
+          "bootstrap_95_pointwise": [
+            0.04533330451117348,
+            0.31811108439127467
+          ],
+          "lower_error_seeds": 6,
+          "equal_error_seeds": 17,
+          "higher_error_seeds": 7
+        }
+      }
+    }
+  ],
+  "quality_status": "partial",
+  "quality_recorded_runs": 900,
+  "quality_failed_runs": 180,
+  "uncertainty": "Paired-seed bootstrap of mean test-error differences, 10000 draws, seed419. Pointwise intervals, without multiple-comparison correction; descriptive only.",
+  "device_status": "partial",
+  "device": [
+    {
+      "dataset": "ImageNet16-120",
+      "method": "evox_cmaes",
+      "device": "cpu",
+      "successful": 0,
+      "failed": 5
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "evox_cmaes",
+      "device": "cuda",
+      "successful": 0,
+      "failed": 5
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "evox_de",
+      "device": "cpu",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.004620362352579832,
+        "median": 0.004604134941473603,
+        "q1": 0.004601062973961234,
+        "q3": 0.004643255844712257,
+        "min": 0.004592998884618282,
+        "max": 0.004660359118133783
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.0026316613890230655,
+        "median": 0.002591524040326476,
+        "q1": 0.0025860669557005167,
+        "q3": 0.00260213203728199,
+        "min": 0.002583588007837534,
+        "max": 0.002794995903968811
+      },
+      "compiled_steady_48_generations_seconds": {
+        "n": 5,
+        "mean": 0.002881860267370939,
+        "median": 0.002888101153075695,
+        "q1": 0.0028723080176860094,
+        "q3": 0.0029047559946775436,
+        "min": 0.002824004041031003,
+        "max": 0.002920132130384445
+      },
+      "compiled_first_generation_seconds": {
+        "n": 5,
+        "mean": 0.17827667761594057,
+        "median": 0.14453143486753106,
+        "q1": 0.14421738707460463,
+        "q3": 0.1453855170402676,
+        "min": 0.1420510639436543,
+        "max": 0.3151979851536453
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "evox_de",
+      "device": "cuda",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.013593930983915925,
+        "median": 0.013602916849777102,
+        "q1": 0.013599907979369164,
+        "q3": 0.013621588004752994,
+        "min": 0.013477445114403963,
+        "max": 0.013667796971276402
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.007479215040802956,
+        "median": 0.0075010680593550205,
+        "q1": 0.007386731915175915,
+        "q3": 0.0075181880965828896,
+        "min": 0.007368555059656501,
+        "max": 0.0076215320732444525
+      },
+      "compiled_steady_48_generations_seconds": {
+        "n": 5,
+        "mean": 0.006248466996476054,
+        "median": 0.006271160906180739,
+        "q1": 0.00619956199079752,
+        "q3": 0.006285032955929637,
+        "min": 0.006195866037160158,
+        "max": 0.006290713092312217
+      },
+      "compiled_first_generation_seconds": {
+        "n": 5,
+        "mean": 0.14853390608914196,
+        "median": 0.14872235502116382,
+        "q1": 0.14805337716825306,
+        "q3": 0.14969581202603877,
+        "min": 0.14603542210534215,
+        "max": 0.15016256412491202
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "torch_dfo_cmaes",
+      "device": "cpu",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.01375091695226729,
+        "median": 0.013733924832195044,
+        "q1": 0.013714388944208622,
+        "q3": 0.01378467702306807,
+        "min": 0.013684468809515238,
+        "max": 0.013837125152349472
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.012068002158775926,
+        "median": 0.012152658076956868,
+        "q1": 0.011925105936825275,
+        "q3": 0.012152865994721651,
+        "min": 0.011775089893490076,
+        "max": 0.012334290891885757
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "torch_dfo_cmaes",
+      "device": "cuda",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.07535473853349686,
+        "median": 0.07536217896267772,
+        "q1": 0.07524102600291371,
+        "q3": 0.07554051489569247,
+        "min": 0.07502336194738746,
+        "max": 0.07560661085881293
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.06910648876801133,
+        "median": 0.06908580102026463,
+        "q1": 0.06906632799655199,
+        "q3": 0.0691597368568182,
+        "min": 0.06895796093158424,
+        "max": 0.0692626170348376
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "torch_dfo_shade",
+      "device": "cpu",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.010977827804163098,
+        "median": 0.01096414402127266,
+        "q1": 0.010941152926534414,
+        "q3": 0.010980207938700914,
+        "min": 0.0109092490747571,
+        "max": 0.011094385059550405
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.009950434044003486,
+        "median": 0.009981950977817178,
+        "q1": 0.0097567830234766,
+        "q3": 0.010039967019110918,
+        "min": 0.009755582083016634,
+        "max": 0.010217887116596103
+      }
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "method": "torch_dfo_shade",
+      "device": "cuda",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.047513077454641464,
+        "median": 0.04757292103022337,
+        "q1": 0.04727736790664494,
+        "q3": 0.047759513137862086,
+        "min": 0.046907128067687154,
+        "max": 0.04804845713078976
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.044551501190289854,
+        "median": 0.044474356109276414,
+        "q1": 0.0444610919803381,
+        "q3": 0.04469755501486361,
+        "min": 0.0444110909011215,
+        "max": 0.04471341194584966
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "evox_cmaes",
+      "device": "cpu",
+      "successful": 0,
+      "failed": 5
+    },
+    {
+      "dataset": "cifar10",
+      "method": "evox_cmaes",
+      "device": "cuda",
+      "successful": 0,
+      "failed": 5
+    },
+    {
+      "dataset": "cifar10",
+      "method": "evox_de",
+      "device": "cpu",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.004618935054168105,
+        "median": 0.004584567155689001,
+        "q1": 0.004580582957714796,
+        "q3": 0.00461152708157897,
+        "min": 0.004570935154333711,
+        "max": 0.004747062921524048
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.002585722180083394,
+        "median": 0.002588963834568858,
+        "q1": 0.0025777951814234257,
+        "q3": 0.00259629194624722,
+        "min": 0.0025595719926059246,
+        "max": 0.002605987945571542
+      },
+      "compiled_steady_48_generations_seconds": {
+        "n": 5,
+        "mean": 0.0028433066327124834,
+        "median": 0.0028410120867192745,
+        "q1": 0.002805395983159542,
+        "q3": 0.0028849649243056774,
+        "min": 0.002798004075884819,
+        "max": 0.002887156093493104
+      },
+      "compiled_first_generation_seconds": {
+        "n": 5,
+        "mean": 0.1443143502343446,
+        "median": 0.14248531800694764,
+        "q1": 0.1415140840690583,
+        "q3": 0.1425290610641241,
+        "min": 0.14127238700166345,
+        "max": 0.15377090102992952
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "evox_de",
+      "device": "cuda",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.013449073024094104,
+        "median": 0.013481636065989733,
+        "q1": 0.013358388096094131,
+        "q3": 0.013524116016924381,
+        "min": 0.01332601998001337,
+        "max": 0.013555204961448908
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.007405246328562498,
+        "median": 0.0074459470342844725,
+        "q1": 0.007329466985538602,
+        "q3": 0.007458923850208521,
+        "min": 0.007314282935112715,
+        "max": 0.0074776108376681805
+      },
+      "compiled_steady_48_generations_seconds": {
+        "n": 5,
+        "mean": 0.0062048441730439665,
+        "median": 0.0062042169738560915,
+        "q1": 0.006159208947792649,
+        "q3": 0.006230392958968878,
+        "min": 0.006157257128506899,
+        "max": 0.006273144856095314
+      },
+      "compiled_first_generation_seconds": {
+        "n": 5,
+        "mean": 0.17520098881796003,
+        "median": 0.1474706861190498,
+        "q1": 0.145042760996148,
+        "q3": 0.15812362800352275,
+        "min": 0.14422879205085337,
+        "max": 0.2811390769202262
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "torch_dfo_cmaes",
+      "device": "cpu",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.0136318763718009,
+        "median": 0.013629636960104108,
+        "q1": 0.01359766791574657,
+        "q3": 0.013705027988180518,
+        "min": 0.01349392393603921,
+        "max": 0.013733125058934093
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.011907553533092141,
+        "median": 0.011887105880305171,
+        "q1": 0.011772016994655132,
+        "q3": 0.012058625929057598,
+        "min": 0.011745041003450751,
+        "max": 0.012074977857992053
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "torch_dfo_cmaes",
+      "device": "cuda",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.07647667755372822,
+        "median": 0.07489806390367448,
+        "q1": 0.07467382284812629,
+        "q3": 0.07522782497107983,
+        "min": 0.07455284800380468,
+        "max": 0.08303082804195583
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.0706952806096524,
+        "median": 0.06862511090002954,
+        "q1": 0.06844911095686257,
+        "q3": 0.06906925607472658,
+        "min": 0.06839610310271382,
+        "max": 0.07893682201392949
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "torch_dfo_shade",
+      "device": "cpu",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.010962394112721086,
+        "median": 0.010985951870679855,
+        "q1": 0.010935616912320256,
+        "q3": 0.011009888956323266,
+        "min": 0.010718320030719042,
+        "max": 0.011162192793563008
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.009754363633692264,
+        "median": 0.00970767904073,
+        "q1": 0.009655374102294445,
+        "q3": 0.009896431118249893,
+        "min": 0.009563039056956768,
+        "max": 0.009949294850230217
+      }
+    },
+    {
+      "dataset": "cifar10",
+      "method": "torch_dfo_shade",
+      "device": "cuda",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.04903598027303815,
+        "median": 0.04770626313984394,
+        "q1": 0.04599294904619455,
+        "q3": 0.0482130479067564,
+        "min": 0.04578698007389903,
+        "max": 0.05748066119849682
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.04614499062299728,
+        "median": 0.0441800020635128,
+        "q1": 0.04406787408515811,
+        "q3": 0.04423496196977794,
+        "min": 0.04402803396806121,
+        "max": 0.05421408102847636
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "evox_cmaes",
+      "device": "cpu",
+      "successful": 0,
+      "failed": 5
+    },
+    {
+      "dataset": "cifar100",
+      "method": "evox_cmaes",
+      "device": "cuda",
+      "successful": 0,
+      "failed": 5
+    },
+    {
+      "dataset": "cifar100",
+      "method": "evox_de",
+      "device": "cpu",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.004618368670344352,
+        "median": 0.004601415013894439,
+        "q1": 0.004601047141477466,
+        "q3": 0.004643543157726526,
+        "min": 0.004588135052472353,
+        "max": 0.00465770298615098
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.0025821191724389792,
+        "median": 0.002581107895821333,
+        "q1": 0.0025792198721319437,
+        "q3": 0.0025897000450640917,
+        "min": 0.002563124056905508,
+        "max": 0.0025974439922720194
+      },
+      "compiled_steady_48_generations_seconds": {
+        "n": 5,
+        "mean": 0.00289978077635169,
+        "median": 0.002887059934437275,
+        "q1": 0.002877396997064352,
+        "q3": 0.0029251729138195515,
+        "min": 0.0028739729896187782,
+        "max": 0.002935301046818495
+      },
+      "compiled_first_generation_seconds": {
+        "n": 5,
+        "mean": 0.17664691573008895,
+        "median": 0.1431559908669442,
+        "q1": 0.14266435895115137,
+        "q3": 0.14334538392722607,
+        "min": 0.14019016292877495,
+        "max": 0.31387868197634816
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "evox_de",
+      "device": "cuda",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.014935769606381655,
+        "median": 0.01356853311881423,
+        "q1": 0.013463955838233232,
+        "q3": 0.013581460108980536,
+        "min": 0.013347891857847571,
+        "max": 0.020717007108032703
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.00834287963807583,
+        "median": 0.0074203950352966785,
+        "q1": 0.007384442957118154,
+        "q3": 0.007481083041056991,
+        "min": 0.007337915012612939,
+        "max": 0.012090562144294381
+      },
+      "compiled_steady_48_generations_seconds": {
+        "n": 5,
+        "mean": 0.006229340517893434,
+        "median": 0.006224889075383544,
+        "q1": 0.006224169163033366,
+        "q3": 0.006235866108909249,
+        "min": 0.006208537146449089,
+        "max": 0.006253241095691919
+      },
+      "compiled_first_generation_seconds": {
+        "n": 5,
+        "mean": 0.1496282672509551,
+        "median": 0.14738916605710983,
+        "q1": 0.1461527810897678,
+        "q3": 0.14976929710246623,
+        "min": 0.14561916305683553,
+        "max": 0.15921092894859612
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "torch_dfo_cmaes",
+      "device": "cpu",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.013708699168637395,
+        "median": 0.013660900061950088,
+        "q1": 0.01364957308396697,
+        "q3": 0.013708821032196283,
+        "min": 0.013616884825751185,
+        "max": 0.013907316839322448
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.011978155374526978,
+        "median": 0.011936465976759791,
+        "q1": 0.01180144096724689,
+        "q3": 0.012202929938212037,
+        "min": 0.011688513914123178,
+        "max": 0.012261426076292992
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "torch_dfo_cmaes",
+      "device": "cuda",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.07696957518346607,
+        "median": 0.07467307313345373,
+        "q1": 0.07465689699165523,
+        "q3": 0.07537387288175523,
+        "min": 0.0745769280474633,
+        "max": 0.0855671048630029
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.3639934970065951,
+        "median": 0.06861907988786697,
+        "q1": 0.06857720692642033,
+        "q3": 0.06863527116365731,
+        "min": 0.06832096702419221,
+        "max": 1.5458149600308388
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "torch_dfo_shade",
+      "device": "cpu",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.011007798975333572,
+        "median": 0.011024287901818752,
+        "q1": 0.010909056989476085,
+        "q3": 0.011033409042283893,
+        "min": 0.010771615896373987,
+        "max": 0.01130062504671514
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.009822386363521219,
+        "median": 0.009765167022123933,
+        "q1": 0.009739262983202934,
+        "q3": 0.009792382828891277,
+        "min": 0.009698542999103665,
+        "max": 0.010116575984284282
+      }
+    },
+    {
+      "dataset": "cifar100",
+      "method": "torch_dfo_shade",
+      "device": "cuda",
+      "successful": 5,
+      "failed": 0,
+      "full_search_seconds": {
+        "n": 5,
+        "mean": 0.5344929615501315,
+        "median": 0.0484230169095099,
+        "q1": 0.04806343303062022,
+        "q3": 0.04864559299312532,
+        "min": 0.047293782932683825,
+        "max": 2.480038981884718
+      },
+      "optimizer_floor_seconds": {
+        "n": 5,
+        "mean": 0.5504941570106894,
+        "median": 0.044361219042912126,
+        "q1": 0.044341555098071694,
+        "q3": 0.04713501501828432,
+        "min": 0.044260738883167505,
+        "max": 2.5723722570110112
+      }
+    }
+  ],
+  "objective": [
+    {
+      "dataset": "cifar10",
+      "seed": 0,
+      "device": "cpu",
+      "trial_schedule_sha256": "65567e6e2f4363d31a4104a3a4f0332093396f7afc876a4f30ed67e57ec66c1a",
+      "seconds": [
+        0.0018356030341237783,
+        0.0018193461000919342,
+        0.001746786991134286,
+        0.0017080351244658232,
+        0.00171336205676198
+      ],
+      "median_seconds": 0.001746786991134286,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 0,
+      "device": "cuda",
+      "trial_schedule_sha256": "65567e6e2f4363d31a4104a3a4f0332093396f7afc876a4f30ed67e57ec66c1a",
+      "seconds": [
+        0.006983866216614842,
+        0.006815770175307989,
+        0.005461463937535882,
+        0.0059484089724719524,
+        0.006054409081116319
+      ],
+      "median_seconds": 0.006054409081116319,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 1,
+      "device": "cpu",
+      "trial_schedule_sha256": "c920ac3ddab5991b71f1a95306fcd72b3f90b8d0442bb439c30612feaf501628",
+      "seconds": [
+        0.0018804189749062061,
+        0.001852705841884017,
+        0.0017791069112718105,
+        0.0017396030016243458,
+        0.001717026112601161
+      ],
+      "median_seconds": 0.0017791069112718105,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 1,
+      "device": "cuda",
+      "trial_schedule_sha256": "c920ac3ddab5991b71f1a95306fcd72b3f90b8d0442bb439c30612feaf501628",
+      "seconds": [
+        0.0057805359829217196,
+        0.005645511904731393,
+        0.005479833111166954,
+        0.005298488074913621,
+        0.005307336105033755
+      ],
+      "median_seconds": 0.005479833111166954,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 2,
+      "device": "cpu",
+      "trial_schedule_sha256": "2fcdef9f61286ca33dbcaaafb5af3c79451700a3ed9d129b3c5807ac61f1ec54",
+      "seconds": [
+        0.001861858880147338,
+        0.0018370109610259533,
+        0.0017755699809640646,
+        0.0017150260973721743,
+        0.0017229309305548668
+      ],
+      "median_seconds": 0.0017755699809640646,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 2,
+      "device": "cuda",
+      "trial_schedule_sha256": "2fcdef9f61286ca33dbcaaafb5af3c79451700a3ed9d129b3c5807ac61f1ec54",
+      "seconds": [
+        0.0057359118945896626,
+        0.005714904982596636,
+        0.005359560018405318,
+        0.00531887193210423,
+        0.005283335922285914
+      ],
+      "median_seconds": 0.005359560018405318,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 3,
+      "device": "cpu",
+      "trial_schedule_sha256": "95da88d812d4b1ab4f93d75ab7a20ac22ab12f74cfe4df8c4921585b048361a3",
+      "seconds": [
+        0.0018725949339568615,
+        0.0018350430764257908,
+        0.0017842750530689955,
+        0.0017269779928028584,
+        0.0017047540750354528
+      ],
+      "median_seconds": 0.0017842750530689955,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 3,
+      "device": "cuda",
+      "trial_schedule_sha256": "95da88d812d4b1ab4f93d75ab7a20ac22ab12f74cfe4df8c4921585b048361a3",
+      "seconds": [
+        0.00580492103472352,
+        0.00567423296160996,
+        0.005538791883736849,
+        0.005405095871537924,
+        0.005364199867472053
+      ],
+      "median_seconds": 0.005538791883736849,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 4,
+      "device": "cpu",
+      "trial_schedule_sha256": "b17035e22acc7a56e63d4e1010de6b8336c867ed994840a80f62c38202ee989c",
+      "seconds": [
+        0.0018075548578053713,
+        0.0017572501674294472,
+        0.0017429629806429148,
+        0.0017215060070157051,
+        0.001716995146125555
+      ],
+      "median_seconds": 0.0017429629806429148,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar10",
+      "seed": 4,
+      "device": "cuda",
+      "trial_schedule_sha256": "b17035e22acc7a56e63d4e1010de6b8336c867ed994840a80f62c38202ee989c",
+      "seconds": [
+        0.0056922161020338535,
+        0.005479463841766119,
+        0.005391639890149236,
+        0.005403656046837568,
+        0.005369432037696242
+      ],
+      "median_seconds": 0.005403656046837568,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar100",
+      "seed": 0,
+      "device": "cpu",
+      "trial_schedule_sha256": "59f37a0796c2c5b30c6938d506f61bdbad891d86ad1d8bbe5432be2a352ed48e",
+      "seconds": [
+        0.0017763858195394278,
+        0.0017592511139810085,
+        0.0017344660591334105,
+        0.0017264990601688623,
+        0.0017230259254574776
+      ],
+      "median_seconds": 0.0017344660591334105,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar100",
+      "seed": 0,
+      "device": "cuda",
+      "trial_schedule_sha256": "59f37a0796c2c5b30c6938d506f61bdbad891d86ad1d8bbe5432be2a352ed48e",
+      "seconds": [
+        0.005697784945368767,
+        0.005428664153441787,
+        0.005355447996407747,
+        0.005306903971359134,
+        0.005302215926349163
+      ],
+      "median_seconds": 0.005355447996407747,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar100",
+      "seed": 1,
+      "device": "cpu",
+      "trial_schedule_sha256": "c61e74663d9099f81c58621140f075cfb2d9b96a896b47ebcc0c5c040dbe99ba",
+      "seconds": [
+        0.0018704989925026894,
+        0.0018374109640717506,
+        0.0017761790659278631,
+        0.0017145629972219467,
+        0.001702433917671442
+      ],
+      "median_seconds": 0.0017761790659278631,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar100",
+      "seed": 1,
+      "device": "cuda",
+      "trial_schedule_sha256": "c61e74663d9099f81c58621140f075cfb2d9b96a896b47ebcc0c5c040dbe99ba",
+      "seconds": [
+        0.005749433068558574,
+        0.005726024974137545,
+        0.005409752018749714,
+        0.005363496020436287,
+        0.00529245613142848
+      ],
+      "median_seconds": 0.005409752018749714,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar100",
+      "seed": 2,
+      "device": "cpu",
+      "trial_schedule_sha256": "7fc421e89523c7e8b27edff77da43c0a421bcea8b4dfd026d4e96899ac12f11b",
+      "seconds": [
+        0.0018542909529060125,
+        0.0018372831400483847,
+        0.0017984190490096807,
+        0.0017637461423873901,
+        0.0017110260669142008
+      ],
+      "median_seconds": 0.0017984190490096807,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar100",
+      "seed": 2,
+      "device": "cuda",
+      "trial_schedule_sha256": "7fc421e89523c7e8b27edff77da43c0a421bcea8b4dfd026d4e96899ac12f11b",
+      "seconds": [
+        0.0057090159971266985,
+        0.005698841065168381,
+        0.005371960112825036,
+        0.005312887951731682,
+        0.005281208083033562
+      ],
+      "median_seconds": 0.005371960112825036,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar100",
+      "seed": 3,
+      "device": "cpu",
+      "trial_schedule_sha256": "4b56ba81344422b1ff97698e9cfb5bcfa2265ae93e087ceab437a762548da63f",
+      "seconds": [
+        0.001860898919403553,
+        0.0018560339231044054,
+        0.0017783860675990582,
+        0.001727202907204628,
+        0.0017030269373208284
+      ],
+      "median_seconds": 0.0017783860675990582,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar100",
+      "seed": 3,
+      "device": "cuda",
+      "trial_schedule_sha256": "4b56ba81344422b1ff97698e9cfb5bcfa2265ae93e087ceab437a762548da63f",
+      "seconds": [
+        0.005740024847909808,
+        0.005638872040435672,
+        0.005302648060023785,
+        0.005283399950712919,
+        0.005401112139225006
+      ],
+      "median_seconds": 0.005401112139225006,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar100",
+      "seed": 4,
+      "device": "cpu",
+      "trial_schedule_sha256": "f693805622845e0cb1622125fb6dba4391375178d2028df42a03a31b78205748",
+      "seconds": [
+        0.0018787698354572058,
+        0.0018516180571168661,
+        0.0017857300117611885,
+        0.001730114920064807,
+        0.001738802995532751
+      ],
+      "median_seconds": 0.0017857300117611885,
+      "status": "complete"
+    },
+    {
+      "dataset": "cifar100",
+      "seed": 4,
+      "device": "cuda",
+      "trial_schedule_sha256": "f693805622845e0cb1622125fb6dba4391375178d2028df42a03a31b78205748",
+      "seconds": [
+        0.005738601088523865,
+        0.006009977078065276,
+        0.005736969178542495,
+        0.00564028020016849,
+        0.005607833154499531
+      ],
+      "median_seconds": 0.005736969178542495,
+      "status": "complete"
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "seed": 0,
+      "device": "cpu",
+      "trial_schedule_sha256": "8d3f9d85cc911fa28cf0bfc44114eafcabe07016441e577d2b6ab5b6bf129712",
+      "seconds": [
+        0.0018082910683006048,
+        0.0017556669190526009,
+        0.0017963219434022903,
+        0.0017570420168340206,
+        0.0017626271583139896
+      ],
+      "median_seconds": 0.0017626271583139896,
+      "status": "complete"
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "seed": 0,
+      "device": "cuda",
+      "trial_schedule_sha256": "8d3f9d85cc911fa28cf0bfc44114eafcabe07016441e577d2b6ab5b6bf129712",
+      "seconds": [
+        0.005631848005577922,
+        0.005468969000503421,
+        0.0053800721652805805,
+        0.005314168054610491,
+        0.005342008080333471
+      ],
+      "median_seconds": 0.0053800721652805805,
+      "status": "complete"
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "seed": 1,
+      "device": "cpu",
+      "trial_schedule_sha256": "71601b85cceab6e7e6e0acc896d62d8776d943bdcb44c509792e2739d350c3e6",
+      "seconds": [
+        0.0017827709671109915,
+        0.001740835141390562,
+        0.0017266108188778162,
+        0.0017204980831593275,
+        0.001705187140032649
+      ],
+      "median_seconds": 0.0017266108188778162,
+      "status": "complete"
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "seed": 1,
+      "device": "cuda",
+      "trial_schedule_sha256": "71601b85cceab6e7e6e0acc896d62d8776d943bdcb44c509792e2739d350c3e6",
+      "seconds": [
+        0.005602296907454729,
+        0.005528472131118178,
+        0.005400408059358597,
+        0.005334151908755302,
+        0.005275112111121416
+      ],
+      "median_seconds": 0.005400408059358597,
+      "status": "complete"
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "seed": 2,
+      "device": "cpu",
+      "trial_schedule_sha256": "bee87e21b28204da77d09bc0ca90bae7e8b7b817d7410e60ce4b2c38d3744b1f",
+      "seconds": [
+        0.0017551709897816181,
+        0.001843858975917101,
+        0.001737251179292798,
+        0.0022054268047213554,
+        0.0017981301061809063
+      ],
+      "median_seconds": 0.0017981301061809063,
+      "status": "complete"
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "seed": 2,
+      "device": "cuda",
+      "trial_schedule_sha256": "bee87e21b28204da77d09bc0ca90bae7e8b7b817d7410e60ce4b2c38d3744b1f",
+      "seconds": [
+        0.005748808151111007,
+        0.005690969061106443,
+        0.005373400170356035,
+        0.005315704038366675,
+        0.005307127954438329
+      ],
+      "median_seconds": 0.005373400170356035,
+      "status": "complete"
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "seed": 3,
+      "device": "cpu",
+      "trial_schedule_sha256": "42b23d50cf2bf453e667f8b9c85b9d703ef9eb7b44dfa6a82c433cede74c277c",
+      "seconds": [
+        0.001861747121438384,
+        0.0018492829985916615,
+        0.0018008670303970575,
+        0.001753970980644226,
+        0.0017470589373260736
+      ],
+      "median_seconds": 0.0018008670303970575,
+      "status": "complete"
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "seed": 3,
+      "device": "cuda",
+      "trial_schedule_sha256": "42b23d50cf2bf453e667f8b9c85b9d703ef9eb7b44dfa6a82c433cede74c277c",
+      "seconds": [
+        0.005819656187668443,
+        0.005723913200199604,
+        0.005393896019086242,
+        0.005315655842423439,
+        0.005292119923979044
+      ],
+      "median_seconds": 0.005393896019086242,
+      "status": "complete"
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "seed": 4,
+      "device": "cpu",
+      "trial_schedule_sha256": "15743e25af4543b445a5ac1364922432d3929ea6bbe5492f9cb85c7bf1953294",
+      "seconds": [
+        0.0018824180588126183,
+        0.0018511870875954628,
+        0.0018001950811594725,
+        0.0017568031325936317,
+        0.001720258966088295
+      ],
+      "median_seconds": 0.0018001950811594725,
+      "status": "complete"
+    },
+    {
+      "dataset": "ImageNet16-120",
+      "seed": 4,
+      "device": "cuda",
+      "trial_schedule_sha256": "15743e25af4543b445a5ac1364922432d3929ea6bbe5492f9cb85c7bf1953294",
+      "seconds": [
+        0.005713033024221659,
+        0.005639832932502031,
+        0.005296056158840656,
+        0.0052362319547683,
+        0.005257400218397379
+      ],
+      "median_seconds": 0.005296056158840656,
+      "status": "complete"
+    }
+  ]
+}

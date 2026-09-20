@@ -1,0 +1,91 @@
+{
+  "absolute_error_tolerance": 1e-12,
+  "batch_size": 256,
+  "evaluator": "NASBench201Evaluator(fidelity=200, objs='err')",
+  "final_test_export": "final-test-hp200.json",
+  "normalization": false,
+  "results": {
+    "ImageNet16-120": {
+      "duplicate_phenotype_equal": true,
+      "invalid_phenotype_rejected": true,
+      "test_mean": {
+        "compared": 15625,
+        "max_absolute_error": 1.4210854715202004e-14,
+        "mismatches": 0
+      },
+      "validation": {
+        "trial_0": {
+          "compared": 15625,
+          "max_absolute_error": 0.0,
+          "mismatches": 0
+        },
+        "trial_1": {
+          "compared": 15625,
+          "max_absolute_error": 0.0,
+          "mismatches": 0
+        },
+        "trial_2": {
+          "compared": 15625,
+          "max_absolute_error": 0.0,
+          "mismatches": 0
+        }
+      }
+    },
+    "cifar10": {
+      "duplicate_phenotype_equal": true,
+      "invalid_phenotype_rejected": true,
+      "test_mean": {
+        "compared": 15625,
+        "max_absolute_error": 2.842170943040401e-14,
+        "mismatches": 0
+      },
+      "validation": {
+        "trial_0": {
+          "compared": 15625,
+          "max_absolute_error": 0.0,
+          "mismatches": 0
+        },
+        "trial_1": {
+          "compared": 15625,
+          "max_absolute_error": 0.0,
+          "mismatches": 0
+        },
+        "trial_2": {
+          "compared": 15625,
+          "max_absolute_error": 0.0,
+          "mismatches": 0
+        }
+      }
+    },
+    "cifar100": {
+      "duplicate_phenotype_equal": true,
+      "invalid_phenotype_rejected": true,
+      "test_mean": {
+        "compared": 15625,
+        "max_absolute_error": 1.4210854715202004e-14,
+        "mismatches": 0
+      },
+      "validation": {
+        "trial_0": {
+          "compared": 15625,
+          "max_absolute_error": 0.0,
+          "mismatches": 0
+        },
+        "trial_1": {
+          "compared": 15625,
+          "max_absolute_error": 0.0,
+          "mismatches": 0
+        },
+        "trial_2": {
+          "compared": 15625,
+          "max_absolute_error": 0.0,
+          "mismatches": 0
+        }
+      }
+    }
+  },
+  "source_commit": "2f1ae28720a09fdf3e487bcd9de91433512fc106",
+  "sqlite_sha256": "d2dbd2eff43fdbc59dd3ec1873a92c98a1e1c88ecbeb4f0b62cff818e82921a5",
+  "timestamp_utc": "2026-09-20T09:16:35.822696+00:00",
+  "validation_export": "search-validation-hp200.json"
+}
