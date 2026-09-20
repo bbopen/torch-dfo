@@ -52,10 +52,10 @@ Broader algorithm coverage follows observed application needs. These references 
 
 ## Next comparison priorities
 
-Updated September 20, 2026. These comparisons are planned, not completed.
+Updated September 20, 2026. The [first EvoX and pycma attempt](cma-comparison-results.md) produced 100 complete runs and 20 EvoX failures. EvoX still needs a working full-budget comparison.
 
-1. Compare shared algorithms with EvoX on the Spark. It is a direct PyTorch GPU reference, with a [release dated September 9, 2026](https://github.com/EMI-Group/evox/releases/tag/v1.4.0).
-2. Add pycma as a numerical CMA-ES baseline. Compare solution quality per evaluation and complete runtime, including GPU objective transfers where used.
+1. Resume the EvoX comparison after resolving the documented covariance and Torch compatibility defects. Preserve the failed stock 1.4.0 results.
+2. Retain pycma as a numerical CMA-ES baseline. The first panel records solution quality and complete runtime, including GPU objective transfers. Broaden tasks before making general claims.
 3. Compare evosax on the same GPU workloads to test the PyTorch versus JAX execution choices. Check evaluator parity before timing.
 4. Add Nevergrad when the task uses mixed variables, noise, or optimizer selection. Compare suitable methods rather than an arbitrary default.
 

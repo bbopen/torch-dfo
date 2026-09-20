@@ -1,0 +1,99 @@
+{
+  "evox": "1.4.0",
+  "torch": "2.13.0+cu130",
+  "source": "/work/deps/evox/algorithms/so/es_variants/cma_es.py",
+  "source_sha256": "3c68f5f274af8fe9f85f7257a368a84b71800a4611c94ccae3b589bfca69cb0a",
+  "scope": "One isolated covariance update with a nonzero path and zero rank-mu term.",
+  "results": [
+    {
+      "device": "cpu",
+      "initialized_path_shape": [
+        3
+      ],
+      "probe_path_shape": [
+        3
+      ],
+      "matches_expected": false,
+      "max_absolute_difference": 0.7797798612053434,
+      "observed_rank_one": [
+        [
+          5.999999999999998,
+          6.0,
+          6.0
+        ],
+        [
+          6.0,
+          5.999999999999998,
+          6.0
+        ],
+        [
+          6.0,
+          6.0,
+          5.999999999999998
+        ]
+      ],
+      "expected_rank_one": [
+        [
+          1.0,
+          2.0,
+          -1.0
+        ],
+        [
+          2.0,
+          4.0,
+          -2.0
+        ],
+        [
+          -1.0,
+          -2.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "device": "cuda",
+      "initialized_path_shape": [
+        3
+      ],
+      "probe_path_shape": [
+        3
+      ],
+      "matches_expected": false,
+      "max_absolute_difference": 0.7797798612053434,
+      "observed_rank_one": [
+        [
+          5.999999999999998,
+          6.0,
+          6.0
+        ],
+        [
+          6.0,
+          5.999999999999998,
+          6.0
+        ],
+        [
+          6.0,
+          6.0,
+          5.999999999999998
+        ]
+      ],
+      "expected_rank_one": [
+        [
+          1.0,
+          2.0,
+          -1.0
+        ],
+        [
+          2.0,
+          4.0,
+          -2.0
+        ],
+        [
+          -1.0,
+          -2.0,
+          1.0
+        ]
+      ]
+    }
+  ]
+}

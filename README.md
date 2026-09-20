@@ -16,7 +16,7 @@ For smooth objectives with reliable gradients, compare against autograd-based me
 
 torch-dfo develops its own API, algorithms, and research tools. Application needs guide their design. The core depends only on PyTorch.
 
-We study derivative-free optimization across Python, JAX, and native numerical libraries. EvoTorch, EvoX, SciPy, pycma, Nevergrad, pymoo, evosax, pagmo, and NLopt are candidate implementation and benchmark references. Completed cross-library studies currently cover SciPy and EvoTorch. Public applications supply real workloads. See [the reference strategy](research/redesign/reference-strategy.md).
+We study derivative-free optimization across Python, JAX, and native numerical libraries. EvoTorch, EvoX, SciPy, pycma, Nevergrad, pymoo, evosax, pagmo, and NLopt are candidate implementation and benchmark references. Completed comparisons cover SciPy, EvoTorch, and pycma. The EvoX attempt exposed covariance and runtime failures; see [the CMA-ES comparison](research/redesign/cma-comparison-results.md). Public applications supply real workloads. See [the reference strategy](research/redesign/reference-strategy.md).
 
 As of September 20, 2026, EvoTorch's latest default-branch commit and release were dated May 14, 2025, about 16 months earlier. See its [latest commit at review](https://github.com/nnaisense/evotorch/commit/cebcac4f20979078becf8b908016cd8e5e6714a4) and [v0.6.1 release](https://github.com/nnaisense/evotorch/releases/tag/v0.6.1). Maintained PyTorch support is a torch-dfo priority; performance claims require separate benchmarks.
 
@@ -117,6 +117,8 @@ The former README reported 14 of 16 classical problems solved. That historical c
 The YAHPO runner uses one torch-dfo seed and several random seeds. Its mean comparison is descriptive. Equalize repeated runs before making superiority claims.
 
 Run bounded, seeded comparisons against random or Sobol search, EvoTorch, pycma, and suitable gradient or Bayesian methods. Report evaluation counts and wall time. Keep failures in the results and reserve unseen problem instances for confirmation.
+
+The first 16-dimensional CMA-ES panel compared torch-dfo with pycma at equal budgets on DGX Spark. CPU execution was faster than CUDA for these small eager batches. No canonical target was reached within 3,200 evaluations. EvoX 1.4.0 failed on the tested Torch build. See [the results and upstream fix](research/redesign/cma-comparison-results.md).
 
 ## Structured search
 
