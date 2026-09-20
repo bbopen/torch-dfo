@@ -1,6 +1,6 @@
 include CHANGELOG.md CONTRIBUTING.md
 recursive-include examples *.py *.txt
-recursive-include benchmarks *.py
+recursive-include benchmarks *.py *.txt
 recursive-include tests *.py
 recursive-include docs *.md *.rst *.py *.txt
 recursive-include research *.md *.json *.py

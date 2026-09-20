@@ -8,11 +8,13 @@ Build a maintained PyTorch derivative-free optimization library with an autonomo
 
 Keep the ambition broad. Keep each implementation and experiment bounded. A frontier result is a research milestone, not a prerequisite for releasing a useful library.
 
+torch-dfo owns its API and roadmap. Existing DFO libraries across stacks are sources of reusable implementations, workflows, and benchmark baselines. See `reference-strategy.md`. Public projects identify real tasks to support. Drop-in compatibility and replication of EvoTorch abstractions are not product goals.
+
 ## Starting point
 
 The foundation correction batch is preserved at `e446f68`. It passed 1,096 local tests at 92.19% coverage and a 509-test Spark CPU/CUDA subset. These results apply to that batch, not the proposed architecture.
 
-A reviewed architecture decision, evaluator proposals, application source audit, and EvoTorch reuse review already exist. The new SearchRun and integrated autonomous lab are not implemented.
+The `0.11.0b1` candidate implements scalar synchronous `SearchRun`, fixed repeats, checkpoints, and CMA-ES, SHADE, and random-search execution. See `beta-report.md` for the tested scope and environment. The thermal study did not show a held-out advantage over its PI-derived baseline. General autonomous code editing remains unimplemented.
 
 Spark execution has a tested detached-job path with saved exit status. The Mac's intermittent Tailscale stop cause remains unresolved. Use detached execution and recoverable results; keep network diagnosis outside the library's critical path unless jobs themselves fail.
 
@@ -23,7 +25,7 @@ Spark execution has a tested detached-job path with saved exit status. The Mac's
 | 1. Working foundation | SearchRun, tensor evaluator, CMA-ES and random-search adapters, basic experiment records | Public-interface tests prove budgets, candidate identity, failure accounting, planned-pause checkpoints, and CPU/CUDA behavior. One saved run can be reproduced. |
 | 2. Useful algorithm coverage | Bring SHADE through the same contracts; adapt EvoTorch PGPE and guarded ClipUp when the high-dimensional control case needs them | Characterization tests match intended upstream behavior. New edge-case tests prove each correction. Matched comparisons expose memory, quality, and total cost. |
 | 3. Engineering reference study | One complete engineering or control application through the public interface, plus canonical numerical evaluation | An independent evaluator checks saved candidates. Baselines share the task, representation, initialization protocol, and declared cost. Failures remain in the report. |
-| 4. Maintained library beta | Installable package, examples, reference documentation, support matrix, migration guidance, and CI | A fresh environment can install the package and reproduce documented examples. Supported behavior passes independent review and CPU/CUDA checks. Publish comparative results, including losses. |
+| 4. Maintained library beta | Installable package, examples, reference documentation, support matrix, API change guidance, and CI | A fresh environment can install the package and reproduce documented examples. Supported behavior passes independent review and CPU/CUDA checks. Publish comparative results, including losses. |
 | 5. Autonomous research lab | A bounded propose/run/measure/keep-or-revert loop over frozen evaluations | The loop reproduces a baseline, rejects bad changes, records interruption and every trial, and tests selected changes on held-out tasks. Correctly reporting no improvement is a pass. |
 | 6. Frontier study | One difficult, precisely defined engineering research question | Literature review, strong baselines, a frozen protocol, independent validation, and replicated results support the stated claim. A negative finding is an acceptable research outcome. |
 
@@ -36,7 +38,7 @@ The beta should offer a coherent path from an objective to a reproducible result
 - A simple minimize function and the same underlying ask/tell interface.
 - Batched PyTorch objectives and a CPU evaluator path for external simulations.
 - Bounded continuous search, explicit minimization semantics, and validated inputs.
-- CMA-ES and random/Sobol baselines. Add SHADE and PGPE after their adapter gates pass, rather than filling an algorithm quota.
+- CMA-ES, SHADE, and random search through the managed run interface. Add PGPE when a selected application requires it. Keep Sobol as a possible baseline.
 - Explicit evaluation caps, pending-batch rules, failure records, and stop reasons.
 - Independent search and evaluator randomness, with reproducible scenario schedules.
 - Quiescent checkpoints for planned continuation. Interrupted execution must not silently replay unknown work.
@@ -79,9 +81,9 @@ The first application-selection cycle should inspect no more than three candidat
 
 For an application claimed to benefit from GPU acceleration, measure the full objective and search. A tensor optimizer around serial simulation is not enough. Include gradient or domain methods when they have useful access to the same problem.
 
-## EvoTorch implementation strategy
+## Implementation reuse strategy
 
-Treat upstream source as reusable engineering work. For each candidate method:
+Treat useful source from any relevant stack as reusable engineering work. Select implementations by the task and evidence, not their framework. For each candidate method:
 
 1. Pin the source revision and identify the smallest useful implementation.
 2. Preserve provenance and add characterization tests before changing behavior.
@@ -108,13 +110,13 @@ The lab passes its functional gate when it makes correct decisions, including re
 
 ## Immediate work package
 
-The next three deliverables are:
+The active phase turns public application objectives into reproducible torch-dfo benchmarks.
 
-1. **An executable contract and evaluator fixture set.** Implement budget, mutation, result-ID, failure, checkpoint, and RNG probes. Freeze the run-record format and canonical control evaluator. Complete application selection in a parallel, bounded lane.
-2. **One working SearchRun.** Connect the existing CMA-ES and a random-search adapter to the public interface. Demonstrate one end-to-end CPU run, one CUDA run, and a planned-pause continuation. Measure overhead against the direct implementation.
-3. **One reproducible engineering pilot.** Execute the selected reference application through the public interface with matched baselines and archived results. Add PGPE when that policy dimension or compute profile warrants it.
+1. Correct the calibration smoke's unequal budgets and inferred counts. Freeze a fitting and exploratory validation split, run repeated seeds, and compare native methods with SciPy and optional EvoTorch. All 21 observations were exposed during earlier exploration.
+2. Expand the robot task after the calibration benchmark is reviewed. Preserve its independent position and orientation checks. Match incumbent selection and account for different boundary handling.
+3. Use a released mask or policy workload to guide a compact PGPE implementation. Add only the capabilities that the workload demonstrates.
 
-Missing optional application data must not block the first two deliverables. No new broad architecture document is required before implementing the tested first slice. Resolve remaining design questions with small executable cases.
+The first deliverable is complete when its evaluator probes and accounting tests pass, an independent review accepts the implementation, and results retain every seed. A win is not required. Keep runtime and application dependencies outside the core library.
 
 ## Maintenance and decision rules
 

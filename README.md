@@ -1,6 +1,6 @@
 # torch-dfo
 
-Derivative-free optimization with PyTorch tensors.
+A PyTorch derivative-free optimization library for engineering and research.
 
 [![CI](https://github.com/bbopen/torch-dfo/actions/workflows/ci.yml/badge.svg)](https://github.com/bbopen/torch-dfo/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/torch-dfo)](https://pypi.org/project/torch-dfo/)
@@ -14,7 +14,11 @@ Use derivative-free search for discrete decisions, discontinuous scores, externa
 
 For smooth objectives with reliable gradients, compare against autograd-based methods. For expensive evaluations, compare against Bayesian optimization. The best method depends on evaluation cost and solution quality.
 
-[EvoTorch](https://github.com/nnaisense/evotorch) already provides PyTorch-based evolutionary search under Apache 2.0. It includes distributed evaluation, neuroevolution, and algorithms beyond this package. torch-dfo provides a smaller tensor-based implementation, a phased search pipeline, structured search spaces, and a `torch.optim` wrapper. These differences do not establish performance superiority.
+torch-dfo develops its own API, algorithms, and research tools. Application needs guide their design. The core depends only on PyTorch.
+
+We study derivative-free optimization across Python, JAX, and native numerical libraries. EvoTorch, SciPy, pycma, Nevergrad, pymoo, evosax, pagmo, and NLopt provide candidate implementations, workflows, and comparison baselines. Public applications supply real workloads. See [the reference strategy](research/redesign/reference-strategy.md).
+
+Use task results, evaluation cost, and runtime to judge an implementation. Compatibility with another library's API is not a design requirement.
 
 ## Install
 
@@ -133,6 +137,11 @@ Integer and categorical decoding does not replace domain-specific mutation or fe
 
 ## Research lab
 
+The [calibration benchmark](benchmarks/calibration.py) adapts a public predator-prey simulation task.
+It compares native torch-dfo methods with SciPy differential evolution and optional EvoTorch CMA-ES.
+The [protocol](research/redesign/calibration-protocol.md) specifies candidate budgets, seeds, evaluator checks, and an exploratory temporal split.
+This CPU simulator benchmark does not measure GPU acceleration. Its dependencies stay outside the core package.
+
 The repository includes a quantized thermal-control reference study.
 It compares CMA-ES, SHADE, random search, and simple domain baselines on fixed train and held-out scenarios.
 An optional EvoTorch baseline runs against the same objective.
@@ -145,6 +154,8 @@ General autonomous code editing and frontier research remain later milestones in
 ## Acknowledgements
 
 [EvoTorch](https://github.com/nnaisense/evotorch), developed by NNAISENSE and its contributors, is an implementation reference and source for this project. We study its algorithms and functional implementations and will adapt suitable code as the library develops. Reused implementations retain their source attribution.
+
+The calibration benchmark adapts the Lotka-Volterra example and observed series from [calisim](https://github.com/Plant-Food-Research-Open/calisim). Its source revision and changes are recorded in the benchmark protocol. The benchmark retains the source license.
 
 ## Citation and license
 
