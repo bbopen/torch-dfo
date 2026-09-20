@@ -2,8 +2,9 @@
 Gradient-free neural network training
 ======================================
 
-``DFOOptimizer`` wraps any torch-dfo optimizer as a ``torch.optim.Optimizer``
-so you can use it in a standard training loop — no gradients required.
+``DFOOptimizer`` wraps SHADE, CMA-ES, or Nelder-Mead with a
+``torch.optim.Optimizer`` interface. Each step evaluates candidate models
+without gradients.
 Useful when gradients are unavailable or unreliable (e.g. non-differentiable
 losses, RL reward signals, hyperparameter search over discrete configs).
 """
@@ -34,15 +35,14 @@ y = X.sum(dim=-1, keepdim=True)
 # --------------------------------------------------------------------- #
 # 2. Wrap with DFOOptimizer                                               #
 # --------------------------------------------------------------------- #
-# ``bounds`` is the search radius around the initial parameters.
+# ``bounds`` gives absolute limits for each parameter.
 # ``pop_size`` is per-generation candidate count (default: auto).
 
 dfo = torch_dfo.DFOOptimizer(
     model.parameters(),
-    optimizer_cls=torch_dfo.SHADE,
+    algorithm="shade",
     bounds=1.0,
     pop_size=40,
-    device=device,
 )
 
 loss_fn = nn.MSELoss()

@@ -130,6 +130,8 @@ class CMAES(BaseOptimizer):
     ):
         if pop_size is None:
             pop_size = _default_pop_size(dim)
+        if pop_size < 2:
+            raise ValueError("CMAES requires pop_size >= 2")
 
         super().__init__(
             dim=dim,
@@ -142,6 +144,7 @@ class CMAES(BaseOptimizer):
 
         self.mirrored = bool(mirrored)
         self.active = bool(active)
+        self._sigma0 = float(sigma0)
         path_memory = max(0, int(path_memory))
         path_scale = max(0.0, float(path_scale))
         path_line_samples = max(0, int(path_line_samples))
@@ -155,7 +158,7 @@ class CMAES(BaseOptimizer):
 
         # ---------- dynamic state ----------
         self._init_state(
-            sigma0,
+            self._sigma0,
             path_memory=path_memory,
             path_scale=path_scale,
             path_line_samples=path_line_samples,
@@ -376,6 +379,7 @@ class CMAES(BaseOptimizer):
                 "C_invsqrt": self.C_invsqrt.clone(),
                 "mean": self.mean.clone(),
                 "sigma": self.sigma,
+                "_sigma0": self._sigma0,
                 "sigma_min": self.sigma_min,
                 "sigma_max": self.sigma_max,
                 "active": self.active,
@@ -399,6 +403,7 @@ class CMAES(BaseOptimizer):
         self.C_invsqrt.copy_(state["C_invsqrt"])
         self.mean.copy_(state["mean"])
         self.sigma = state["sigma"]
+        self._sigma0 = float(state.get("_sigma0", self._sigma0))
         self.sigma_min = state["sigma_min"]
         self.sigma_max = state["sigma_max"]
         self._path = CMAPathState.from_dict(
@@ -699,7 +704,7 @@ class CMAES(BaseOptimizer):
             self.sigma = sigma
         else:
             span = (self.ub - self.lb).mean().item()
-            self.sigma = 0.3 * span  # default fraction
+            self.sigma = self._sigma0 * span
 
         # Set covariance
         if C_init is not None:

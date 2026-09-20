@@ -72,6 +72,7 @@ benchmarks = [
     "pandas>=2.2.0",
     "scipy>=1.11.0",
     "coco-experiment>=2.6",
+    "cma>=4.0",
     # yahpo-gym pins numpy<2; install manually: pip install yahpo-gym
     # then pip install -e ".[benchmarks]"
 ]

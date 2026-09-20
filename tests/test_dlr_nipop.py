@@ -144,12 +144,7 @@ def test_restart_resets_state_with_nipop() -> None:
 
 
 def test_ask_partial_skip_some_branches_active() -> None:
-    """D6: remaining_budget chosen so SOME branches are skipped but not all.
-
-    With K=3 branches at lambdas (8, 12, 20), a remaining_budget of 14 should
-    admit branches 0 and 1 (lambdas 8, 12; both ≤ 14) and skip branch 2
-    (lambda 20 > 14). Resulting candidate count: 8 + 12 = 20.
-    """
+    """The combined population must not exceed ``remaining_budget``."""
     dim = 10
     dlr = _make_dlr(
         dim=dim,
@@ -157,21 +152,20 @@ def test_ask_partial_skip_some_branches_active() -> None:
         lambdas=(8, 12, 20),
         sigma_fracs=(0.3, 0.3, 0.3),
     )
-    # Budget admits branches 0 and 1, skips branch 2.
     remaining = 14
     candidates = dlr.ask(remaining_budget=remaining)
-    expected_pop = 8 + 12
+    expected_pop = 8
     assert candidates.shape == (expected_pop, dim), (
         f"Partial-skip shape wrong: got {candidates.shape}, expected "
-        f"({expected_pop}, {dim}). Active branches should be 0 and 1."
+        f"({expected_pop}, {dim}). Active branches should fit cumulatively."
     )
     # All candidates must be within bounds.
     assert (candidates >= dlr.lb).all()
     assert (candidates <= dlr.ub).all()
     # And the active-branch bookkeeping matches.
-    assert dlr._last_active == [0, 1], (
-        f"_last_active wrong: got {dlr._last_active}, expected [0, 1]"
-    )
+    assert dlr._last_active == [0], f"_last_active wrong: got {dlr._last_active}, expected [0]"
+    dlr.tell(candidates, (candidates**2).sum(dim=-1))
+    assert dlr._generation.tolist() == [1, 0, 0]
 
 
 # ----------------------------------------------------------------------

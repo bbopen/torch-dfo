@@ -23,6 +23,7 @@ from torch_dfo._operators import (
     opposition_init,
 )
 from torch_dfo._shade_state import SHADEMemory
+from torch_dfo._state_utils import clone_optional_tensor, restore_optional_tensor
 from torch_dfo.base import BaseOptimizer
 
 
@@ -87,6 +88,8 @@ class SHADE(BaseOptimizer):
         *,
         initial_population: torch.Tensor | None = None,
     ):
+        if pop_size < 3:
+            raise ValueError("SHADE requires pop_size >= 3")
         super().__init__(dim, bounds, pop_size, device, dtype, seed)
 
         # SHADE memory (circular buffer for F and CR)
@@ -200,6 +203,7 @@ class SHADE(BaseOptimizer):
         """Return SHADE state as a serializable dict."""
         state = super().state_dict()
         state["memory"] = self._memory.to_dict()
+        state["initial_population"] = clone_optional_tensor(self._initial_population)
         return state
 
     def load_state_dict(self, state: dict[str, Any]) -> None:
@@ -210,6 +214,12 @@ class SHADE(BaseOptimizer):
             device=self.device,
             dtype=self.dtype,
         )
+        if "initial_population" in state:
+            self._initial_population = restore_optional_tensor(
+                state["initial_population"],
+                device=self.device,
+                dtype=self.dtype,
+            )
 
     # ------------------------------------------------------------------
     # ask

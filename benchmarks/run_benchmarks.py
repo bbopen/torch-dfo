@@ -9,7 +9,7 @@ Usage:
     python benchmarks/run_benchmarks.py --suite bbob       # COCO/BBOB only
     python benchmarks/run_benchmarks.py --suite bbob --dims 10
     python benchmarks/run_benchmarks.py --suite yahpo      # YAHPO HPO only
-    python benchmarks/run_benchmarks.py --suite all --quick # fast smoke test
+    python benchmarks/run_benchmarks.py --suite quick       # smaller suite
 """
 
 from __future__ import annotations
@@ -57,7 +57,7 @@ class BenchmarkResult:
     precision: float  # best_fitness - f_opt (if known)
     fe_used: int
     wall_time_s: float
-    solved: bool  # precision < 1e-8
+    solved: bool  # Official suite target hit; False when no target is defined.
 
 
 @dataclass
@@ -82,18 +82,26 @@ class SuiteReport:
         """Count how many YAHPO problems torch-dfo beats random baseline."""
         problems = sorted(
             {
-                r.problem_name
+                (r.problem_name, r.dim)
                 for r in self.results
                 if r.suite == "yahpo" and r.optimizer == "torch-dfo"
             }
         )
         wins, total = 0, 0
-        for prob in problems:
-            dfo = [r for r in self.results if r.problem_name == prob and r.optimizer == "torch-dfo"]
-            rand = [r for r in self.results if r.problem_name == prob and r.optimizer == "random"]
+        for name, dim in problems:
+            rows = [
+                r
+                for r in self.results
+                if r.suite == "yahpo" and r.problem_name == name and r.dim == dim
+            ]
+            dfo = [r.best_fitness for r in rows if r.optimizer == "torch-dfo"]
+            rand = [r.best_fitness for r in rows if r.optimizer == "random"]
             if dfo and rand:
                 total += 1
-                if dfo[0].best_fitness < rand[0].best_fitness:
+                # Retain nonfinite failures in the means. They cannot create a win.
+                dfo_mean = np.mean(dfo) if all(map(math.isfinite, dfo)) else float("inf")
+                rand_mean = np.mean(rand) if all(map(math.isfinite, rand)) else float("inf")
+                if dfo_mean < rand_mean:
                     wins += 1
         return wins, total
 
@@ -104,7 +112,8 @@ class SuiteReport:
         for opt in optimizers:
             opt_results = [r for r in self.results if r.optimizer == opt]
             solved = sum(1 for r in opt_results if r.solved)
-            mean_prec = np.mean([r.precision for r in opt_results if math.isfinite(r.precision)])
+            precisions = [r.precision for r in opt_results if math.isfinite(r.precision)]
+            mean_prec = np.mean(precisions) if precisions else float("nan")
             mean_time = np.mean([r.wall_time_s for r in opt_results])
             lines.append(
                 f"  {opt:<20} solved={solved}/{len(opt_results)}  "
@@ -116,38 +125,6 @@ class SuiteReport:
 # ---------------------------------------------------------------------------
 # COCO/BBOB benchmark runner
 # ---------------------------------------------------------------------------
-
-
-def _get_f_opt_cache() -> dict:
-    """Lazy cache for f_opt values."""
-    if not hasattr(_get_f_opt_cache, "_cache"):
-        _get_f_opt_cache._cache = {}
-    return _get_f_opt_cache._cache
-
-
-def get_f_opt(func_id: int, instance_id: int = 1) -> float:
-    """Get optimal value for a BBOB function via scipy minimization on 2d."""
-    cache = _get_f_opt_cache()
-    key = (func_id, instance_id)
-    if key not in cache:
-        import cocoex
-        from scipy.optimize import minimize as sp_minimize
-
-        suite = cocoex.Suite(
-            "bbob",
-            "",
-            f"function_indices: {func_id} dimensions: 2 instance_indices: {instance_id}",
-        )
-        for p in suite:
-            res = sp_minimize(
-                p,
-                p.initial_solution,
-                method="Nelder-Mead",
-                options={"maxfev": 200000, "xatol": 1e-14, "fatol": 1e-14},
-            )
-            cache[key] = res.fun
-            p.free()
-    return cache[key]
 
 
 def run_bbob(
@@ -172,19 +149,18 @@ def run_bbob(
     for dim in dims:
         for fid in functions:
             for iid in instances:
-                f_opt = get_f_opt(fid, iid)
                 budget = dim * budget_mult
 
                 # --- torch-dfo ---
                 suite = cocoex.Suite(
                     "bbob",
-                    "",
-                    f"function_indices: {fid} dimensions: {dim} instance_indices: {iid}",
+                    f"instances: {iid}",
+                    f"function_indices: {fid} dimensions: {dim}",
                 )
                 for p in suite:
-                    result = _run_torch_dfo_on_coco(p, budget, f_opt)
+                    result = _run_torch_dfo_on_coco(p, budget)
                     result.suite = "bbob"
-                    result.problem_name = f"f{fid}_i{iid}_d{dim}"
+                    result.problem_name = p.id
                     report.results.append(result)
                     p.free()
 
@@ -192,20 +168,20 @@ def run_bbob(
                 if run_pycma:
                     suite = cocoex.Suite(
                         "bbob",
-                        "",
-                        f"function_indices: {fid} dimensions: {dim} instance_indices: {iid}",
+                        f"instances: {iid}",
+                        f"function_indices: {fid} dimensions: {dim}",
                     )
                     for p in suite:
-                        result = _run_pycma_on_coco(p, budget, f_opt)
+                        result = _run_pycma_on_coco(p, budget)
                         result.suite = "bbob"
-                        result.problem_name = f"f{fid}_i{iid}_d{dim}"
+                        result.problem_name = p.id
                         report.results.append(result)
                         p.free()
 
     return report
 
 
-def _run_torch_dfo_on_coco(problem, budget: int, f_opt: float) -> BenchmarkResult:
+def _run_torch_dfo_on_coco(problem, budget: int) -> BenchmarkResult:
     """Run PhasedDFO on a COCO problem."""
     from torch_dfo import PhasedDFO
 
@@ -229,69 +205,67 @@ def _run_torch_dfo_on_coco(problem, budget: int, f_opt: float) -> BenchmarkResul
     _, best_f = opt.optimize(fitness_fn)
     elapsed = time.perf_counter() - t0
 
-    precision = best_f.item() - f_opt
     return BenchmarkResult(
         suite="",
         problem_name="",
         dim=dim,
         optimizer="torch-dfo",
         best_fitness=best_f.item(),
-        precision=precision,
-        fe_used=opt._fe_count,
+        precision=float("nan"),  # COCO does not expose an exact optimum here.
+        fe_used=int(problem.evaluations),
         wall_time_s=elapsed,
-        solved=precision < 1e-8,
+        solved=bool(problem.final_target_hit),
     )
 
 
-def _run_pycma_on_coco(problem, budget: int, f_opt: float) -> BenchmarkResult:
-    """Run BIPOP-CMA-ES (pycma) on a COCO problem."""
+def _run_pycma_on_coco(problem, budget: int) -> BenchmarkResult:
+    """Run population-doubling CMA-ES restarts with a strict evaluation cap."""
     import cma
 
     dim = problem.dimension
     lb = problem.lower_bounds[0]
     ub = problem.upper_bounds[0]
     sigma0 = (ub - lb) / 4.0
-
     t0 = time.perf_counter()
     best_f = float("inf")
     fe_used = 0
-    pop_mult = 1
+    base_pop = None
 
     for restart in range(20):
         remaining = budget - fe_used
-        if remaining < 10 * dim:
+        if remaining <= 0 or problem.final_target_hit:
             break
-
-        opts = cma.CMAOptions()
-        opts["seed"] = 42 + restart
-        opts["maxfevals"] = remaining
-        opts["bounds"] = [lb, ub]
-        opts["verbose"] = -9
-        opts["tolfun"] = 1e-12
-        opts["tolx"] = 1e-12
-
+        opts = {
+            "seed": 42 + restart,
+            "maxfevals": remaining,
+            "bounds": [lb, ub],
+            "verbose": -9,
+            "tolfun": 1e-12,
+            "tolx": 1e-12,
+        }
         if restart > 0:
-            pop_mult *= 2
-            base_pop = cma.CMAEvolutionStrategy(problem.initial_solution, sigma0).popsize
-            opts["popsize"] = min(int(base_pop * pop_mult), 512)
+            opts["popsize"] = min(int(base_pop * 2**restart), 512)
             x0 = lb + np.random.RandomState(42 + restart).rand(dim) * (ub - lb)
         else:
             x0 = problem.initial_solution
-
-        try:
-            es = cma.CMAEvolutionStrategy(x0, sigma0, opts)
-            while not es.stop():
-                solutions = es.ask()
-                fitnesses = [problem(x) for x in solutions]
-                es.tell(solutions, fitnesses)
-            fe_used += es.result.evaluations
-            if es.result.fbest < best_f:
-                best_f = es.result.fbest
-        except Exception:
-            break
-
-    elapsed = time.perf_counter() - t0
-    precision = best_f - f_opt
+        es = cma.CMAEvolutionStrategy(x0, sigma0, opts)
+        if base_pop is None:
+            base_pop = es.popsize
+        while not es.stop() and fe_used < budget and not problem.final_target_hit:
+            solutions = es.ask()
+            # A final partial generation contributes observations but cannot update CMA-ES.
+            evaluated = solutions[: budget - fe_used]
+            fitnesses = []
+            for x in evaluated:
+                value = float(problem(x))
+                fe_used += 1
+                best_f = min(best_f, value)
+                fitnesses.append(value)
+                if problem.final_target_hit:
+                    break
+            if len(fitnesses) != len(solutions) or problem.final_target_hit:
+                break
+            es.tell(solutions, fitnesses)
 
     return BenchmarkResult(
         suite="",
@@ -299,10 +273,10 @@ def _run_pycma_on_coco(problem, budget: int, f_opt: float) -> BenchmarkResult:
         dim=dim,
         optimizer="pycma",
         best_fitness=best_f,
-        precision=precision,
-        fe_used=fe_used,
-        wall_time_s=elapsed,
-        solved=precision < 1e-8,
+        precision=float("nan"),
+        fe_used=int(problem.evaluations),
+        wall_time_s=time.perf_counter() - t0,
+        solved=bool(problem.final_target_hit),
     )
 
 
@@ -328,15 +302,13 @@ def run_bbob_noisy(
 
     for dim in dims:
         inst_str = ",".join(map(str, instances))
-        suite = cocoex.Suite("bbob-noisy", "", f"dimensions: {dim} instance_indices: {inst_str}")
+        suite = cocoex.Suite("bbob-noisy", f"instances: {inst_str}", f"dimensions: {dim}")
         budget = dim * budget_mult
 
         for p in suite:
-            result = _run_torch_dfo_on_coco(p, budget, 0.0)  # f_opt unknown for noisy
+            result = _run_torch_dfo_on_coco(p, budget)
             result.suite = "bbob-noisy"
             result.problem_name = p.id
-            result.precision = float("nan")  # can't compute precision without f_opt
-            result.solved = False  # unknown
             report.results.append(result)
             p.free()
 
@@ -454,7 +426,7 @@ def run_yahpo(
                         dim=dim,
                         optimizer="torch-dfo",
                         best_fitness=best_f.item(),
-                        precision=best_f.item(),
+                        precision=float("nan"),
                         fe_used=opt._fe_count,
                         wall_time_s=elapsed,
                         solved=False,
@@ -463,9 +435,8 @@ def run_yahpo(
 
                 # --- random baseline ---
                 if run_random_baseline:
-                    random_bests = []
-                    t0 = time.perf_counter()
                     for rep in range(random_repeats):
+                        t0 = time.perf_counter()
                         rng = torch.Generator().manual_seed(rep)
                         best_rand = float("inf")
                         for _ in range(budget):
@@ -473,23 +444,19 @@ def run_yahpo(
                             f_val = fitness(x).item()
                             if f_val < best_rand:
                                 best_rand = f_val
-                        random_bests.append(best_rand)
-                    mean_rand = float(np.mean(random_bests))
-                    elapsed_rand = time.perf_counter() - t0
-
-                    report.results.append(
-                        BenchmarkResult(
-                            suite="yahpo",
-                            problem_name=prob_name,
-                            dim=dim,
-                            optimizer="random",
-                            best_fitness=mean_rand,
-                            precision=mean_rand,
-                            fe_used=budget,
-                            wall_time_s=elapsed_rand / random_repeats,
-                            solved=False,
+                        report.results.append(
+                            BenchmarkResult(
+                                suite="yahpo",
+                                problem_name=prob_name,
+                                dim=dim,
+                                optimizer="random",
+                                best_fitness=best_rand,
+                                precision=float("nan"),
+                                fe_used=budget,
+                                wall_time_s=time.perf_counter() - t0,
+                                solved=False,
+                            )
                         )
-                    )
 
     return report
 

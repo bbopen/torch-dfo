@@ -134,6 +134,8 @@ POP_DFO_QUADRATIC: int = 20
 POP_DFO_DEFAULT: int = 10
 POP_SHADE_STANDARD: int = 20
 POP_CMAES_STANDARD: int = 12
+POP_CMAES_MIN: int = 2
+POP_SHADE_MIN: int = 3
 
 
 # ---------------------------------------------------------------------------

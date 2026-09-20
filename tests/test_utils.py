@@ -237,3 +237,28 @@ class TestNormalizeBounds:
         """``bounds=0.0`` (zero span) is rejected with a clean ValueError."""
         with pytest.raises(ValueError, match="positive span"):
             normalize_bounds(0.0, dim=4, device=device, dtype=default_dtype)
+
+    @pytest.mark.parametrize("bounds", [float("inf"), -float("inf"), (-float("inf"), 1.0)])
+    def test_nonfinite_bounds_raise(
+        self,
+        bounds: float | tuple[float, float],
+        device: torch.device,
+        default_dtype: torch.dtype,
+    ) -> None:
+        """Construction must reject bounds that would create NaN candidates."""
+        with pytest.raises(ValueError, match="finite"):
+            normalize_bounds(bounds, dim=3, device=device, dtype=default_dtype)
+
+    def test_wrong_length_tensor_bounds_raise(
+        self,
+        device: torch.device,
+        default_dtype: torch.dtype,
+    ) -> None:
+        """Tensor bounds must match the declared decision-vector length."""
+        with pytest.raises(ValueError, match="shape"):
+            normalize_bounds(
+                (torch.zeros(2), torch.ones(2)),
+                dim=3,
+                device=device,
+                dtype=default_dtype,
+            )

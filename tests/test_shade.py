@@ -9,6 +9,7 @@ from tests._thresholds import (
     ATOL_F64_DEFAULT,
     CONV_SPHERE_5D_FAST,
     CONV_SPHERE_10D_STANDARD,
+    POP_SHADE_MIN,
     SMOKE_F_INIT_SHADE,
     SMOKE_F_MULTIMODAL_IMPROVEMENT,
 )
@@ -97,6 +98,11 @@ class TestConstruction:
         assert opt._archive_max == 120
         assert opt.dim == 3
         assert opt.pop_size == 60
+
+    def test_population_below_minimum_raises(self, device: torch.device) -> None:
+        dtype = best_float_dtype(device)
+        with pytest.raises(ValueError, match="pop_size"):
+            SHADE(dim=5, bounds=5.0, pop_size=POP_SHADE_MIN - 1, device=device, dtype=dtype)
 
 
 # ---------------------------------------------------------------------------
@@ -744,6 +750,57 @@ class TestFirstGeneration:
 # Warm-start via initial_population
 # ---------------------------------------------------------------------------
 class TestSHADEWarmStart:
+    def test_pending_warm_start_roundtrip_preserves_first_ask(self, device, default_dtype):
+        initial = torch.ones(5, 4, device=device, dtype=default_dtype)
+        original = SHADE(
+            dim=4,
+            bounds=(-5.0, 5.0),
+            pop_size=20,
+            device=device,
+            dtype=default_dtype,
+            seed=42,
+            initial_population=initial,
+        )
+        restored = SHADE(
+            dim=4,
+            bounds=(-5.0, 5.0),
+            pop_size=20,
+            device=device,
+            dtype=default_dtype,
+            seed=99,
+        )
+        restored.load_state_dict(original.state_dict())
+        assert torch.equal(original.ask(), restored.ask())
+
+    def test_legacy_state_without_warm_start_key_keeps_receiver_warm_start(
+        self,
+        device,
+        default_dtype,
+    ):
+        """Old state dictionaries keep the load behavior from before this key existed."""
+        original = SHADE(
+            dim=4,
+            bounds=5.0,
+            pop_size=20,
+            device=device,
+            dtype=default_dtype,
+            seed=42,
+        )
+        legacy_state = original.state_dict()
+        legacy_state.pop("initial_population")
+        receiver_warm_start = torch.ones(3, 4, device=device, dtype=default_dtype)
+        restored = SHADE(
+            dim=4,
+            bounds=5.0,
+            pop_size=20,
+            device=device,
+            dtype=default_dtype,
+            seed=99,
+            initial_population=receiver_warm_start,
+        )
+        restored.load_state_dict(legacy_state)
+        assert torch.equal(restored.ask()[:3], receiver_warm_start)
+
     def test_initial_population_seeds_first_rows(self, device, default_dtype):
         # Create initial_population as zeros (5 rows)
         n_seed = 5

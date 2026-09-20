@@ -32,7 +32,9 @@ class DFOOptimizer(torch.optim.Optimizer):
         ``'phased'`` is not supported: it drives its own ``optimize()``
         loop and does not fit the ``torch.optim.Optimizer.step()`` model.
     budget : int | None
-        Total function evaluations.  Default: ``dim * 5000``.
+        Hard cap on function evaluations.  The wrapper evaluates complete
+        inner ask/tell generations only, so a final smaller residue is unused.
+        Default: ``dim * 5000``.
     bounds : float | tuple[float, float]
         Search bounds.  **Required** -- DFO needs explicit bounds.
     **kwargs :
@@ -89,6 +91,10 @@ class DFOOptimizer(torch.optim.Optimizer):
             budget = self._dim * 5000
         self._budget = budget
         self._evals = 0
+        # Underlying optimizers update state atomically for a whole ask/tell
+        # generation.  A final residue smaller than that generation cannot be
+        # evaluated safely, so it becomes a terminal condition.
+        self._stopped_early = False
 
         # Build the underlying ask/tell optimizer -----------------------
         from torch_dfo import CMAES, SHADE, NelderMead
@@ -158,18 +164,37 @@ class DFOOptimizer(torch.optim.Optimizer):
         Returns
         -------
         torch.Tensor
-            Scalar loss of the best candidate in this generation.
+            Scalar loss of the best candidate in this generation.  If the
+            remaining budget cannot fit a complete generation, calls neither
+            closure, preserves the completed state, and returns the best loss.
         """
         if closure is None and closure_batched is None:
             raise ValueError("Provide closure or closure_batched to step().")
+        if closure is not None and closure_batched is not None:
+            raise ValueError("Provide exactly one of closure or closure_batched to step().")
         if self.is_exhausted:
             raise RuntimeError(
                 f"DFOOptimizer budget exhausted ({self._evals}/{self._budget} evals). "
                 "Guard calls to step() with `if not opt.is_exhausted:` or raise the budget."
             )
 
+        # ``ask()`` may advance internal state (for example, it can draw a
+        # new population).  All supported inner optimizers return no more
+        # than ``pop_size`` candidates.  Snapshot only at the terminal
+        # residue, so normal generations do not pay serialization overhead.
+        inner_state = None
+        if self.budget_remaining < self._inner.pop_size:
+            inner_state = self._inner.state_dict()
         candidates = self._inner.ask()
         pop_size = candidates.shape[0]
+
+        if pop_size > self.budget_remaining:
+            assert inner_state is not None
+            self._inner.load_state_dict(inner_state)
+            self._stopped_early = True
+            # Do not call either closure.  The underlying optimizer cannot
+            # accept a partial generation, so preserve the completed state.
+            return self._inner.best_fitness.clone()
 
         if closure_batched is not None:
             fitness = closure_batched(candidates)
@@ -192,7 +217,24 @@ class DFOOptimizer(torch.optim.Optimizer):
 
         # Set model parameters to the best solution found so far
         self._set_params(self._inner.best_solution)
+        self._mark_terminal_residue()
         return fitness.min()
+
+    def _mark_terminal_residue(self) -> None:
+        """Mark exhausted if the next atomic ask/tell cannot fit the residue."""
+        if self.budget_remaining == 0:
+            return
+        if self.budget_remaining >= self._inner.pop_size:
+            return
+
+        # Nelder-Mead can produce a four-point operation after its larger
+        # initial simplex.  Probe and restore at the terminal residue instead
+        # of assuming every inner optimizer always uses ``pop_size``.
+        inner_state = self._inner.state_dict()
+        candidates = self._inner.ask()
+        self._inner.load_state_dict(inner_state)
+        if candidates.shape[0] > self.budget_remaining:
+            self._stopped_early = True
 
     # ------------------------------------------------------------------
     # Budget helpers
@@ -205,8 +247,8 @@ class DFOOptimizer(torch.optim.Optimizer):
 
     @property
     def is_exhausted(self) -> bool:
-        """True when the optimization budget is fully consumed."""
-        return self._evals >= self._budget
+        """True when no further whole generation fits the evaluation budget."""
+        return self._evals >= self._budget or self._stopped_early
 
     # ------------------------------------------------------------------
     # Serialization
@@ -222,18 +264,23 @@ class DFOOptimizer(torch.optim.Optimizer):
         state = super().state_dict()
         state["_inner"] = self._inner.state_dict()
         state["_evals"] = self._evals
+        state["_stopped_early"] = self._stopped_early
         return state
 
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         """Restore optimizer state produced by :meth:`state_dict`.
 
-        The ``_inner`` and ``_evals`` extensions are consumed here; the
-        remaining keys are forwarded to the base ``torch.optim.Optimizer``.
+        The ``_inner`` and ``_evals`` extensions are read here; the remaining
+        keys are forwarded to the base ``torch.optim.Optimizer``.  The input
+        mapping is not modified, so callers can load it more than once.
         """
-        inner_state = state_dict.pop("_inner", None)
-        evals = state_dict.pop("_evals", None)
-        super().load_state_dict(state_dict)
+        local_state = dict(state_dict)
+        inner_state = local_state.pop("_inner", None)
+        evals = local_state.pop("_evals", None)
+        stopped_early = local_state.pop("_stopped_early", False)
+        super().load_state_dict(local_state)
         if inner_state is not None:
             self._inner.load_state_dict(inner_state)
         if evals is not None:
             self._evals = int(evals)
+        self._stopped_early = bool(stopped_early)
