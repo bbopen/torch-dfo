@@ -1,0 +1,1 @@
+{"torch": "2.13.0+cu130", "triton": "3.7.1", "python": "3.12.3", "gpu": "NVIDIA GB10", "completed": 240, "stop_reason": "budget exhausted"}

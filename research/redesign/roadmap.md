@@ -110,13 +110,18 @@ The lab passes its functional gate when it makes correct decisions, including re
 
 ## Immediate work package
 
-The active phase turns public application objectives into reproducible torch-dfo benchmarks.
+The calibration comparison is complete. Its repeated, equal-budget results are in
+`calibration-results.md`. The first CUDA execution study is also complete. Its
+compiled thermal scorer passes paired quality and speed checks on DGX Spark.
+See `cuda-results.md` for setup cost, measured scope, and rejected attempts.
 
-1. Correct the calibration smoke's unequal budgets and inferred counts. Freeze a fitting and exploratory validation split, run repeated seeds, and compare native methods with SciPy and optional EvoTorch. All 21 observations were exposed during earlier exploration.
-2. Expand the robot task after the calibration benchmark is reviewed. Preserve its independent position and orientation checks. Match incumbent selection and account for different boundary handling.
+1. Use the CUDA profile to remove avoidable host synchronization from optimizer execution. Preserve checkpoint state, numerical behavior, and evaluation accounting. Measure each change separately.
+2. Expand the robot task with GPU batches and an upstream baseline. Preserve independent position and orientation checks. Match incumbent selection and account for different boundary handling.
 3. Use a released mask or policy workload to guide a compact PGPE implementation. Add only the capabilities that the workload demonstrates.
 
-The first deliverable is complete when its evaluator probes and accounting tests pass, an independent review accepts the implementation, and results retain every seed. A win is not required. Keep runtime and application dependencies outside the core library.
+The next CUDA change must retain the current reference as a baseline. Repeat
+paired searches and include setup cost. Keep runtime and application dependencies
+outside the core library.
 
 ## Maintenance and decision rules
 

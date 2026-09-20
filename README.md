@@ -100,7 +100,9 @@ Optimizer-level `state_dict()` and `load_state_dict()` remain available. Their c
 
 Tensor operations can remain on the selected device. Python control flow and scalar extraction can synchronize with the host. The package does not provide a fully asynchronous GPU search loop.
 
-Compilation tests cover selected methods with graph breaks. They do not establish full-graph compilation or a general speedup. Measure objective time, optimizer time, and total time separately.
+Optimizer compilation tests cover selected methods with graph breaks. They do not establish full-graph compilation or a general speedup. Measure objective time, optimizer time, and total time separately.
+
+The thermal-control example has an optional compiled CUDA scorer. On one DGX Spark GB10 study, warm CMA-ES runs were 1.28 to 1.68 times faster at equal budgets and matching final reference scores. Compilation adds setup cost. These results apply to this workload. See [the CUDA study](research/redesign/cuda-results.md) and its reproduction command.
 
 Historical memory-capacity measurements appear in [the benchmark notes](docs/benchmarks.rst). A dimension that fits in memory is not evidence that an optimizer can solve a problem at that dimension.
 

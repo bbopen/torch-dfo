@@ -207,6 +207,90 @@ class Evaluation:
     switching_cost: torch.Tensor
 
 
+class PreparedFrozenEvaluator:
+    """Score controls with scenario tensors stored on one device and dtype.
+
+    The callable returns only the frozen score.  It does not replace
+    :class:`FrozenEvaluator`, which remains the independent reference oracle.
+    """
+
+    def __init__(
+        self,
+        scenarios: ScenarioSet,
+        plant: ThermalPlant,
+        *,
+        device: torch.device,
+        dtype: torch.dtype,
+        compile: bool,
+    ) -> None:
+        outdoor, internal, initial = scenarios.tensor(device=device, dtype=dtype)
+        self.device = outdoor.device
+        self.dtype = dtype
+        self.compiled = compile
+
+        actuator_step = plant.actuator_step
+        actuator_capacity_w = plant.actuator_capacity_w
+        target_temperature_c = plant.target_temperature_c
+        dt_over_c = plant.step_seconds / plant.thermal_capacitance_j_per_k
+        resistance_k_per_w = plant.resistance_k_per_w
+
+        def score_objective(requested_control: torch.Tensor) -> torch.Tensor:
+            bounded = requested_control.clamp(-1.0, 1.0)
+            commands = (torch.round(bounded / actuator_step) * actuator_step).clamp(-1.0, 1.0)
+            batch = commands.shape[0]
+            temperature = initial.unsqueeze(0).expand(batch, -1)
+            trace = [temperature]
+            for step in range(HORIZON):
+                heat_w = commands[:, step].unsqueeze(1) * actuator_capacity_w
+                temperature = temperature + dt_over_c * (
+                    (outdoor[:, step].unsqueeze(0) - temperature) / resistance_k_per_w
+                    + internal[:, step].unsqueeze(0)
+                    + heat_w
+                )
+                trace.append(temperature)
+            temperatures = torch.stack(trace, dim=-1)
+            deviation = (temperatures[:, :, 1:] - target_temperature_c).abs()
+            comfort = torch.relu(deviation - 0.5).square().mean(dim=-1)
+            mean_comfort = comfort.mean(dim=-1)
+            worst_comfort = comfort.max(dim=-1).values
+            energy = 0.08 * commands.abs().mean(dim=-1)
+            switching = 0.03 * (commands[:, 1:] - commands[:, :-1]).abs().mean(dim=-1)
+            return mean_comfort + 0.50 * worst_comfort + energy + switching
+
+        self._score_objective = score_objective
+        self._compiled_score = (
+            # Keep CUDA graph replay and use eager-compatible arithmetic.
+            torch.compile(
+                score_objective,
+                fullgraph=True,
+                options={
+                    "triton.cudagraphs": True,
+                    "emulate_precision_casts": True,
+                    "eager_numerics.division_rounding": True,
+                },
+            )
+            if compile
+            else None
+        )
+
+    def __call__(self, requested_control: torch.Tensor) -> torch.Tensor:
+        """Return one score per requested control row."""
+        if requested_control.ndim == 1:
+            requested_control = requested_control.unsqueeze(0)
+        if requested_control.ndim != 2 or requested_control.shape[1] != HORIZON:
+            raise ValueError(f"requested_control must have shape (batch, {HORIZON})")
+        if requested_control.device != self.device:
+            raise ValueError(f"requested_control must be on {self.device}")
+        if requested_control.dtype != self.dtype:
+            raise ValueError(f"requested_control must have dtype {self.dtype}")
+
+        if self._compiled_score is None:
+            return self._score_objective(requested_control)
+        # CUDA graph replay can reuse compiled output storage. Clone the score
+        # outside the compiled graph so callers can keep it across later calls.
+        return self._compiled_score(requested_control).clone()
+
+
 class FrozenEvaluator:
     """Score controls against one fixed split.  This evaluator has no tuning knobs."""
 
@@ -231,6 +315,36 @@ class FrozenEvaluator:
                 },
             }
         )
+        self._prepared: dict[tuple[torch.device, torch.dtype, bool], PreparedFrozenEvaluator] = {}
+
+    def prepare(
+        self,
+        device: torch.device | str,
+        dtype: torch.dtype,
+        *,
+        compile: bool = False,
+    ) -> PreparedFrozenEvaluator:
+        """Return a score callable with scenario tensors cached on one device.
+
+        Set ``compile=True`` only for CUDA inputs. It compiles a pure tensor
+        objective with CUDA graphs and eager-compatible arithmetic settings.
+        Compilation errors propagate to the caller.
+        """
+        target = torch.device(device)
+        if compile and target.type != "cuda":
+            raise ValueError("compile=True requires a CUDA device")
+        key = (target, dtype, compile)
+        prepared = self._prepared.get(key)
+        if prepared is None:
+            prepared = PreparedFrozenEvaluator(
+                self.scenarios,
+                self.plant,
+                device=target,
+                dtype=dtype,
+                compile=compile,
+            )
+            self._prepared[key] = prepared
+        return prepared
 
     def evaluate(self, requested_control: torch.Tensor) -> Evaluation:
         """Return the frozen robust objective for each requested control row."""

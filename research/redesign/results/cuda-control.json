@@ -1,0 +1,3759 @@
+{
+  "status": "complete",
+  "accepted": true,
+  "scope": "Warm CUDA evaluator and managed CMA-ES execution; construction excluded.",
+  "environment": {
+    "python": "3.12.3",
+    "torch": "2.13.0+cu130",
+    "cuda": "13.0",
+    "gpu": "NVIDIA GB10",
+    "capability": [
+      12,
+      1
+    ],
+    "torch_dfo": "/work/source/src/torch_dfo/__init__.py"
+  },
+  "source_sha256": {
+    "benchmarks/cuda_control.py": "f7f37d0aa3b7e8df8400e72a1e311ea6bc7a825fba61a9c8bfb21dbf26e005d8",
+    "examples/06_engineering_control.py": "50e705ff64bcdcf9fcad581917c16a5d0352b588aaa74ec80074da5529f00661"
+  },
+  "evaluator_hash": "8c8e108e7de357e2157f7ebd40393ccd8373607a4367b0605badfacce8512b8c",
+  "probes": {
+    "degenerate_zero": {
+      "score": 14.716173141439802,
+      "passes": false
+    },
+    "ceiling_domain_control": {
+      "score": 2.941746733958009,
+      "passes": true
+    },
+    "cheap_exploit_constant_cooling": {
+      "score": 2.1494665993246,
+      "passes": true
+    },
+    "runaway_all_heat": {
+      "score": 102.63422641528119,
+      "passes": false
+    },
+    "null_uniform_random": {
+      "seed": 24681,
+      "sample_count": 64,
+      "min_score": 4.064485067032903,
+      "median_score": 14.585578340450914,
+      "max_score": 33.12019048797576,
+      "mean_score": 15.691806662415988,
+      "pass_rate": 0.0
+    }
+  },
+  "configurations": [
+    {
+      "dtype": "torch.float32",
+      "population": 12,
+      "budget": 240,
+      "tolerance": 0.001,
+      "preparation_seconds": {
+        "reference": 0.0,
+        "prepared": 0.00010049599222838879,
+        "compiled": 0.6347164979670197
+      },
+      "first_call_seconds": {
+        "reference": 0.0018058759160339832,
+        "prepared": 0.0007254260126501322,
+        "compiled": 2.86723691993393
+      },
+      "evaluator_samples_seconds": {
+        "reference": [
+          0.0009808021131902933,
+          0.000748832942917943,
+          0.0007313769310712814,
+          0.0007100019138306379,
+          0.0007156501524150372,
+          0.000691601075232029,
+          0.0006933619733899832,
+          0.0006955689750611782,
+          0.0006943701300770044,
+          0.000710977939888835,
+          0.0006915370468050241,
+          0.0006896818522363901,
+          0.0006762570701539516,
+          0.0006860981229692698,
+          0.0006866410840302706
+        ],
+        "prepared": [
+          0.0006957610603421926,
+          0.0006951859686523676,
+          0.0006799208931624889,
+          0.0006637449841946363,
+          0.0006651540752500296,
+          0.0006504170596599579,
+          0.0006544811185449362,
+          0.0006565779913216829,
+          0.0006416970863938332,
+          0.0006479211151599884,
+          0.00065953703597188,
+          0.0006434249226003885,
+          0.0006433140952140093,
+          0.0006559849716722965,
+          0.0006436498370021582
+        ],
+        "compiled": [
+          0.00010512000881135464,
+          7.099192589521408e-05,
+          6.721704266965389e-05,
+          7.812795229256153e-05,
+          6.265589036047459e-05,
+          6.688013672828674e-05,
+          7.031997665762901e-05,
+          6.227195262908936e-05,
+          6.273598410189152e-05,
+          7.236795499920845e-05,
+          6.382493302226067e-05,
+          6.969599053263664e-05,
+          7.302407175302505e-05,
+          5.9696147218346596e-05,
+          6.248010322451591e-05
+        ]
+      },
+      "evaluator_median_seconds": {
+        "reference": 0.0006943701300770044,
+        "prepared": 0.0006559849716722965,
+        "compiled": 6.721704266965389e-05
+      },
+      "profiles": {
+        "reference": {
+          "evaluator": {
+            "cuda_event_count": 140,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1114.5140000000001
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 137,
+                "self_cpu_us": 423.53799999999865
+              },
+              {
+                "name": "aten::add",
+                "count": 51,
+                "self_cpu_us": 136.35200000000123
+              },
+              {
+                "name": "aten::mul",
+                "count": 36,
+                "self_cpu_us": 106.304000000001
+              },
+              {
+                "name": "aten::div",
+                "count": 17,
+                "self_cpu_us": 64.38399999999979
+              },
+              {
+                "name": "aten::sub",
+                "count": 19,
+                "self_cpu_us": 63.728000000000975
+              },
+              {
+                "name": "aten::clamp",
+                "count": 2,
+                "self_cpu_us": 63.40899999999988
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 66,
+                "self_cpu_us": 46.81600000000208
+              },
+              {
+                "name": "aten::select",
+                "count": 48,
+                "self_cpu_us": 34.48000000000388
+              },
+              {
+                "name": "aten::as_strided",
+                "count": 124,
+                "self_cpu_us": 31.487999999997328
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 312,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1121.618
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 261,
+                "self_cpu_us": 869.7610000000016
+              },
+              {
+                "name": "aten::mul",
+                "count": 53,
+                "self_cpu_us": 168.6720000000007
+              },
+              {
+                "name": "aten::add",
+                "count": 58,
+                "self_cpu_us": 160.72000000000003
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 46,
+                "self_cpu_us": 159.92000000000144
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 22,
+                "self_cpu_us": 103.79199999999969
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 92.24000000000092
+              },
+              {
+                "name": "aten::div",
+                "count": 22,
+                "self_cpu_us": 71.72800000000052
+              },
+              {
+                "name": "aten::sub",
+                "count": 22,
+                "self_cpu_us": 68.7359999999992
+              },
+              {
+                "name": "Lazy Function Loading",
+                "count": 3,
+                "self_cpu_us": 67.16800000000035
+              }
+            ]
+          }
+        },
+        "prepared": {
+          "evaluator": {
+            "cuda_event_count": 137,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1184.162
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 137,
+                "self_cpu_us": 399.37799999999856
+              },
+              {
+                "name": "aten::add",
+                "count": 51,
+                "self_cpu_us": 136.70399999999904
+              },
+              {
+                "name": "aten::mul",
+                "count": 36,
+                "self_cpu_us": 102.06400000000053
+              },
+              {
+                "name": "aten::sub",
+                "count": 19,
+                "self_cpu_us": 59.76000000000181
+              },
+              {
+                "name": "aten::div",
+                "count": 17,
+                "self_cpu_us": 55.711999999999534
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 66,
+                "self_cpu_us": 44.44799999999941
+              },
+              {
+                "name": "aten::select",
+                "count": 48,
+                "self_cpu_us": 33.249000000000024
+              },
+              {
+                "name": "aten::clamp",
+                "count": 2,
+                "self_cpu_us": 29.503999999999678
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 26.400000000000546
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 309,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1147.618
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 261,
+                "self_cpu_us": 1016.4649999999945
+              },
+              {
+                "name": "aten::mul",
+                "count": 53,
+                "self_cpu_us": 176.73599999999988
+              },
+              {
+                "name": "aten::add",
+                "count": 58,
+                "self_cpu_us": 161.80799999999908
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 43,
+                "self_cpu_us": 150.6400000000001
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 19,
+                "self_cpu_us": 93.80800000000067
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 81.53600000000256
+              },
+              {
+                "name": "aten::div",
+                "count": 22,
+                "self_cpu_us": 72.83200000000102
+              },
+              {
+                "name": "aten::sub",
+                "count": 22,
+                "self_cpu_us": 69.32899999999972
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 71,
+                "self_cpu_us": 58.27299999999741
+              }
+            ]
+          }
+        },
+        "compiled": {
+          "evaluator": {
+            "cuda_event_count": 7,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1189.394
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 1,
+                "self_cpu_us": 131.58399999999983
+              },
+              {
+                "name": "## Call CompiledFxGraph f32zbz4zdxwqy2i5wlm7n73c4z2fgcqqev2abn3kpvojgo4pc3he ##",
+                "count": 1,
+                "self_cpu_us": 58.991999999999734
+              },
+              {
+                "name": "Torch-Compiled Region: 0/0",
+                "count": 1,
+                "self_cpu_us": 40.46400000000017
+              },
+              {
+                "name": "aten::_foreach_copy_",
+                "count": 1,
+                "self_cpu_us": 26.256000000000313
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 24.864000000000033
+              },
+              {
+                "name": "cudaGraphLaunch",
+                "count": 1,
+                "self_cpu_us": 16.784000000000106
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 1,
+                "self_cpu_us": 14.704000000000178
+              },
+              {
+                "name": "TorchDynamo Cache Lookup",
+                "count": 1,
+                "self_cpu_us": 11.232
+              },
+              {
+                "name": "aten::copy_",
+                "count": 1,
+                "self_cpu_us": 10.031999999999698
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 179,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1133.89
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 125,
+                "self_cpu_us": 583.9360000000013
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 44,
+                "self_cpu_us": 153.2009999999991
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 19,
+                "self_cpu_us": 93.05599999999959
+              },
+              {
+                "name": "## Call CompiledFxGraph f32zbz4zdxwqy2i5wlm7n73c4z2fgcqqev2abn3kpvojgo4pc3he ##",
+                "count": 1,
+                "self_cpu_us": 77.10399999999981
+              },
+              {
+                "name": "aten::mul",
+                "count": 17,
+                "self_cpu_us": 72.81600000000049
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 71.7440000000006
+              },
+              {
+                "name": "aten::copy_",
+                "count": 33,
+                "self_cpu_us": 53.327999999999975
+              },
+              {
+                "name": "aten::empty_strided",
+                "count": 26,
+                "self_cpu_us": 51.29600000000005
+              },
+              {
+                "name": "Torch-Compiled Region: 0/0",
+                "count": 1,
+                "self_cpu_us": 50.5920000000001
+              }
+            ]
+          }
+        }
+      },
+      "pairs": [
+        {
+          "seed": 11,
+          "runs": {
+            "compiled": {
+              "seconds": 0.0249928031116724,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9787402153015137,
+              "reference_best": 1.9787402153015137,
+              "selected": [
+                -0.1363248974084854,
+                -0.49389034509658813,
+                -0.5912972688674927,
+                0.6030617952346802,
+                -1.0,
+                -0.8846526145935059,
+                -0.5852292776107788,
+                -0.41969090700149536,
+                -0.5020059943199158,
+                -0.07655715942382812,
+                -0.8631963729858398,
+                -0.5646355152130127,
+                -0.07324548065662384,
+                -0.9141619205474854,
+                -0.5992040038108826,
+                -0.13506194949150085
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.03976558614522219,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9787402153015137,
+              "reference_best": 1.9787402153015137,
+              "selected": [
+                -0.1363248974084854,
+                -0.49389034509658813,
+                -0.5912972688674927,
+                0.6030617952346802,
+                -1.0,
+                -0.8846526145935059,
+                -0.5852292776107788,
+                -0.41969090700149536,
+                -0.5020059943199158,
+                -0.07655715942382812,
+                -0.8631963729858398,
+                -0.5646355152130127,
+                -0.07324548065662384,
+                -0.9141619205474854,
+                -0.5992040038108826,
+                -0.13506194949150085
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.038661183789372444,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9787402153015137,
+              "reference_best": 1.9787402153015137,
+              "selected": [
+                -0.1363248974084854,
+                -0.49389034509658813,
+                -0.5912972688674927,
+                0.6030617952346802,
+                -1.0,
+                -0.8846526145935059,
+                -0.5852292776107788,
+                -0.41969090700149536,
+                -0.5020059943199158,
+                -0.07655715942382812,
+                -0.8631963729858398,
+                -0.5646355152130127,
+                -0.07324548065662384,
+                -0.9141619205474854,
+                -0.5992040038108826,
+                -0.13506194949150085
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 12,
+          "runs": {
+            "reference": {
+              "seconds": 0.03953963308595121,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9297810792922974,
+              "reference_best": 1.9297810792922974,
+              "selected": [
+                -0.4553754925727844,
+                -0.3180813789367676,
+                -0.5445711612701416,
+                -0.38615018129348755,
+                -0.41963478922843933,
+                -0.5170937776565552,
+                -0.8602429032325745,
+                -0.4276392161846161,
+                -0.4967541992664337,
+                -0.34293612837791443,
+                -0.535298228263855,
+                -0.39289113879203796,
+                -0.08158311247825623,
+                -0.676910400390625,
+                -0.4404318630695343,
+                -0.03237578272819519
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.03855281509459019,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9297810792922974,
+              "reference_best": 1.9297810792922974,
+              "selected": [
+                -0.4553754925727844,
+                -0.3180813789367676,
+                -0.5445711612701416,
+                -0.38615018129348755,
+                -0.41963478922843933,
+                -0.5170937776565552,
+                -0.8602429032325745,
+                -0.4276392161846161,
+                -0.4967541992664337,
+                -0.34293612837791443,
+                -0.535298228263855,
+                -0.39289113879203796,
+                -0.08158311247825623,
+                -0.676910400390625,
+                -0.4404318630695343,
+                -0.03237578272819519
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.02353918389417231,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.929781198501587,
+              "reference_best": 1.9297810792922974,
+              "selected": [
+                -0.4553754925727844,
+                -0.3180813789367676,
+                -0.5445711612701416,
+                -0.38615018129348755,
+                -0.41963478922843933,
+                -0.5170937776565552,
+                -0.8602429032325745,
+                -0.4276392161846161,
+                -0.4967541992664337,
+                -0.34293612837791443,
+                -0.535298228263855,
+                -0.39289113879203796,
+                -0.08158311247825623,
+                -0.676910400390625,
+                -0.4404318630695343,
+                -0.03237578272819519
+              ],
+              "reference_error": 1.1920928955078125e-07,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 13,
+          "runs": {
+            "prepared": {
+              "seconds": 0.038673808099702,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0512421131134033,
+              "reference_best": 2.0512421131134033,
+              "selected": [
+                -0.547498345375061,
+                -0.5960201025009155,
+                0.009210795164108276,
+                -0.8272750377655029,
+                -0.14320030808448792,
+                -0.703709065914154,
+                -1.0,
+                -0.7969964742660522,
+                -0.7545267343521118,
+                0.06574633717536926,
+                -0.3307901918888092,
+                0.264564573764801,
+                -1.0,
+                0.3280666470527649,
+                -0.8811174631118774,
+                0.2986263632774353
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.023477055830881,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.051241874694824,
+              "reference_best": 2.0512421131134033,
+              "selected": [
+                -0.547498345375061,
+                -0.5960201025009155,
+                0.009210795164108276,
+                -0.8272750377655029,
+                -0.14320030808448792,
+                -0.703709065914154,
+                -1.0,
+                -0.7969964742660522,
+                -0.7545267343521118,
+                0.06574633717536926,
+                -0.3307901918888092,
+                0.264564573764801,
+                -1.0,
+                0.3280666470527649,
+                -0.8811174631118774,
+                0.2986263632774353
+              ],
+              "reference_error": 2.384185791015625e-07,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.03946862486191094,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0512421131134033,
+              "reference_best": 2.0512421131134033,
+              "selected": [
+                -0.547498345375061,
+                -0.5960201025009155,
+                0.009210795164108276,
+                -0.8272750377655029,
+                -0.14320030808448792,
+                -0.703709065914154,
+                -1.0,
+                -0.7969964742660522,
+                -0.7545267343521118,
+                0.06574633717536926,
+                -0.3307901918888092,
+                0.264564573764801,
+                -1.0,
+                0.3280666470527649,
+                -0.8811174631118774,
+                0.2986263632774353
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 14,
+          "runs": {
+            "compiled": {
+              "seconds": 0.023602032102644444,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9608287811279297,
+              "reference_best": 1.9608287811279297,
+              "selected": [
+                -0.3330368101596832,
+                -0.53829026222229,
+                -0.8478975296020508,
+                -0.4699600636959076,
+                0.04594507813453674,
+                -0.3381282389163971,
+                -0.661594808101654,
+                -1.0,
+                -0.07653311640024185,
+                -0.6412041187286377,
+                -0.6352646350860596,
+                -0.21017338335514069,
+                0.12094423174858093,
+                -0.7983565330505371,
+                -0.20881107449531555,
+                -0.227656751871109
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.03947827289812267,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9608287811279297,
+              "reference_best": 1.9608287811279297,
+              "selected": [
+                -0.3330368101596832,
+                -0.53829026222229,
+                -0.8478975296020508,
+                -0.4699600636959076,
+                0.04594507813453674,
+                -0.3381282389163971,
+                -0.661594808101654,
+                -1.0,
+                -0.07653311640024185,
+                -0.6412041187286377,
+                -0.6352646350860596,
+                -0.21017338335514069,
+                0.12094423174858093,
+                -0.7983565330505371,
+                -0.20881107449531555,
+                -0.227656751871109
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.03854990308173001,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9608287811279297,
+              "reference_best": 1.9608287811279297,
+              "selected": [
+                -0.3330368101596832,
+                -0.53829026222229,
+                -0.8478975296020508,
+                -0.4699600636959076,
+                0.04594507813453674,
+                -0.3381282389163971,
+                -0.661594808101654,
+                -1.0,
+                -0.07653311640024185,
+                -0.6412041187286377,
+                -0.6352646350860596,
+                -0.21017338335514069,
+                0.12094423174858093,
+                -0.7983565330505371,
+                -0.20881107449531555,
+                -0.227656751871109
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 15,
+          "runs": {
+            "reference": {
+              "seconds": 0.03941977699287236,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.028409004211426,
+              "reference_best": 2.028409004211426,
+              "selected": [
+                -0.2478567361831665,
+                -1.0,
+                -0.12700869143009186,
+                -0.03868520259857178,
+                -1.0,
+                -0.2495330274105072,
+                -0.5038685202598572,
+                -0.4759405553340912,
+                -0.5041071176528931,
+                -0.5826951265335083,
+                -0.6185087561607361,
+                -0.16038893163204193,
+                -0.8417928218841553,
+                -0.9627043604850769,
+                0.20086534321308136,
+                0.08800175786018372
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.038592623081058264,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.028409004211426,
+              "reference_best": 2.028409004211426,
+              "selected": [
+                -0.2478567361831665,
+                -1.0,
+                -0.12700869143009186,
+                -0.03868520259857178,
+                -1.0,
+                -0.2495330274105072,
+                -0.5038685202598572,
+                -0.4759405553340912,
+                -0.5041071176528931,
+                -0.5826951265335083,
+                -0.6185087561607361,
+                -0.16038893163204193,
+                -0.8417928218841553,
+                -0.9627043604850769,
+                0.20086534321308136,
+                0.08800175786018372
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.02353308815509081,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.028409004211426,
+              "reference_best": 2.028409004211426,
+              "selected": [
+                -0.2478567361831665,
+                -1.0,
+                -0.12700869143009186,
+                -0.03868520259857178,
+                -1.0,
+                -0.2495330274105072,
+                -0.5038685202598572,
+                -0.4759405553340912,
+                -0.5041071176528931,
+                -0.5826951265335083,
+                -0.6185087561607361,
+                -0.16038893163204193,
+                -0.8417928218841553,
+                -0.9627043604850769,
+                0.20086534321308136,
+                0.08800175786018372
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        }
+      ],
+      "search_median_seconds": {
+        "reference": 0.03947827289812267,
+        "prepared": 0.038592623081058264,
+        "compiled": 0.02353918389417231
+      },
+      "reference_over_compiled_ratios": [
+        1.5910814792379349,
+        1.6797367854261163,
+        1.6811573455473543,
+        1.672664147156185,
+        1.6750787968448098
+      ],
+      "median_paired_speedup": 1.6750787968448098,
+      "ratio_of_search_medians": 1.6771300600568595,
+      "conservative_searches_to_repay_setup": 220,
+      "correct": true,
+      "accepted": true
+    },
+    {
+      "dtype": "torch.float32",
+      "population": 4096,
+      "budget": 81920,
+      "tolerance": 0.001,
+      "preparation_seconds": {
+        "reference": 0.0,
+        "prepared": 7.824040949344635e-06,
+        "compiled": 6.336020305752754e-06
+      },
+      "first_call_seconds": {
+        "reference": 0.002363076899200678,
+        "prepared": 0.0009102099575102329,
+        "compiled": 2.832626931834966
+      },
+      "evaluator_samples_seconds": {
+        "reference": [
+          0.002454485045745969,
+          0.0010185621213167906,
+          0.0009726739954203367,
+          0.0009564659558236599,
+          0.000946081941947341,
+          0.00093286600895226,
+          0.0009391859639436007,
+          0.0009363060817122459,
+          0.0009281779639422894,
+          0.000920529942959547,
+          0.0009296818170696497,
+          0.0009305458515882492,
+          0.0009188021067529917,
+          0.000931986141949892,
+          0.0009242100641131401
+        ],
+        "prepared": [
+          0.0009804018773138523,
+          0.000940866069868207,
+          0.0009044820908457041,
+          0.0009090099483728409,
+          0.0008996820542961359,
+          0.0008823699317872524,
+          0.000876561040058732,
+          0.000885105924680829,
+          0.0008767058607190847,
+          0.0008708490058779716,
+          0.0008824968244880438,
+          0.0008727370295673609,
+          0.0008693779818713665,
+          0.0008766900282353163,
+          0.0008838579524308443
+        ],
+        "compiled": [
+          0.0003476159181445837,
+          0.00011904118582606316,
+          0.00011073588393628597,
+          0.0001149279996752739,
+          0.00010019214823842049,
+          9.737606160342693e-05,
+          0.00010364898480474949,
+          9.544007480144501e-05,
+          9.622401557862759e-05,
+          0.00010315212421119213,
+          9.510503150522709e-05,
+          9.318394586443901e-05,
+          0.00010366388596594334,
+          9.404798038303852e-05,
+          9.486405178904533e-05
+        ]
+      },
+      "evaluator_median_seconds": {
+        "reference": 0.00093286600895226,
+        "prepared": 0.0008824968244880438,
+        "compiled": 0.00010019214823842049
+      },
+      "profiles": {
+        "reference": {
+          "evaluator": {
+            "cuda_event_count": 140,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "cudaLaunchKernel",
+                "count": 137,
+                "self_cpu_us": 527.8579999999994
+              },
+              {
+                "name": "aten::add",
+                "count": 51,
+                "self_cpu_us": 143.5520000000006
+              },
+              {
+                "name": "aten::mul",
+                "count": 36,
+                "self_cpu_us": 101.31200000000075
+              },
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 63.42400000000001
+              },
+              {
+                "name": "aten::sub",
+                "count": 19,
+                "self_cpu_us": 61.2320000000002
+              },
+              {
+                "name": "aten::div",
+                "count": 17,
+                "self_cpu_us": 56.88000000000022
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 66,
+                "self_cpu_us": 42.400000000000205
+              },
+              {
+                "name": "aten::clamp",
+                "count": 2,
+                "self_cpu_us": 36.49600000000004
+              },
+              {
+                "name": "aten::select",
+                "count": 48,
+                "self_cpu_us": 32.976
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 28.144000000000005
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 313,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "cudaLaunchKernel",
+                "count": 260,
+                "self_cpu_us": 973.6990000000062
+              },
+              {
+                "name": "aten::mul",
+                "count": 53,
+                "self_cpu_us": 167.83999999999867
+              },
+              {
+                "name": "aten::add",
+                "count": 58,
+                "self_cpu_us": 158.81599999999935
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 46,
+                "self_cpu_us": 154.51300000000003
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 22,
+                "self_cpu_us": 117.13599999999997
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 108.23999999999785
+              },
+              {
+                "name": "aten::div",
+                "count": 22,
+                "self_cpu_us": 71.9199999999978
+              },
+              {
+                "name": "aten::sub",
+                "count": 22,
+                "self_cpu_us": 69.0080000000005
+              },
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 62.44800000000001
+              },
+              {
+                "name": "aten::copy_",
+                "count": 35,
+                "self_cpu_us": 58.607999999995855
+              }
+            ]
+          }
+        },
+        "prepared": {
+          "evaluator": {
+            "cuda_event_count": 137,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "cudaLaunchKernel",
+                "count": 137,
+                "self_cpu_us": 530.3849999999994
+              },
+              {
+                "name": "aten::add",
+                "count": 51,
+                "self_cpu_us": 141.29600000000107
+              },
+              {
+                "name": "aten::mul",
+                "count": 36,
+                "self_cpu_us": 104.75299999999999
+              },
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 62.256
+              },
+              {
+                "name": "aten::sub",
+                "count": 19,
+                "self_cpu_us": 61.248999999999626
+              },
+              {
+                "name": "aten::div",
+                "count": 17,
+                "self_cpu_us": 54.51199999999977
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 66,
+                "self_cpu_us": 42.81600000000054
+              },
+              {
+                "name": "aten::select",
+                "count": 48,
+                "self_cpu_us": 33.02400000000051
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 27.807999999999993
+              },
+              {
+                "name": "aten::clamp",
+                "count": 2,
+                "self_cpu_us": 27.45599999999996
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 310,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1164.914
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 260,
+                "self_cpu_us": 964.3869999999979
+              },
+              {
+                "name": "aten::mul",
+                "count": 53,
+                "self_cpu_us": 176.8660000000009
+              },
+              {
+                "name": "aten::add",
+                "count": 58,
+                "self_cpu_us": 162.0959999999959
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 43,
+                "self_cpu_us": 150.59299999999985
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 19,
+                "self_cpu_us": 118.28800000000001
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 89.40799999999945
+              },
+              {
+                "name": "aten::div",
+                "count": 22,
+                "self_cpu_us": 73.74399999999969
+              },
+              {
+                "name": "aten::sub",
+                "count": 22,
+                "self_cpu_us": 69.23199999999952
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 71,
+                "self_cpu_us": 58.57600000000002
+              }
+            ]
+          }
+        },
+        "compiled": {
+          "evaluator": {
+            "cuda_event_count": 7,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1195.778
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 1,
+                "self_cpu_us": 130.41600000000017
+              },
+              {
+                "name": "## Call CompiledFxGraph f2fjncws4t5goi3tspin44kf4siezrja2vcdw3j3bknfs42pvgvs ##",
+                "count": 1,
+                "self_cpu_us": 64.12799999999993
+              },
+              {
+                "name": "Torch-Compiled Region: 0/1",
+                "count": 1,
+                "self_cpu_us": 43.087999999999965
+              },
+              {
+                "name": "aten::_foreach_copy_",
+                "count": 1,
+                "self_cpu_us": 24.735999999999876
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 23.968000000000075
+              },
+              {
+                "name": "cudaGraphLaunch",
+                "count": 1,
+                "self_cpu_us": 21.088000000000193
+              },
+              {
+                "name": "TorchDynamo Cache Lookup",
+                "count": 1,
+                "self_cpu_us": 16.208
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 1,
+                "self_cpu_us": 14.11200000000008
+              },
+              {
+                "name": "aten::empty_strided",
+                "count": 1,
+                "self_cpu_us": 8.688000000000102
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 180,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1164.6419999999998
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 124,
+                "self_cpu_us": 600.5620000000047
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 44,
+                "self_cpu_us": 158.27199999999948
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 19,
+                "self_cpu_us": 110.38400000000138
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 91.21599999999899
+              },
+              {
+                "name": "## Call CompiledFxGraph f2fjncws4t5goi3tspin44kf4siezrja2vcdw3j3bknfs42pvgvs ##",
+                "count": 1,
+                "self_cpu_us": 90.00000000000045
+              },
+              {
+                "name": "aten::mul",
+                "count": 17,
+                "self_cpu_us": 78.83199999999738
+              },
+              {
+                "name": "Torch-Compiled Region: 0/1",
+                "count": 1,
+                "self_cpu_us": 58.25600000000031
+              },
+              {
+                "name": "aten::copy_",
+                "count": 33,
+                "self_cpu_us": 57.92000000000348
+              },
+              {
+                "name": "aten::_linalg_eigh",
+                "count": 1,
+                "self_cpu_us": 49.823999999999614
+              }
+            ]
+          }
+        }
+      },
+      "pairs": [
+        {
+          "seed": 11,
+          "runs": {
+            "compiled": {
+              "seconds": 0.04848022712394595,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0293798446655273,
+              "reference_best": 2.0293798446655273,
+              "selected": [
+                -1.0,
+                0.0978141576051712,
+                -0.25025469064712524,
+                -1.0,
+                -0.39719411730766296,
+                -0.3056788444519043,
+                -0.5492079257965088,
+                -0.1483933925628662,
+                -0.662087082862854,
+                -0.5279022455215454,
+                -0.7111015319824219,
+                0.1266023814678192,
+                -0.6129394173622131,
+                -1.0,
+                0.0012049823999404907,
+                0.40276622772216797
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.062185006914660335,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0293798446655273,
+              "reference_best": 2.0293798446655273,
+              "selected": [
+                -1.0,
+                0.0978141576051712,
+                -0.25025469064712524,
+                -1.0,
+                -0.39719411730766296,
+                -0.3056788444519043,
+                -0.5492079257965088,
+                -0.1483933925628662,
+                -0.662087082862854,
+                -0.5279022455215454,
+                -0.7111015319824219,
+                0.1266023814678192,
+                -0.6129394173622131,
+                -1.0,
+                0.0012049823999404907,
+                0.40276622772216797
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.06086777220480144,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0293798446655273,
+              "reference_best": 2.0293798446655273,
+              "selected": [
+                -1.0,
+                0.0978141576051712,
+                -0.25025469064712524,
+                -1.0,
+                -0.39719411730766296,
+                -0.3056788444519043,
+                -0.5492079257965088,
+                -0.1483933925628662,
+                -0.662087082862854,
+                -0.5279022455215454,
+                -0.7111015319824219,
+                0.1266023814678192,
+                -0.6129394173622131,
+                -1.0,
+                0.0012049823999404907,
+                0.40276622772216797
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 12,
+          "runs": {
+            "reference": {
+              "seconds": 0.06285828910768032,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0315213203430176,
+              "reference_best": 2.0315213203430176,
+              "selected": [
+                -0.0656549334526062,
+                -1.0,
+                -0.33222419023513794,
+                -1.0,
+                0.08432644605636597,
+                -1.0,
+                -0.8456300497055054,
+                0.19138497114181519,
+                -0.8690968155860901,
+                -0.2720145583152771,
+                -1.0,
+                0.8191964626312256,
+                -0.9616109728813171,
+                -1.0,
+                0.5369762182235718,
+                -0.19521301984786987
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.0614258530549705,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0315213203430176,
+              "reference_best": 2.0315213203430176,
+              "selected": [
+                -0.0656549334526062,
+                -1.0,
+                -0.33222419023513794,
+                -1.0,
+                0.08432644605636597,
+                -1.0,
+                -0.8456300497055054,
+                0.19138497114181519,
+                -0.8690968155860901,
+                -0.2720145583152771,
+                -1.0,
+                0.8191964626312256,
+                -0.9616109728813171,
+                -1.0,
+                0.5369762182235718,
+                -0.19521301984786987
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.04566499008797109,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0315213203430176,
+              "reference_best": 2.0315213203430176,
+              "selected": [
+                -0.0656549334526062,
+                -1.0,
+                -0.33222419023513794,
+                -1.0,
+                0.08432644605636597,
+                -1.0,
+                -0.8456300497055054,
+                0.19138497114181519,
+                -0.8690968155860901,
+                -0.2720145583152771,
+                -1.0,
+                0.8191964626312256,
+                -0.9616109728813171,
+                -1.0,
+                0.5369762182235718,
+                -0.19521301984786987
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 13,
+          "runs": {
+            "prepared": {
+              "seconds": 0.060957212932407856,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.053530216217041,
+              "reference_best": 2.053530216217041,
+              "selected": [
+                -0.2084357887506485,
+                0.07565867900848389,
+                -1.0,
+                -1.0,
+                -0.7760375738143921,
+                0.24671682715415955,
+                -0.05520343780517578,
+                -0.6360222101211548,
+                -0.6632781028747559,
+                -0.27783718705177307,
+                -1.0,
+                -0.1992737054824829,
+                -1.0,
+                0.17375582456588745,
+                -0.1399749219417572,
+                0.07512350380420685
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.045469868928194046,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.053530216217041,
+              "reference_best": 2.053530216217041,
+              "selected": [
+                -0.2084357887506485,
+                0.07565867900848389,
+                -1.0,
+                -1.0,
+                -0.7760375738143921,
+                0.24671682715415955,
+                -0.05520343780517578,
+                -0.6360222101211548,
+                -0.6632781028747559,
+                -0.27783718705177307,
+                -1.0,
+                -0.1992737054824829,
+                -1.0,
+                0.17375582456588745,
+                -0.1399749219417572,
+                0.07512350380420685
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.06198465405032039,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.053530216217041,
+              "reference_best": 2.053530216217041,
+              "selected": [
+                -0.2084357887506485,
+                0.07565867900848389,
+                -1.0,
+                -1.0,
+                -0.7760375738143921,
+                0.24671682715415955,
+                -0.05520343780517578,
+                -0.6360222101211548,
+                -0.6632781028747559,
+                -0.27783718705177307,
+                -1.0,
+                -0.1992737054824829,
+                -1.0,
+                0.17375582456588745,
+                -0.1399749219417572,
+                0.07512350380420685
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 14,
+          "runs": {
+            "compiled": {
+              "seconds": 0.04544927692040801,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.027191638946533,
+              "reference_best": 2.027191638946533,
+              "selected": [
+                -0.2372339516878128,
+                -0.43233388662338257,
+                -0.6865296363830566,
+                -0.15397140383720398,
+                -0.5364063382148743,
+                -0.31374591588974,
+                -0.39138051867485046,
+                -1.0,
+                -0.004883458837866783,
+                -0.17209479212760925,
+                -1.0,
+                -1.0,
+                -0.3641740679740906,
+                -0.12191315740346909,
+                -0.6068534851074219,
+                0.2526833415031433
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.061900877859443426,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.027191638946533,
+              "reference_best": 2.027191638946533,
+              "selected": [
+                -0.2372339516878128,
+                -0.43233388662338257,
+                -0.6865296363830566,
+                -0.15397140383720398,
+                -0.5364063382148743,
+                -0.31374591588974,
+                -0.39138051867485046,
+                -1.0,
+                -0.004883458837866783,
+                -0.17209479212760925,
+                -1.0,
+                -1.0,
+                -0.3641740679740906,
+                -0.12191315740346909,
+                -0.6068534851074219,
+                0.2526833415031433
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.060995596926659346,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.027191638946533,
+              "reference_best": 2.027191638946533,
+              "selected": [
+                -0.2372339516878128,
+                -0.43233388662338257,
+                -0.6865296363830566,
+                -0.15397140383720398,
+                -0.5364063382148743,
+                -0.31374591588974,
+                -0.39138051867485046,
+                -1.0,
+                -0.004883458837866783,
+                -0.17209479212760925,
+                -1.0,
+                -1.0,
+                -0.3641740679740906,
+                -0.12191315740346909,
+                -0.6068534851074219,
+                0.2526833415031433
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 15,
+          "runs": {
+            "reference": {
+              "seconds": 0.0621667189989239,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.039940118789673,
+              "reference_best": 2.039940118789673,
+              "selected": [
+                -0.4485245943069458,
+                -0.3331919014453888,
+                -0.8712905049324036,
+                0.37385252118110657,
+                -0.7015215754508972,
+                -1.0,
+                -0.9442319869995117,
+                -0.321867436170578,
+                -1.0,
+                0.9089057445526123,
+                -0.6291542053222656,
+                -0.2034180611371994,
+                -0.34163349866867065,
+                -0.5151695609092712,
+                -0.7544092535972595,
+                -1.0
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.06103858910501003,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.039940118789673,
+              "reference_best": 2.039940118789673,
+              "selected": [
+                -0.4485245943069458,
+                -0.3331919014453888,
+                -0.8712905049324036,
+                0.37385252118110657,
+                -0.7015215754508972,
+                -1.0,
+                -0.9442319869995117,
+                -0.321867436170578,
+                -1.0,
+                0.9089057445526123,
+                -0.6291542053222656,
+                -0.2034180611371994,
+                -0.34163349866867065,
+                -0.5151695609092712,
+                -0.7544092535972595,
+                -1.0
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.045859213918447495,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.039940118789673,
+              "reference_best": 2.039940118789673,
+              "selected": [
+                -0.4485245943069458,
+                -0.3331919014453888,
+                -0.8712905049324036,
+                0.37385252118110657,
+                -0.7015215754508972,
+                -1.0,
+                -0.9442319869995117,
+                -0.321867436170578,
+                -1.0,
+                0.9089057445526123,
+                -0.6291542053222656,
+                -0.2034180611371994,
+                -0.34163349866867065,
+                -0.5151695609092712,
+                -0.7544092535972595,
+                -1.0
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        }
+      ],
+      "search_median_seconds": {
+        "reference": 0.0621667189989239,
+        "prepared": 0.060995596926659346,
+        "compiled": 0.04566499008797109
+      },
+      "reference_over_compiled_ratios": [
+        1.2826880277535901,
+        1.3765094219135334,
+        1.363202831048545,
+        1.361977176619243,
+        1.3555993155372532
+      ],
+      "median_paired_speedup": 1.361977176619243,
+      "ratio_of_search_medians": 1.3613649949154294,
+      "conservative_searches_to_repay_setup": 172,
+      "correct": true,
+      "accepted": true
+    },
+    {
+      "dtype": "torch.float64",
+      "population": 12,
+      "budget": 240,
+      "tolerance": 1e-10,
+      "preparation_seconds": {
+        "reference": 0.0,
+        "prepared": 8.425582200288773e-05,
+        "compiled": 0.0007526420522481203
+      },
+      "first_call_seconds": {
+        "reference": 0.0010879379697144032,
+        "prepared": 0.0008737619500607252,
+        "compiled": 2.1260550231672823
+      },
+      "evaluator_samples_seconds": {
+        "reference": [
+          0.0011982109863311052,
+          0.0009705459233373404,
+          0.0009614741429686546,
+          0.0009316338691860437,
+          0.0009269779548048973,
+          0.0009254899341613054,
+          0.00091910595074296,
+          0.0009227530099451542,
+          0.0009255700279027224,
+          0.0009080020245164633,
+          0.0009162419009953737,
+          0.0009159860201179981,
+          0.0009084660559892654,
+          0.0009213138837367296,
+          0.0009175699669867754
+        ],
+        "prepared": [
+          0.0009162100031971931,
+          0.000920081976801157,
+          0.0008979539852589369,
+          0.0008724818471819162,
+          0.0008903860580176115,
+          0.0008738739416003227,
+          0.0008614091202616692,
+          0.0008737130556255579,
+          0.0008652489632368088,
+          0.0008584018796682358,
+          0.0008718578610569239,
+          0.0008659060113132,
+          0.0008644969202578068,
+          0.0008776979520916939,
+          0.0008622731547802687
+        ],
+        "compiled": [
+          0.00010862410999834538,
+          8.580787107348442e-05,
+          8.454406633973122e-05,
+          9.21119935810566e-05,
+          7.908814586699009e-05,
+          8.049607276916504e-05,
+          8.708890527486801e-05,
+          7.85288866609335e-05,
+          7.787300273776054e-05,
+          9.188801050186157e-05,
+          7.968000136315823e-05,
+          8.48798081278801e-05,
+          8.728099055588245e-05,
+          7.66401644796133e-05,
+          7.74881336838007e-05
+        ]
+      },
+      "evaluator_median_seconds": {
+        "reference": 0.0009227530099451542,
+        "prepared": 0.0008724818471819162,
+        "compiled": 8.454406633973122e-05
+      },
+      "profiles": {
+        "reference": {
+          "evaluator": {
+            "cuda_event_count": 140,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1167.0420000000001
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 137,
+                "self_cpu_us": 532.7359999999976
+              },
+              {
+                "name": "aten::add",
+                "count": 51,
+                "self_cpu_us": 138.48000000000093
+              },
+              {
+                "name": "aten::mul",
+                "count": 36,
+                "self_cpu_us": 100.01700000000187
+              },
+              {
+                "name": "aten::sub",
+                "count": 19,
+                "self_cpu_us": 61.92000000000121
+              },
+              {
+                "name": "aten::div",
+                "count": 17,
+                "self_cpu_us": 59.105000000000246
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 66,
+                "self_cpu_us": 50.71999999999889
+              },
+              {
+                "name": "aten::clamp",
+                "count": 2,
+                "self_cpu_us": 32.95999999999981
+              },
+              {
+                "name": "aten::select",
+                "count": 48,
+                "self_cpu_us": 32.52800000000002
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 27.856000000000222
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 304,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1081.7459999999999
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 251,
+                "self_cpu_us": 946.7199999999973
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 22,
+                "self_cpu_us": 349.8410000000006
+              },
+              {
+                "name": "aten::mul",
+                "count": 53,
+                "self_cpu_us": 182.73699999999803
+              },
+              {
+                "name": "aten::add",
+                "count": 58,
+                "self_cpu_us": 165.36099999999624
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 44,
+                "self_cpu_us": 151.3279999999993
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 97.1199999999983
+              },
+              {
+                "name": "aten::div",
+                "count": 22,
+                "self_cpu_us": 73.72800000000234
+              },
+              {
+                "name": "aten::sub",
+                "count": 22,
+                "self_cpu_us": 70.51300000000015
+              },
+              {
+                "name": "aten::copy_",
+                "count": 33,
+                "self_cpu_us": 56.84799999999882
+              }
+            ]
+          }
+        },
+        "prepared": {
+          "evaluator": {
+            "cuda_event_count": 137,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1038.6100000000001
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 137,
+                "self_cpu_us": 528.1599999999978
+              },
+              {
+                "name": "aten::add",
+                "count": 51,
+                "self_cpu_us": 138.29000000000178
+              },
+              {
+                "name": "aten::mul",
+                "count": 36,
+                "self_cpu_us": 109.55200000000173
+              },
+              {
+                "name": "aten::sub",
+                "count": 19,
+                "self_cpu_us": 61.80799999999954
+              },
+              {
+                "name": "aten::div",
+                "count": 17,
+                "self_cpu_us": 61.32899999999972
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 66,
+                "self_cpu_us": 44.40000000000009
+              },
+              {
+                "name": "aten::select",
+                "count": 48,
+                "self_cpu_us": 33.47199999999884
+              },
+              {
+                "name": "aten::clamp",
+                "count": 2,
+                "self_cpu_us": 30.976000000000113
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 25.871999999999844
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 301,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1174.578
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 251,
+                "self_cpu_us": 937.360000000006
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 19,
+                "self_cpu_us": 342.833000000001
+              },
+              {
+                "name": "aten::mul",
+                "count": 53,
+                "self_cpu_us": 171.59999999999923
+              },
+              {
+                "name": "aten::add",
+                "count": 58,
+                "self_cpu_us": 164.4000000000044
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 41,
+                "self_cpu_us": 145.63199999999892
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 86.87999999999738
+              },
+              {
+                "name": "aten::div",
+                "count": 22,
+                "self_cpu_us": 72.31999999999812
+              },
+              {
+                "name": "aten::sub",
+                "count": 22,
+                "self_cpu_us": 70.09599999999841
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 71,
+                "self_cpu_us": 58.27299999999991
+              }
+            ]
+          }
+        },
+        "compiled": {
+          "evaluator": {
+            "cuda_event_count": 7,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1160.594
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 1,
+                "self_cpu_us": 132.81600000000003
+              },
+              {
+                "name": "## Call CompiledFxGraph fo2raxmmqr5yso6en5s55ca6q7r7nxc6nzho6h25ix2m467ztija ##",
+                "count": 1,
+                "self_cpu_us": 59.840000000000146
+              },
+              {
+                "name": "Torch-Compiled Region: 0/2",
+                "count": 1,
+                "self_cpu_us": 38.736000000000104
+              },
+              {
+                "name": "aten::_foreach_copy_",
+                "count": 1,
+                "self_cpu_us": 25.11999999999989
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 24.079999999999927
+              },
+              {
+                "name": "cudaGraphLaunch",
+                "count": 1,
+                "self_cpu_us": 19.87200000000007
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 1,
+                "self_cpu_us": 13.29600000000005
+              },
+              {
+                "name": "TorchDynamo Cache Lookup",
+                "count": 1,
+                "self_cpu_us": 12.191999999999993
+              },
+              {
+                "name": "aten::empty_strided",
+                "count": 1,
+                "self_cpu_us": 8.928000000000111
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 171,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1176.77
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 115,
+                "self_cpu_us": 566.4830000000018
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 19,
+                "self_cpu_us": 337.00900000000024
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 42,
+                "self_cpu_us": 151.872999999998
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 112.35200000000032
+              },
+              {
+                "name": "## Call CompiledFxGraph fo2raxmmqr5yso6en5s55ca6q7r7nxc6nzho6h25ix2m467ztija ##",
+                "count": 1,
+                "self_cpu_us": 83.2159999999999
+              },
+              {
+                "name": "aten::mul",
+                "count": 17,
+                "self_cpu_us": 75.82399999999939
+              },
+              {
+                "name": "Torch-Compiled Region: 0/2",
+                "count": 1,
+                "self_cpu_us": 56.76800000000026
+              },
+              {
+                "name": "aten::copy_",
+                "count": 31,
+                "self_cpu_us": 54.27200000000016
+              },
+              {
+                "name": "aten::_linalg_eigh",
+                "count": 1,
+                "self_cpu_us": 49.871999999998934
+              }
+            ]
+          }
+        }
+      },
+      "pairs": [
+        {
+          "seed": 11,
+          "runs": {
+            "compiled": {
+              "seconds": 0.029402188025414944,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.000443878961755,
+              "reference_best": 2.000443878961755,
+              "selected": [
+                0.03896952015678479,
+                -1.0,
+                -0.4579639759814641,
+                -0.3175748301820974,
+                -0.24073407523293164,
+                -0.64485726427173,
+                -0.5075949362514826,
+                -0.7201057699920221,
+                -0.30921502402991363,
+                0.365967765430553,
+                -0.3001034862121718,
+                -1.0,
+                -0.5852714448418532,
+                -1.0,
+                -0.2139873073008185,
+                -0.3680097274904469
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.044601659988984466,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.000443878961755,
+              "reference_best": 2.000443878961755,
+              "selected": [
+                0.03896952015678479,
+                -1.0,
+                -0.4579639759814641,
+                -0.3175748301820974,
+                -0.24073407523293164,
+                -0.64485726427173,
+                -0.5075949362514826,
+                -0.7201057699920221,
+                -0.30921502402991363,
+                0.365967765430553,
+                -0.3001034862121718,
+                -1.0,
+                -0.5852714448418532,
+                -1.0,
+                -0.2139873073008185,
+                -0.3680097274904469
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.04374186601489782,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.000443878961755,
+              "reference_best": 2.000443878961755,
+              "selected": [
+                0.03896952015678479,
+                -1.0,
+                -0.4579639759814641,
+                -0.3175748301820974,
+                -0.24073407523293164,
+                -0.64485726427173,
+                -0.5075949362514826,
+                -0.7201057699920221,
+                -0.30921502402991363,
+                0.365967765430553,
+                -0.3001034862121718,
+                -1.0,
+                -0.5852714448418532,
+                -1.0,
+                -0.2139873073008185,
+                -0.3680097274904469
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 12,
+          "runs": {
+            "reference": {
+              "seconds": 0.044556490844115615,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.01262015438794,
+              "reference_best": 2.01262015438794,
+              "selected": [
+                -0.5316946593981269,
+                -0.2820276465792675,
+                -0.7410978499421828,
+                -0.505347720498816,
+                0.059170958932494175,
+                -0.9437621193240939,
+                -0.5112623586457444,
+                0.2216173035624553,
+                -0.7480101166087391,
+                -0.758163815791082,
+                -0.18370518904444252,
+                -0.6674070997518255,
+                -0.8500377521062775,
+                -0.4527123482700276,
+                0.23349223045008488,
+                -0.11657008679081565
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.043538936879485846,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.01262015438794,
+              "reference_best": 2.01262015438794,
+              "selected": [
+                -0.5316946593981269,
+                -0.2820276465792675,
+                -0.7410978499421828,
+                -0.505347720498816,
+                0.059170958932494175,
+                -0.9437621193240939,
+                -0.5112623586457444,
+                0.2216173035624553,
+                -0.7480101166087391,
+                -0.758163815791082,
+                -0.18370518904444252,
+                -0.6674070997518255,
+                -0.8500377521062775,
+                -0.4527123482700276,
+                0.23349223045008488,
+                -0.11657008679081565
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.02838677796535194,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.01262015438794,
+              "reference_best": 2.01262015438794,
+              "selected": [
+                -0.5316946593981269,
+                -0.2820276465792675,
+                -0.7410978499421828,
+                -0.505347720498816,
+                0.059170958932494175,
+                -0.9437621193240939,
+                -0.5112623586457444,
+                0.2216173035624553,
+                -0.7480101166087391,
+                -0.758163815791082,
+                -0.18370518904444252,
+                -0.6674070997518255,
+                -0.8500377521062775,
+                -0.4527123482700276,
+                0.23349223045008488,
+                -0.11657008679081565
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 13,
+          "runs": {
+            "prepared": {
+              "seconds": 0.04370044101960957,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.009734558342207,
+              "reference_best": 2.009734558342207,
+              "selected": [
+                -0.10440143658644374,
+                -0.44287230776201064,
+                -0.5784938642447907,
+                -0.5283258192163205,
+                -0.6625319434897894,
+                -1.0,
+                -0.422932349441161,
+                -0.41443194060310456,
+                -0.17878344058968454,
+                -0.40160749913451993,
+                0.22658531357217393,
+                -0.5142224248160105,
+                -0.547450048223883,
+                -0.686618391596595,
+                -0.5897582748427865,
+                -0.7011336127283107
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.028323721839115024,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.009734558342207,
+              "reference_best": 2.009734558342207,
+              "selected": [
+                -0.10440143658644374,
+                -0.44287230776201064,
+                -0.5784938642447907,
+                -0.5283258192163205,
+                -0.6625319434897894,
+                -1.0,
+                -0.422932349441161,
+                -0.41443194060310456,
+                -0.17878344058968454,
+                -0.40160749913451993,
+                0.22658531357217393,
+                -0.5142224248160105,
+                -0.547450048223883,
+                -0.686618391596595,
+                -0.5897582748427865,
+                -0.7011336127283107
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.044584586983546615,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.009734558342207,
+              "reference_best": 2.009734558342207,
+              "selected": [
+                -0.10440143658644374,
+                -0.44287230776201064,
+                -0.5784938642447907,
+                -0.5283258192163205,
+                -0.6625319434897894,
+                -1.0,
+                -0.422932349441161,
+                -0.41443194060310456,
+                -0.17878344058968454,
+                -0.40160749913451993,
+                0.22658531357217393,
+                -0.5142224248160105,
+                -0.547450048223883,
+                -0.686618391596595,
+                -0.5897582748427865,
+                -0.7011336127283107
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 14,
+          "runs": {
+            "compiled": {
+              "seconds": 0.028364266036078334,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9656895015591411,
+              "reference_best": 1.9656895015591411,
+              "selected": [
+                -0.43127646553053534,
+                -0.4852087236213539,
+                -0.4281906641835067,
+                -0.32726840263406365,
+                -0.768669223901034,
+                -0.7298242876604384,
+                -0.8448129992802969,
+                -0.11550927172542591,
+                -0.632010461522879,
+                0.001621976181463619,
+                -0.5031461853675516,
+                -0.11601257226956285,
+                -0.4102032097374356,
+                -0.553061676211862,
+                -0.9505712416794457,
+                0.07364299243043013
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.044524939032271504,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9656895015591411,
+              "reference_best": 1.9656895015591411,
+              "selected": [
+                -0.43127646553053534,
+                -0.4852087236213539,
+                -0.4281906641835067,
+                -0.32726840263406365,
+                -0.768669223901034,
+                -0.7298242876604384,
+                -0.8448129992802969,
+                -0.11550927172542591,
+                -0.632010461522879,
+                0.001621976181463619,
+                -0.5031461853675516,
+                -0.11601257226956285,
+                -0.4102032097374356,
+                -0.553061676211862,
+                -0.9505712416794457,
+                0.07364299243043013
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.04477212391793728,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9656895015591411,
+              "reference_best": 1.9656895015591411,
+              "selected": [
+                -0.43127646553053534,
+                -0.4852087236213539,
+                -0.4281906641835067,
+                -0.32726840263406365,
+                -0.768669223901034,
+                -0.7298242876604384,
+                -0.8448129992802969,
+                -0.11550927172542591,
+                -0.632010461522879,
+                0.001621976181463619,
+                -0.5031461853675516,
+                -0.11601257226956285,
+                -0.4102032097374356,
+                -0.553061676211862,
+                -0.9505712416794457,
+                0.07364299243043013
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 15,
+          "runs": {
+            "reference": {
+              "seconds": 0.04456354700960219,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9569803919099962,
+              "reference_best": 1.9569803919099962,
+              "selected": [
+                -0.5548906564116962,
+                -0.7631901408260328,
+                -0.05283047282928566,
+                -0.6623977598153884,
+                -1.0,
+                0.22664905072868435,
+                -0.6634583231960245,
+                -0.47001536393476856,
+                -0.5336231308045222,
+                -0.5846454175626916,
+                -0.6193604202592885,
+                0.2498557302931852,
+                -0.7204510651993746,
+                -0.1427591516437005,
+                -0.40750843450320695,
+                -0.4936098881970932
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.04350624908693135,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9569803919099962,
+              "reference_best": 1.9569803919099962,
+              "selected": [
+                -0.5548906564116962,
+                -0.7631901408260328,
+                -0.05283047282928566,
+                -0.6623977598153884,
+                -1.0,
+                0.22664905072868435,
+                -0.6634583231960245,
+                -0.47001536393476856,
+                -0.5336231308045222,
+                -0.5846454175626916,
+                -0.6193604202592885,
+                0.2498557302931852,
+                -0.7204510651993746,
+                -0.1427591516437005,
+                -0.40750843450320695,
+                -0.4936098881970932
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.02833271399140358,
+              "charged": 240,
+              "attempted": 240,
+              "completed": 240,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9569803919099962,
+              "reference_best": 1.9569803919099962,
+              "selected": [
+                -0.5548906564116962,
+                -0.7631901408260328,
+                -0.05283047282928566,
+                -0.6623977598153884,
+                -1.0,
+                0.22664905072868435,
+                -0.6634583231960245,
+                -0.47001536393476856,
+                -0.5336231308045222,
+                -0.5846454175626916,
+                -0.6193604202592885,
+                0.2498557302931852,
+                -0.7204510651993746,
+                -0.1427591516437005,
+                -0.40750843450320695,
+                -0.4936098881970932
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        }
+      ],
+      "search_median_seconds": {
+        "reference": 0.04456354700960219,
+        "prepared": 0.04370044101960957,
+        "compiled": 0.028364266036078334
+      },
+      "reference_over_compiled_ratios": [
+        1.516950369490572,
+        1.5696212827852443,
+        1.5741076415309008,
+        1.5697546686255648,
+        1.5728654523927077
+      ],
+      "median_paired_speedup": 1.5697546686255648,
+      "ratio_of_search_medians": 1.571115817096023,
+      "conservative_searches_to_repay_setup": 132,
+      "correct": true,
+      "accepted": true
+    },
+    {
+      "dtype": "torch.float64",
+      "population": 4096,
+      "budget": 81920,
+      "tolerance": 1e-10,
+      "preparation_seconds": {
+        "reference": 0.0,
+        "prepared": 8.336035534739494e-06,
+        "compiled": 6.624031811952591e-06
+      },
+      "first_call_seconds": {
+        "reference": 0.0026579098775982857,
+        "prepared": 0.0011963711585849524,
+        "compiled": 0.0016178588848561049
+      },
+      "evaluator_samples_seconds": {
+        "reference": [
+          0.002407509135082364,
+          0.0010979699436575174,
+          0.0010753779206424952,
+          0.0010471539571881294,
+          0.001037490088492632,
+          0.0010487060062587261,
+          0.0010280499700456858,
+          0.001031762920320034,
+          0.0010376020800322294,
+          0.0010237619280815125,
+          0.0010368661023676395,
+          0.0010359699372202158,
+          0.0010147539433091879,
+          0.0012120669707655907,
+          0.0010340982116758823
+        ],
+        "prepared": [
+          0.0012858901172876358,
+          0.0010334898252040148,
+          0.0010136831551790237,
+          0.001002818113192916,
+          0.0010054900776594877,
+          0.000994289992377162,
+          0.0009777778759598732,
+          0.00099937804043293,
+          0.0009852019138634205,
+          0.0009851539507508278,
+          0.0009958581067621708,
+          0.0009840498678386211,
+          0.0009725939016789198,
+          0.0011557152029126883,
+          0.0009748979937285185
+        ],
+        "compiled": [
+          0.0004158888477832079,
+          0.00020137685351073742,
+          0.000191231956705451,
+          0.00020780786871910095,
+          0.0001905451063066721,
+          0.00018473598174750805,
+          0.00019681593403220177,
+          0.00018545589409768581,
+          0.00018465588800609112,
+          0.00019289692863821983,
+          0.00018460792489349842,
+          0.0001824649516493082,
+          0.00019391998648643494,
+          0.00021807989105582237,
+          0.0001840321347117424
+        ]
+      },
+      "evaluator_median_seconds": {
+        "reference": 0.001037490088492632,
+        "prepared": 0.0009958581067621708,
+        "compiled": 0.000191231956705451
+      },
+      "profiles": {
+        "reference": {
+          "evaluator": {
+            "cuda_event_count": 140,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1173.33
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 137,
+                "self_cpu_us": 540.9450000000052
+              },
+              {
+                "name": "aten::add",
+                "count": 51,
+                "self_cpu_us": 143.58399999999756
+              },
+              {
+                "name": "aten::mul",
+                "count": 36,
+                "self_cpu_us": 104.04799999999864
+              },
+              {
+                "name": "aten::sub",
+                "count": 19,
+                "self_cpu_us": 69.80799999999954
+              },
+              {
+                "name": "aten::div",
+                "count": 17,
+                "self_cpu_us": 62.17699999999945
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 66,
+                "self_cpu_us": 43.58400000000074
+              },
+              {
+                "name": "aten::clamp",
+                "count": 2,
+                "self_cpu_us": 33.88800000000015
+              },
+              {
+                "name": "aten::select",
+                "count": 48,
+                "self_cpu_us": 33.63300000000049
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 28.7199999999998
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 306,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 1135.3940000000002
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 251,
+                "self_cpu_us": 960.049999999999
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 22,
+                "self_cpu_us": 847.7309999999998
+              },
+              {
+                "name": "aten::mul",
+                "count": 53,
+                "self_cpu_us": 190.80100000000039
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 46,
+                "self_cpu_us": 166.4159999999988
+              },
+              {
+                "name": "aten::add",
+                "count": 58,
+                "self_cpu_us": 166.04800000000273
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 100.35200000000054
+              },
+              {
+                "name": "aten::div",
+                "count": 22,
+                "self_cpu_us": 72.71999999999935
+              },
+              {
+                "name": "aten::sub",
+                "count": 22,
+                "self_cpu_us": 72.57600000000002
+              },
+              {
+                "name": "aten::copy_",
+                "count": 35,
+                "self_cpu_us": 62.97599999999852
+              }
+            ]
+          }
+        },
+        "prepared": {
+          "evaluator": {
+            "cuda_event_count": 137,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "cudaLaunchKernel",
+                "count": 137,
+                "self_cpu_us": 548.159999999999
+              },
+              {
+                "name": "aten::add",
+                "count": 51,
+                "self_cpu_us": 143.0730000000006
+              },
+              {
+                "name": "aten::mul",
+                "count": 36,
+                "self_cpu_us": 105.34400000000107
+              },
+              {
+                "name": "aten::sub",
+                "count": 19,
+                "self_cpu_us": 63.440000000000225
+              },
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 62.73599999999999
+              },
+              {
+                "name": "aten::div",
+                "count": 17,
+                "self_cpu_us": 57.40799999999945
+              },
+              {
+                "name": "aten::unsqueeze",
+                "count": 66,
+                "self_cpu_us": 46.09599999999898
+              },
+              {
+                "name": "aten::select",
+                "count": 48,
+                "self_cpu_us": 38.88000000000022
+              },
+              {
+                "name": "aten::clamp",
+                "count": 2,
+                "self_cpu_us": 28.400000000000034
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 27.58400000000006
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 303,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "cudaLaunchKernel",
+                "count": 251,
+                "self_cpu_us": 977.569999999996
+              },
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 19,
+                "self_cpu_us": 829.4099999999996
+              },
+              {
+                "name": "aten::mul",
+                "count": 53,
+                "self_cpu_us": 178.5290000000008
+              },
+              {
+                "name": "aten::add",
+                "count": 58,
+                "self_cpu_us": 166.4799999999983
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 43,
+                "self_cpu_us": 163.6319999999987
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 90.27300000000139
+              },
+              {
+                "name": "aten::div",
+                "count": 22,
+                "self_cpu_us": 78.20799999999895
+              },
+              {
+                "name": "aten::sub",
+                "count": 22,
+                "self_cpu_us": 74.62500000000182
+              },
+              {
+                "name": "aten::copy_",
+                "count": 32,
+                "self_cpu_us": 62.848000000002
+              },
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 62.06400000000002
+              }
+            ]
+          }
+        },
+        "compiled": {
+          "evaluator": {
+            "cuda_event_count": 7,
+            "host_scalar_reads": 0,
+            "top_cpu_events": [
+              {
+                "name": "cudaLaunchKernel",
+                "count": 1,
+                "self_cpu_us": 128.11199999999997
+              },
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 63.649
+              },
+              {
+                "name": "## Call CompiledFxGraph fo2raxmmqr5yso6en5s55ca6q7r7nxc6nzho6h25ix2m467ztija ##",
+                "count": 1,
+                "self_cpu_us": 58.591999999999985
+              },
+              {
+                "name": "cudaDeviceSynchronize",
+                "count": 2,
+                "self_cpu_us": 49.66399999999999
+              },
+              {
+                "name": "Torch-Compiled Region: 0/2",
+                "count": 1,
+                "self_cpu_us": 40.01600000000002
+              },
+              {
+                "name": "cudaGraphLaunch",
+                "count": 1,
+                "self_cpu_us": 22.639999999999986
+              },
+              {
+                "name": "aten::_foreach_copy_",
+                "count": 1,
+                "self_cpu_us": 22.160000000000025
+              },
+              {
+                "name": "TorchDynamo Cache Lookup",
+                "count": 1,
+                "self_cpu_us": 17.26399999999998
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 1,
+                "self_cpu_us": 11.391999999999939
+              },
+              {
+                "name": "aten::empty_strided",
+                "count": 1,
+                "self_cpu_us": 6.6720000000000255
+              }
+            ]
+          },
+          "managed_generation": {
+            "cuda_event_count": 173,
+            "host_scalar_reads": 20,
+            "top_cpu_events": [
+              {
+                "name": "cudaStreamSynchronize",
+                "count": 19,
+                "self_cpu_us": 836.9139999999993
+              },
+              {
+                "name": "cudaLaunchKernel",
+                "count": 115,
+                "self_cpu_us": 568.5119999999943
+              },
+              {
+                "name": "cudaMemcpyAsync",
+                "count": 44,
+                "self_cpu_us": 162.09599999999875
+              },
+              {
+                "name": "aten::mm",
+                "count": 6,
+                "self_cpu_us": 92.6419999999988
+              },
+              {
+                "name": "## Call CompiledFxGraph fo2raxmmqr5yso6en5s55ca6q7r7nxc6nzho6h25ix2m467ztija ##",
+                "count": 1,
+                "self_cpu_us": 79.87199999999984
+              },
+              {
+                "name": "aten::mul",
+                "count": 17,
+                "self_cpu_us": 74.51200000000057
+              },
+              {
+                "name": "Activity Buffer Request",
+                "count": 1,
+                "self_cpu_us": 60.672
+              },
+              {
+                "name": "aten::copy_",
+                "count": 33,
+                "self_cpu_us": 57.328000000000316
+              },
+              {
+                "name": "Torch-Compiled Region: 0/2",
+                "count": 1,
+                "self_cpu_us": 53.88799999999992
+              },
+              {
+                "name": "aten::_linalg_eigh",
+                "count": 1,
+                "self_cpu_us": 53.5679999999993
+              }
+            ]
+          }
+        }
+      },
+      "pairs": [
+        {
+          "seed": 11,
+          "runs": {
+            "compiled": {
+              "seconds": 0.062396608060225844,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.034298902265656,
+              "reference_best": 2.034298902265656,
+              "selected": [
+                -0.4002221629915727,
+                -0.253764117602352,
+                -1.0,
+                -0.02019021949412314,
+                -0.9207747660713582,
+                -1.0,
+                -0.36927092697760466,
+                -0.36389080783676053,
+                -0.35779752841005835,
+                -1.0,
+                0.450436014150662,
+                -0.6992784448550651,
+                0.24730684801979694,
+                -1.0,
+                -0.4978379726820208,
+                0.014077728535043747
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.07802403206005692,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.034298902265656,
+              "reference_best": 2.034298902265656,
+              "selected": [
+                -0.4002221629915727,
+                -0.253764117602352,
+                -1.0,
+                -0.02019021949412314,
+                -0.9207747660713582,
+                -1.0,
+                -0.36927092697760466,
+                -0.36389080783676053,
+                -0.35779752841005835,
+                -1.0,
+                0.450436014150662,
+                -0.6992784448550651,
+                0.24730684801979694,
+                -1.0,
+                -0.4978379726820208,
+                0.014077728535043747
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.07747726305387914,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.034298902265656,
+              "reference_best": 2.034298902265656,
+              "selected": [
+                -0.4002221629915727,
+                -0.253764117602352,
+                -1.0,
+                -0.02019021949412314,
+                -0.9207747660713582,
+                -1.0,
+                -0.36927092697760466,
+                -0.36389080783676053,
+                -0.35779752841005835,
+                -1.0,
+                0.450436014150662,
+                -0.6992784448550651,
+                0.24730684801979694,
+                -1.0,
+                -0.4978379726820208,
+                0.014077728535043747
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 12,
+          "runs": {
+            "reference": {
+              "seconds": 0.07806988805532455,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0051463967142618,
+              "reference_best": 2.0051463967142618,
+              "selected": [
+                0.43180288639399983,
+                -1.0,
+                -1.0,
+                -0.1393744824970395,
+                0.20243875828114877,
+                -1.0,
+                -1.0,
+                0.3531865162385053,
+                -1.0,
+                -0.10155810206105936,
+                -0.7757921038966497,
+                -0.5471979856328966,
+                -0.2842602549947488,
+                -1.0,
+                -0.04622319458854726,
+                -0.302372069797329
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.07711353409104049,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0051463967142618,
+              "reference_best": 2.0051463967142618,
+              "selected": [
+                0.43180288639399983,
+                -1.0,
+                -1.0,
+                -0.1393744824970395,
+                0.20243875828114877,
+                -1.0,
+                -1.0,
+                0.3531865162385053,
+                -1.0,
+                -0.10155810206105936,
+                -0.7757921038966497,
+                -0.5471979856328966,
+                -0.2842602549947488,
+                -1.0,
+                -0.04622319458854726,
+                -0.302372069797329
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.06115996511653066,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0051463967142618,
+              "reference_best": 2.0051463967142618,
+              "selected": [
+                0.43180288639399983,
+                -1.0,
+                -1.0,
+                -0.1393744824970395,
+                0.20243875828114877,
+                -1.0,
+                -1.0,
+                0.3531865162385053,
+                -1.0,
+                -0.10155810206105936,
+                -0.7757921038966497,
+                -0.5471979856328966,
+                -0.2842602549947488,
+                -1.0,
+                -0.04622319458854726,
+                -0.302372069797329
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 13,
+          "runs": {
+            "prepared": {
+              "seconds": 0.07697062194347382,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9951994163702624,
+              "reference_best": 1.9951994163702624,
+              "selected": [
+                -0.3197845541700805,
+                -0.02432090569522559,
+                -1.0,
+                0.014076010153632072,
+                -0.6620744476899671,
+                -0.530821274520684,
+                -1.0,
+                -0.16876176344615954,
+                -0.6220605827247556,
+                -0.8976357546191168,
+                0.26449126722316685,
+                -0.3758051271902584,
+                -0.7210312941494502,
+                -0.16171850206527758,
+                0.28440992620639755,
+                -0.831760292091621
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.06118697300553322,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9951994163702624,
+              "reference_best": 1.9951994163702624,
+              "selected": [
+                -0.3197845541700805,
+                -0.02432090569522559,
+                -1.0,
+                0.014076010153632072,
+                -0.6620744476899671,
+                -0.530821274520684,
+                -1.0,
+                -0.16876176344615954,
+                -0.6220605827247556,
+                -0.8976357546191168,
+                0.26449126722316685,
+                -0.3758051271902584,
+                -0.7210312941494502,
+                -0.16171850206527758,
+                0.28440992620639755,
+                -0.831760292091621
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.07784676691517234,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 1.9951994163702624,
+              "reference_best": 1.9951994163702624,
+              "selected": [
+                -0.3197845541700805,
+                -0.02432090569522559,
+                -1.0,
+                0.014076010153632072,
+                -0.6620744476899671,
+                -0.530821274520684,
+                -1.0,
+                -0.16876176344615954,
+                -0.6220605827247556,
+                -0.8976357546191168,
+                0.26449126722316685,
+                -0.3758051271902584,
+                -0.7210312941494502,
+                -0.16171850206527758,
+                0.28440992620639755,
+                -0.831760292091621
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 14,
+          "runs": {
+            "compiled": {
+              "seconds": 0.06117548490874469,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0666291734431956,
+              "reference_best": 2.0666291734431956,
+              "selected": [
+                -0.17118886630230878,
+                -0.15107386328006345,
+                0.27419864217927986,
+                -1.0,
+                -0.6215788607084874,
+                -1.0,
+                -0.8848306680849343,
+                -0.5264458355099217,
+                -0.1271770042975624,
+                0.5490644004957737,
+                -1.0,
+                -0.45466919026440106,
+                -0.36696846353642587,
+                -0.8196059243274116,
+                0.19097086973678812,
+                -1.0
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "reference": {
+              "seconds": 0.07760588708333671,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0666291734431956,
+              "reference_best": 2.0666291734431956,
+              "selected": [
+                -0.17118886630230878,
+                -0.15107386328006345,
+                0.27419864217927986,
+                -1.0,
+                -0.6215788607084874,
+                -1.0,
+                -0.8848306680849343,
+                -0.5264458355099217,
+                -0.1271770042975624,
+                0.5490644004957737,
+                -1.0,
+                -0.45466919026440106,
+                -0.36696846353642587,
+                -0.8196059243274116,
+                0.19097086973678812,
+                -1.0
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.07690457301214337,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0666291734431956,
+              "reference_best": 2.0666291734431956,
+              "selected": [
+                -0.17118886630230878,
+                -0.15107386328006345,
+                0.27419864217927986,
+                -1.0,
+                -0.6215788607084874,
+                -1.0,
+                -0.8848306680849343,
+                -0.5264458355099217,
+                -0.1271770042975624,
+                0.5490644004957737,
+                -1.0,
+                -0.45466919026440106,
+                -0.36696846353642587,
+                -0.8196059243274116,
+                0.19097086973678812,
+                -1.0
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        },
+        {
+          "seed": 15,
+          "runs": {
+            "reference": {
+              "seconds": 0.07849187310785055,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0235442811876667,
+              "reference_best": 2.0235442811876667,
+              "selected": [
+                0.042505477287737486,
+                -0.0642351711896032,
+                -1.0,
+                -0.5451347000331034,
+                -1.0,
+                -1.0,
+                0.14736240595730066,
+                0.08283988276458198,
+                -1.0,
+                -1.0,
+                0.15834780395183262,
+                0.1925981206738449,
+                -0.8094768736370423,
+                -0.4334041011658425,
+                -0.6842649002878453,
+                -1.0
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "prepared": {
+              "seconds": 0.07724364590831101,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0235442811876667,
+              "reference_best": 2.0235442811876667,
+              "selected": [
+                0.042505477287737486,
+                -0.0642351711896032,
+                -1.0,
+                -0.5451347000331034,
+                -1.0,
+                -1.0,
+                0.14736240595730066,
+                0.08283988276458198,
+                -1.0,
+                -1.0,
+                0.15834780395183262,
+                0.1925981206738449,
+                -0.8094768736370423,
+                -0.4334041011658425,
+                -0.6842649002878453,
+                -1.0
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            },
+            "compiled": {
+              "seconds": 0.06147995009087026,
+              "charged": 81920,
+              "attempted": 81920,
+              "completed": 81920,
+              "stop_reason": "budget exhausted",
+              "failures": [],
+              "accounting_uncertain": false,
+              "best": 2.0235442811876667,
+              "reference_best": 2.0235442811876667,
+              "selected": [
+                0.042505477287737486,
+                -0.0642351711896032,
+                -1.0,
+                -0.5451347000331034,
+                -1.0,
+                -1.0,
+                0.14736240595730066,
+                0.08283988276458198,
+                -1.0,
+                -1.0,
+                0.15834780395183262,
+                0.1925981206738449,
+                -0.8094768736370423,
+                -0.4334041011658425,
+                -0.6842649002878453,
+                -1.0
+              ],
+              "reference_error": 0.0,
+              "paired_score_error": 0.0
+            }
+          }
+        }
+      ],
+      "search_median_seconds": {
+        "reference": 0.07802403206005692,
+        "prepared": 0.07711353409104049,
+        "compiled": 0.06118697300553322
+      },
+      "reference_over_compiled_ratios": [
+        1.2504531013087656,
+        1.2764867982932089,
+        1.2722768114077576,
+        1.2685782090505895,
+        1.2767068449443415
+      ],
+      "median_paired_speedup": 1.2722768114077576,
+      "ratio_of_search_medians": 1.2751739173794576,
+      "conservative_searches_to_repay_setup": 1,
+      "correct": true,
+      "accepted": true
+    }
+  ],
+  "historical_probe_parity": true
+}
