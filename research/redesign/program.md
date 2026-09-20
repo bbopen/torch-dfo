@@ -6,7 +6,11 @@ Branch: `redesign/contracts-20260919`.
 
 ## Overall goal
 
-Build a maintained PyTorch-native derivative-free optimization library for research and engineering. Preserve useful algorithms while allowing a new architecture.
+Build a maintained PyTorch-native derivative-free optimization library for research and engineering, with an autonomous research lab in the same repository. Algorithms, tests, benchmarks, and application demonstrations are integral parts of the project. Preserve useful implementations while allowing a new architecture.
+
+Use EvoTorch directly as an implementation source. Inspect, reuse, adapt, and improve suitable code instead of requiring independent reimplementation. Record the source revision, preserve source attribution, and credit EvoTorch in the README. Compare each adaptation against its upstream behavior and relevant edge cases.
+
+The library remains the main product. The lab uses it to solve engineering problems, investigate new applications, and return tested improvements to the library. Autonomous hardware design and space engineering are important application directions alongside biology and control. See `purpose.md` for the owner's clarified intent.
 
 Completion requires a minimal working implementation, independent contract checks, reproducible canonical and application evaluations, and an honest advantage or no-go decision. The applications must exercise different objective and representation requirements. Performance or novelty claims require evidence beyond the library tests.
 
@@ -26,7 +30,7 @@ Use a ten-minute diagnostic ceiling for the first connectivity investigation. Pr
 
 ## Research limits
 
-Start with two application adapters and three development iterations per adapter. Do not add a third application to rescue a failed result. Freeze evaluators and task splits before search tuning. Record failed and discarded trials.
+For the current pilot, start with two application adapters and three development iterations per adapter. These limits bound one experiment, not the library's future scope. Do not add a third application to rescue a failed result within that experiment. Freeze evaluators and task splits before search tuning. Record failed and discarded trials.
 
 The tentative applications are one published MyoSuite control task and a benign discrete biological design task from Design-Bench. Select exact tasks after inspecting availability and validity. Existing uses are prior art, not proof of an unmet need.
 

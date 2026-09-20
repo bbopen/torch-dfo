@@ -128,6 +128,14 @@ best_encoded, best_score = search.optimize(objective)
 
 Integer and categorical decoding does not replace domain-specific mutation or feasibility rules. General constraints and multi-objective search need further design and evaluation.
 
+## Research lab
+
+The redesign will include a research lab in this repository. Its program covers canonical evaluations, engineering applications, and autonomous experiments that propose, test, and retain measured improvements. See [the research program](research/redesign/program.md) for current scope and status.
+
+## Acknowledgements
+
+[EvoTorch](https://github.com/nnaisense/evotorch), developed by NNAISENSE and its contributors, is an implementation reference and source for this project. We study its algorithms and functional implementations and will adapt suitable code as the library develops. Reused implementations retain their source attribution.
+
 ## Citation and license
 
 ```bibtex

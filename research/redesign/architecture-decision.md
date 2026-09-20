@@ -10,7 +10,7 @@ A general library needs one owner for actual evaluation accounting. It also need
 
 ## Decision
 
-Build a synchronous `SearchRun` with a single pending batch. Keep existing CMA-ES and SHADE mathematics behind internal adapters. Keep legacy exports available while the new interface is evaluated. Do not replace every algorithm at once.
+Build a synchronous `SearchRun` with a single pending batch. Evaluate existing torch-dfo code and directly reusable EvoTorch implementations for each internal adapter. Retain, adapt, or replace code based on tested behavior, maintenance cost, and application needs. Keep legacy exports available while the new interface is evaluated. Do not replace every algorithm at once.
 
 The external interface supports `ask`, `tell`, checkpoint save/load, and inspection of the current result. A `minimize` convenience function drives the same interface. Algorithm adapters cannot call objectives.
 
@@ -92,3 +92,9 @@ The architecture is accepted only after an independent challenge and a passing i
 ## Review disposition
 
 The independent reviewer conditionally accepted the direction and required five corrections: budget trust, checkpoint replay, mutable and partially updated state, noisy incumbents, and scoped capability/overhead claims. The rules above address each. The older contracts proposal is exploratory and is superseded where it differs. The fresh review and the implementation-level tests remain separate evidence.
+
+## Library and research lab
+
+The library is the primary deliverable. Its repository will also contain the autonomous research lab, canonical evaluations, engineering applications, and exploratory demonstrations. The lab will exercise the same public interface that library users receive. Tested general improvements return to the library; application dependencies remain optional.
+
+Direct adaptation of EvoTorch source is authorized. A separate implementation is not a requirement. Preserve source provenance, add characterization tests, then measure each proposed improvement. The existing numerical code is useful evidence, not an architectural constraint.
