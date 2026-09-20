@@ -1,0 +1,75 @@
+..............................................s.....................ss.. [  6%]
+..s..................................................................... [ 12%]
+........................................................................ [ 18%]
+........................................................................ [ 24%]
+........................................................................ [ 31%]
+....................................................................ss.. [ 37%]
+....................................................ssssss.............. [ 43%]
+........................................................................ [ 49%]
+........................................................................ [ 55%]
+........................................................................ [ 62%]
+........................................................................ [ 68%]
+........................................................................ [ 74%]
+........................................................................ [ 80%]
+...............................s........................................ [ 87%]
+........................................................................ [ 93%]
+........................................................................ [ 99%]
+......                                                                   [100%]
+=============================== warnings summary ===============================
+tests/test_compile.py: 14 warnings
+  /usr/local/lib/python3.12/dist-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+tests/test_dlr_nipop.py::test_nipop_lambda_doubles_on_restart
+tests/test_dlr_nipop.py::test_nipop_sigma_decreases_on_restart
+tests/test_dlr_nipop.py::test_nipop_lam_max_cap
+tests/test_dlr_nipop.py::test_ask_skips_large_branches
+tests/test_dlr_nipop.py::test_ask_returns_empty_when_budget_exhausted
+tests/test_dlr_nipop.py::test_nipop_default_sigma_factors
+tests/test_dlr_nipop.py::test_nipop_level_tracked_per_branch
+tests/test_dlr_nipop.py::test_restart_resets_state_with_nipop
+tests/test_dlr_nipop.py::test_ask_partial_skip_some_branches_active
+  /work/source/tests/test_dlr_nipop.py:27: DeprecationWarning: lb/ub kwargs are deprecated; pass bounds= instead
+    return DLRPortfolio(
+
+tests/test_dlr_oja.py::test_rank_mu_columns_update
+tests/test_dlr_oja.py::test_rank1_columns_still_update
+tests/test_dlr_oja.py::test_oja_ema_blending
+tests/test_dlr_oja.py::test_rank_mu_counter_cycles
+  /work/source/tests/test_dlr_oja.py:23: DeprecationWarning: lb/ub kwargs are deprecated; pass bounds= instead
+    return DLRPortfolio(
+
+tests/test_sanitize.py::test_nan_replaced
+  /work/source/tests/test_sanitize.py:20: UserWarning: NaN fitness values detected; replacing with worst_seen + 1.0
+    result = sanitize_fitness(f)
+
+tests/test_sanitize.py::test_all_nan
+  /work/source/tests/test_sanitize.py:39: UserWarning: NaN fitness values detected; replacing with worst_seen + 1.0
+    result = sanitize_fitness(f)
+
+tests/test_sanitize.py::test_no_mutation_of_input
+  /work/source/tests/test_sanitize.py:47: UserWarning: NaN fitness values detected; replacing with worst_seen + 1.0
+    sanitize_fitness(f)
+
+tests/test_sanitize.py::test_sanitize_fitness_integration_cmaes
+  /work/source/tests/test_sanitize.py:82: UserWarning: NaN fitness values detected; replacing with worst_seen + 1.0
+    clean = sanitize_fitness(raw)
+
+tests/test_sanitize.py::test_sanitize_fitness_integration_shade
+  /work/source/tests/test_sanitize.py:105: UserWarning: NaN fitness values detected; replacing with worst_seen + 1.0
+    clean = sanitize_fitness(raw)
+
+tests/test_sanitize.py::test_sanitize_fitness_integration_phased
+  /work/source/tests/test_sanitize.py:136: UserWarning: NaN fitness values detected; replacing with worst_seen + 1.0
+    clean = sanitize_fitness(raw)
+
+tests/test_serialization.py::test_dlr_roundtrip
+  /work/source/tests/test_serialization.py:61: DeprecationWarning: lb/ub kwargs are deprecated; pass bounds= instead
+    dlr1 = DLRPortfolio(
+
+tests/test_serialization.py::test_dlr_roundtrip
+  /work/source/tests/test_serialization.py:76: DeprecationWarning: lb/ub kwargs are deprecated; pass bounds= instead
+    dlr2 = DLRPortfolio(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1145 passed, 13 skipped, 35 warnings in 40.82s

@@ -1,0 +1,428 @@
+{
+  "budget_requested_per_search": 96,
+  "cost_accounting": {
+    "evaluator_audit_candidate_evaluations": 68,
+    "evaluator_audit_scenario_rollouts": 544,
+    "total_candidate_evaluations": 2240,
+    "total_including_audit_candidate_evaluations": 2308,
+    "total_outer_search_candidate_evaluations": 2218,
+    "total_train_scenario_rollouts": 17744,
+    "total_validation_candidate_evaluations": 22,
+    "total_validation_scenario_rollouts": 110
+  },
+  "development_trials_train_only": [
+    {
+      "decision": "reject",
+      "search_wall_time_s": 0.004166936967521906,
+      "sigma0": 0.15,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.028517556236921
+    },
+    {
+      "decision": "keep",
+      "search_wall_time_s": 0.0032905498519539833,
+      "sigma0": 0.3,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 1.9751093401735444
+    },
+    {
+      "decision": "reject",
+      "search_wall_time_s": 0.003264246042817831,
+      "sigma0": 0.55,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.060633640854189
+    }
+  ],
+  "environment": {
+    "cuda_device_name": null,
+    "cuda_version": "13.0",
+    "device": "cpu",
+    "python_version": "3.12.3",
+    "torch_version": "2.13.0+cu130"
+  },
+  "evaluator_hashes": {
+    "heldout": "d24eaa1f71a47594cdf51e9719d78342f1a414244c9e7e6f076d72d1e30f3ca5",
+    "train": "8c8e108e7de357e2157f7ebd40393ccd8373607a4367b0605badfacce8512b8c"
+  },
+  "evotorch": {
+    "configuration": {
+      "active_covariance": false,
+      "center": "zeros",
+      "evaluated_plan_bounds": [
+        -1.0,
+        1.0
+      ],
+      "latent_problem_bounds": null,
+      "note": "EvoTorch CMA-ES adapts unbounded latent proposals. The simulator clamps them before evaluation.",
+      "population_size": 12,
+      "stdev_init": 0.6
+    },
+    "enabled": true,
+    "source": "/research/evotorch/src"
+  },
+  "probes_train_only": {
+    "ceiling_domain_control": {
+      "passes": true,
+      "score": 2.941746733958009
+    },
+    "cheap_exploit_constant_cooling": {
+      "passes": true,
+      "score": 2.1494665993246
+    },
+    "degenerate_zero": {
+      "passes": false,
+      "score": 14.716173141439802
+    },
+    "null_uniform_random": {
+      "max_score": 42.56790822301674,
+      "mean_score": 16.244609174715304,
+      "median_score": 14.766557504636863,
+      "min_score": 2.8849376186914633,
+      "pass_rate": 0.015625,
+      "sample_count": 64,
+      "seed": 24681
+    },
+    "runaway_all_heat": {
+      "passes": false,
+      "score": 102.6342264152812
+    }
+  },
+  "results": [
+    {
+      "algorithm": "mean-scenario-pi",
+      "heldout_gate_pass": true,
+      "heldout_score": 3.2410976609258313,
+      "search_wall_time_s": 0.00022950395941734314,
+      "seed": null,
+      "train_candidate_evaluations": 1,
+      "train_scenario_rollouts": 8,
+      "train_score": 2.941746733958009,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.0002594250254333019
+    },
+    {
+      "algorithm": "constant-grid",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.078136607643358,
+      "search_wall_time_s": 0.000239088898524642,
+      "seed": null,
+      "train_candidate_evaluations": 9,
+      "train_scenario_rollouts": 72,
+      "train_score": 2.1494665993246,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.000219712033867836
+    },
+    {
+      "algorithm": "random",
+      "heldout_gate_pass": false,
+      "heldout_score": 6.773390568387821,
+      "search_wall_time_s": 0.0025249810423702,
+      "seed": 101,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 3.4223955397895516,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022001611068844795
+    },
+    {
+      "algorithm": "cmaes",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.826861577828836,
+      "search_wall_time_s": 0.003282038029283285,
+      "seed": 101,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.1435187184867437,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.0002223048359155655
+    },
+    {
+      "algorithm": "shade",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.990583497459209,
+      "search_wall_time_s": 0.003391750156879425,
+      "seed": 101,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.0343390984201783,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022372789680957794
+    },
+    {
+      "algorithm": "evotorch-cmaes",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.565659185285307,
+      "search_wall_time_s": 0.010798773029819131,
+      "seed": 101,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.1283614805574307,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.000249616801738739
+    },
+    {
+      "algorithm": "random",
+      "heldout_gate_pass": false,
+      "heldout_score": 7.996755053728814,
+      "search_wall_time_s": 0.002653860952705145,
+      "seed": 102,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 4.320327991279451,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022356887347996235
+    },
+    {
+      "algorithm": "cmaes",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.70801379155283,
+      "search_wall_time_s": 0.0034939430188387632,
+      "seed": 102,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.1841987310193183,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.0002264960203319788
+    },
+    {
+      "algorithm": "shade",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.534476224805526,
+      "search_wall_time_s": 0.003308566054329276,
+      "seed": 102,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.1325667449866392,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022016093134880066
+    },
+    {
+      "algorithm": "evotorch-cmaes",
+      "heldout_gate_pass": false,
+      "heldout_score": 5.033730537620729,
+      "search_wall_time_s": 0.010196085087954998,
+      "seed": 102,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.091074307563295,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022776005789637566
+    },
+    {
+      "algorithm": "random",
+      "heldout_gate_pass": false,
+      "heldout_score": 8.125827021387149,
+      "search_wall_time_s": 0.002559797139838338,
+      "seed": 103,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 4.470919310502703,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022064102813601494
+    },
+    {
+      "algorithm": "cmaes",
+      "heldout_gate_pass": false,
+      "heldout_score": 5.087884063899414,
+      "search_wall_time_s": 0.0035452069714665413,
+      "seed": 103,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.068697157475916,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022595305927097797
+    },
+    {
+      "algorithm": "shade",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.757029314793033,
+      "search_wall_time_s": 0.0032241500448435545,
+      "seed": 103,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.0456866887901244,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022019213065505028
+    },
+    {
+      "algorithm": "evotorch-cmaes",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.971335410342792,
+      "search_wall_time_s": 0.0102701170835644,
+      "seed": 103,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.070013254887038,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022824015468358994
+    },
+    {
+      "algorithm": "random",
+      "heldout_gate_pass": false,
+      "heldout_score": 7.744193152925965,
+      "search_wall_time_s": 0.0025537649635225534,
+      "seed": 104,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 4.335207759370326,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022158492356538773
+    },
+    {
+      "algorithm": "cmaes",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.986168491408175,
+      "search_wall_time_s": 0.0033789509907364845,
+      "seed": 104,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.111244083739244,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022273603826761246
+    },
+    {
+      "algorithm": "shade",
+      "heldout_gate_pass": false,
+      "heldout_score": 5.124321571795591,
+      "search_wall_time_s": 0.0032360220793634653,
+      "seed": 104,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.1641485305971213,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022012903355062008
+    },
+    {
+      "algorithm": "evotorch-cmaes",
+      "heldout_gate_pass": false,
+      "heldout_score": 5.168754321898931,
+      "search_wall_time_s": 0.009987955912947655,
+      "seed": 104,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.2046887103084454,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022492790594696999
+    },
+    {
+      "algorithm": "random",
+      "heldout_gate_pass": false,
+      "heldout_score": 7.1416223455667485,
+      "search_wall_time_s": 0.0025638770312070847,
+      "seed": 105,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 3.85701832655749,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.0002190088853240013
+    },
+    {
+      "algorithm": "cmaes",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.749237784369912,
+      "search_wall_time_s": 0.003381941933184862,
+      "seed": 105,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.0034432826926984,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.0002229129895567894
+    },
+    {
+      "algorithm": "shade",
+      "heldout_gate_pass": false,
+      "heldout_score": 4.818523702768895,
+      "search_wall_time_s": 0.003210949944332242,
+      "seed": 105,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.091722305100117,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.00022017699666321278
+    },
+    {
+      "algorithm": "evotorch-cmaes",
+      "heldout_gate_pass": false,
+      "heldout_score": 5.07952582133508,
+      "search_wall_time_s": 0.010252708103507757,
+      "seed": 105,
+      "train_candidate_evaluations": 96,
+      "train_scenario_rollouts": 768,
+      "train_score": 2.1397551389875056,
+      "validation_candidate_evaluations": 1,
+      "validation_scenario_rollouts": 5,
+      "validation_wall_time_s": 0.0002342879306524992
+    }
+  ],
+  "scenario_hashes": {
+    "heldout": "e35415f634ce4db92da3bc427625cb4e503fbffd1ddccf5a27d899868e95dcc3",
+    "train": "cda7fbae9b90f0644d842eb704af9d78e7d29c619f3e4c236abc110901780f47"
+  },
+  "seeds": [
+    101,
+    102,
+    103,
+    104,
+    105
+  ],
+  "selected_cma_sigma0": 0.3,
+  "source_sha256": {
+    "benchmarks/engineering_control.py": "558b810d605d5b7fc03a3a7f35dc1758e5a78192ef4d25cee2054d44867196bb",
+    "examples/06_engineering_control.py": "9e60dae8dfe81e55df39211d922c4350a35312627b9df2573aa8a2719cf99640",
+    "src/torch_dfo/__init__.py": "fdb1ce5f5628122117bb6012e38ef60782fbc0e89128004c4dd294f3c6f2684f",
+    "src/torch_dfo/_cmaes_state.py": "6fedb85d80ea1e65235413849e8c6fcef035a10923b8e55ff1c86014312fe5d2",
+    "src/torch_dfo/_operators.py": "873e154afaafd884009b9abca63b272928d61995c6752b0930993bcdf101a6bf",
+    "src/torch_dfo/_polish.py": "46f9092c1b3a447615a05aed1b8b77872dbfc30d14efa506db4097e11918760d",
+    "src/torch_dfo/_shade_state.py": "3029637ddca33dbf188146bec4a2717c1946cc8678722a1047c3d07e425a6a01",
+    "src/torch_dfo/_state_utils.py": "288caf492baaab11be17cc4f532edbb05acfd6c596ac36ad0eb1180ed14bf1c0",
+    "src/torch_dfo/base.py": "3de722ff593e42a64aefd89bdbc2ca9e3d349813cafa77ff139972e0b306716c",
+    "src/torch_dfo/benchmarks/__init__.py": "b0321d1c2072d5c4ab2fa102c5e256aff36fa02a0617dfe67f8f3ce2594c9884",
+    "src/torch_dfo/benchmarks/classical.py": "3d3e11f0266c59cf64410b48df237a4196e016cb760e940cf9385dbf36cceac4",
+    "src/torch_dfo/cmaes.py": "ecd49f62513f23dcb3211a5dbe28dc265b00309c395c717f3707c3ef2f55e955",
+    "src/torch_dfo/dlr_cma.py": "a3fb33ad30b18fa1e8e405c728e5604b68d45a5ffbe83e6af36b5858c871bb4d",
+    "src/torch_dfo/nelder_mead.py": "d48708fdc63e9e621fd84b37375e91c7dedb657d6e57cdd9afa43a6dbd0bfa1f",
+    "src/torch_dfo/optim/__init__.py": "eaf24954875c0a99ab1ebe67d75d2f4533af6023057ea3294735b0c34ca1f8b3",
+    "src/torch_dfo/optim/dfo_optimizer.py": "f8bcea5ef610157a774661a27f5cf4962d4a7fe71fb0d76879f9bc1fc6acbd19",
+    "src/torch_dfo/phased/__init__.py": "4f1bba69b8f3e09a72ec204e21cc4ff35c8c6992fa64f5f63e3ad27d877010ce",
+    "src/torch_dfo/phased/_basin_explore.py": "c77f4dbf2406665368617555ee5664606df65cfe0270551d4707d949ce64996e",
+    "src/torch_dfo/phased/_cma_phase.py": "2a3a7ab61810c65644afd0ddd288399b86d986dfd4986ff2d7cf4184d60b4ecf",
+    "src/torch_dfo/phased/_common.py": "14fd22dbb552e4703e491e1791bbc1ceb13bd38180774bebd7c9a3688b9cb9ca",
+    "src/torch_dfo/phased/_compat.py": "96f8edbd644258c08df8d05e0445b6248d88ad53d49ac31a9ce16ef8f50cd611",
+    "src/torch_dfo/phased/_config.py": "7043f87fa5adb381f09f2875e46c61a5cd516a98be2c1d54332e35c705de529c",
+    "src/torch_dfo/phased/_de_phase.py": "6b460412972d136dc61a8131014a7879d7a107dd888e215b8cb0c3aa41934fbe",
+    "src/torch_dfo/phased/_debug.py": "9273ab0452234c00138e50ee4188dc3eb38759f10bbed4d71d47c456fe332856",
+    "src/torch_dfo/phased/_polish_phase.py": "3947e3fe0fb49a9f50f917098cb3181d47fb308591403a72177fa993463e921b",
+    "src/torch_dfo/phased/_state.py": "653dd8706477c042b5c47838f6a3289206cc7690238e0b2e8f38f49252a419b9",
+    "src/torch_dfo/phased/orchestrator.py": "d977b0f216aed6ca90b12b802e26f62e5f2d050f73d2440943ebe468c8187476",
+    "src/torch_dfo/run.py": "0a0e9ad4b68e1258a7b386189409a7495be513ece38b2795e42fb0f5cd34ca0a",
+    "src/torch_dfo/shade.py": "27952a9ede7b8d3b25b9484f3f388ce139d690a1926d48b731eb8a3d1a315ede",
+    "src/torch_dfo/space.py": "82c1f8ffb3de9c8db5a5e89c1869ce7dcff4d8db2b3d0d401a67a0ef292fd6b5",
+    "src/torch_dfo/utils.py": "5f65572552b74115192bbb2afacb73f02d748c3d2e6f0e059613e90b59e7a2fc"
+  },
+  "task_hash": "38f1c9b6297c6bfff0f8e9b1a486a6c55e0608dc87512992f3015c2bad91a2dd",
+  "task_version": "engineering-control-v2"
+}

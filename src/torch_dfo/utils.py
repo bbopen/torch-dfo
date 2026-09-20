@@ -119,12 +119,20 @@ def normalize_bounds(
         if isinstance(lb_val, torch.Tensor) and isinstance(ub_val, torch.Tensor):
             lb = lb_val.to(device=device, dtype=dtype)
             ub = ub_val.to(device=device, dtype=dtype)
+            expected_shape = (dim,)
+            if lb.shape != expected_shape or ub.shape != expected_shape:
+                raise ValueError(
+                    f"tensor bounds must each have shape {expected_shape}; "
+                    f"got {tuple(lb.shape)} and {tuple(ub.shape)}"
+                )
         else:
             lb = torch.full((dim,), float(lb_val), device=device, dtype=dtype)
             ub = torch.full((dim,), float(ub_val), device=device, dtype=dtype)
     else:
         msg = f"Unsupported bounds type: {type(bounds)}"
         raise ValueError(msg)
+    if not torch.all(torch.isfinite(lb)) or not torch.all(torch.isfinite(ub)):
+        raise ValueError("bounds must be finite on every dimension")
     if not torch.all(ub > lb):
         raise ValueError(
             "bounds must have positive span on every dimension; "

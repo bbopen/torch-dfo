@@ -1,8 +1,8 @@
 Benchmarks and scaling guidance
 ================================
 
-This page summarises the v0.9 multi-function scaling sweep and the
-practical guidance it implies for choosing an optimizer.
+This page records the historical v0.9 scaling sweep.
+These measurements describe memory use and short runs, not general solution quality.
 
 All numbers below come from a single NVIDIA RTX A4500 (19.6 GB usable
 VRAM) running double-precision (``float64``) workloads over six
@@ -40,19 +40,18 @@ Peak-VRAM ceiling per optimizer
        `issue #8 <https://github.com/bbopen/torch-dfo/issues/8>`_
        for the cap proposal.
 
-Choosing an optimizer by dimension
-----------------------------------
+Observed memory feasibility
+---------------------------
 
-For the 20 GB, double-precision regime the sweep was run in, a
-reasonable default policy is:
+For this 20 GB, double-precision sweep, the observed memory limits were:
 
-* ``d ≤ 5 000`` — any optimizer in the library is viable.
+* ``d ≤ 5 000`` — all tested optimizers fit in memory.
 * ``5 000 < d ≤ 10 000`` — ``DLRPortfolio``, ``SHADE``, or
   ``NelderMead``.
 * ``d > 10 000`` — ``DLRPortfolio`` or ``SHADE``.
 
-The ceiling scales roughly with VRAM, so a 40 GB card pushes each
-range up by roughly one doubling of ``d``.
+Memory scaling depends on the optimizer. Dense covariance storage grows
+quadratically with dimension, so doubling VRAM does not double its dimension limit.
 
 Solution quality at low dim
 ---------------------------
@@ -60,14 +59,13 @@ Solution quality at low dim
 .. warning::
 
    This is not a fair comparison. The ``d=40`` slice below fixes
-   *wall-clock* (7 generations), not evaluation count. Within that
+   *generation count* (7 generations), not evaluation count. Within that
    budget, ``CMAES`` ran ~105 fevals, ``DLRPortfolio`` ~420, ``SHADE``
-   ~560, and ``PhasedDFO`` up to ~137 000. A fevals-equalized race
-   would change the picture; read the numbers below as "what a user
-   gets if they cap wall-clock", not as an algorithm ranking.
+   ~560, and ``PhasedDFO`` up to ~137 000. Neither evaluation counts nor elapsed times are equalized.
+   These results do not establish an algorithm ranking.
 
 Separately from ceiling, the ``d=40`` slice of the sweep — a 7-generation
-wall-clock budget — shows ``DLRPortfolio`` reaching one to three orders
+run — shows ``DLRPortfolio`` reaching one to three orders
 of magnitude lower ``final_loss`` than the other four optimizers on
 every multimodal function (ackley, griewank, rastrigin, levy).
 

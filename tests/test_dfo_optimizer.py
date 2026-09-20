@@ -45,6 +45,17 @@ def test_no_closure_raises():
         opt.step()
 
 
+def test_both_closure_modes_raise():
+    """The wrapper rejects an ambiguous pair of closure modes."""
+    params = [torch.zeros(3, dtype=torch.float64)]
+    opt = DFOOptimizer(params, algorithm="shade", bounds=(-1, 1))
+    with pytest.raises(ValueError, match="exactly one"):
+        opt.step(
+            closure=lambda: torch.tensor(0.0),
+            closure_batched=lambda candidates: candidates.square().sum(-1),
+        )
+
+
 def test_empty_params_raises():
     """An empty parameter list raises."""
     with pytest.raises(ValueError, match="empty"):
@@ -70,6 +81,27 @@ def test_budget_tracking():
         opt.step(closure_batched=lambda c: (c**2).sum(-1))
     assert opt.is_exhausted
     assert opt.budget_remaining == 0
+
+
+def test_budget_cap_stops_before_an_incomplete_generation():
+    """A nonmultiple budget never calls a closure for an incomplete generation."""
+    params = [torch.zeros(3, dtype=torch.float64)]
+    opt = DFOOptimizer(params, algorithm="shade", bounds=(-1, 1), budget=5, pop_size=4)
+    batch_sizes: list[int] = []
+
+    def closure(candidates: torch.Tensor) -> torch.Tensor:
+        batch_sizes.append(candidates.shape[0])
+        return (candidates**2).sum(-1)
+
+    opt.step(closure_batched=closure)
+
+    assert batch_sizes == [4]
+    assert opt._evals == 4
+    assert opt.budget_remaining == 1
+    assert opt.is_exhausted
+    with pytest.raises(RuntimeError, match="budget exhausted"):
+        opt.step(closure_batched=closure)
+    assert batch_sizes == [4]
 
 
 def test_default_budget():
@@ -227,15 +259,7 @@ def test_step_returns_best_loss():
 
 
 def test_dfo_optimizer_state_dict_roundtrip_via_tempfile(tmp_path):
-    """D2: state_dict → save → load into fresh DFOOptimizer → verify consistency.
-
-    Current implementation detail: ``DFOOptimizer`` inherits
-    ``state_dict/load_state_dict`` from ``torch.optim.Optimizer`` but does not
-    override them to capture the inner optimizer's state. The roundtrip here
-    therefore verifies the ``torch.optim.Optimizer`` base contract (state and
-    param_groups survive save/load); a full inner-state roundtrip is a known
-    gap documented in the test below.
-    """
+    """A file round-trip restores a usable optimizer state."""
     # Build on CPU, float64 for determinism.
     p1 = torch.zeros(3, dtype=torch.float64)
     opt1 = DFOOptimizer(
@@ -300,6 +324,27 @@ def test_dfo_optimizer_state_dict_roundtrip_preserves_inner_and_evals():
     # Next ask must match between source and restored inner optimizers.
     a1, a2 = opt1._inner.ask(), opt2._inner.ask()
     assert torch.allclose(a1, a2), "next ask diverged after DFOOptimizer roundtrip"
+
+
+def test_dfo_optimizer_load_does_not_consume_state_dict():
+    """The same checkpoint restores multiple fresh optimizers identically."""
+    p1 = torch.zeros(3, dtype=torch.float64)
+    source = DFOOptimizer([p1], algorithm="shade", bounds=(-1.0, 1.0), pop_size=10, seed=42)
+    source.step(closure_batched=lambda c: (c**2).sum(-1))
+    state = source.state_dict()
+    state_keys = set(state)
+
+    restored = []
+    for seed in (99, 100):
+        param = torch.zeros(3, dtype=torch.float64)
+        opt = DFOOptimizer([param], algorithm="shade", bounds=(-1.0, 1.0), pop_size=10, seed=seed)
+        opt.load_state_dict(state)
+        restored.append(opt)
+
+    assert set(state) == state_keys
+    assert all(opt._evals == source._evals for opt in restored)
+    ask_a, ask_b = (opt._inner.ask() for opt in restored)
+    assert torch.allclose(ask_a, ask_b)
 
 
 # ------------------------------------------------------------------

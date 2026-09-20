@@ -15,7 +15,7 @@ Benchmarks:
     BenchmarkSuite: collection of standard test problems
 """
 
-__version__ = "0.10.0"
+__version__ = "0.11.0b1"
 __author__ = "Brett G. Bonner"
 
 from torch_dfo.base import BaseOptimizer
@@ -35,18 +35,32 @@ from torch_dfo.dlr_cma import DLRPortfolio
 from torch_dfo.nelder_mead import NelderMead
 from torch_dfo.optim import DFOOptimizer
 from torch_dfo.phased import PhasedDFO
+from torch_dfo.run import (
+    CandidateBatch,
+    EvaluationResult,
+    RandomSearch,
+    SearchResult,
+    SearchRun,
+    minimize,
+)
 from torch_dfo.shade import SHADE
 from torch_dfo.space import Categorical, Float, Int, SearchSpace
 
 __all__ = [
     # Core
     "BaseOptimizer",
+    "CandidateBatch",
+    "EvaluationResult",
+    "SearchResult",
+    "SearchRun",
     # Algorithms
     "CMAES",
     "SHADE",
     "NelderMead",
     "PhasedDFO",
     "DLRPortfolio",
+    "RandomSearch",
+    "minimize",
     # Wrappers
     "DFOOptimizer",
     # Search space

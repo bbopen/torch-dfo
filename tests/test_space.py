@@ -289,14 +289,12 @@ class TestSearchSpaceEdgeCases:
         with pytest.raises(ValueError, match=r"must be > lower"):
             Float("x", 1.0, 1.0)
 
-    def test_int_upper_less_than_lower_raises(self) -> None:
-        """space.py:41 — Int construction rejects upper < lower.
-
-        Note: upper == lower is explicitly allowed (single-valued Int), which
-        is why this uses a strictly inverted range.
-        """
-        with pytest.raises(ValueError, match=r"must be >= lower"):
+    def test_int_upper_not_greater_than_lower_raises(self) -> None:
+        """Int construction rejects empty and inverted integer ranges."""
+        with pytest.raises(ValueError, match=r"must be > lower"):
             Int("n", 5, 1)
+        with pytest.raises(ValueError, match=r"must be > lower"):
+            Int("n", 5, 5)
 
     def test_int_log_requires_positive_lower(self) -> None:
         """space.py:45 — Int with log=True rejects lower <= 0."""

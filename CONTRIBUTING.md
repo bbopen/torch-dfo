@@ -30,7 +30,7 @@ the authoritative merge gate. For local Apple Silicon coverage,
   fitness)`, and `optimize(fn)`. New optimizers should follow this shape.
 - **Tests before merge.** Every behavior change needs a test. Run
   `pytest tests/ -q` and `ruff check src/ tests/` before opening a PR.
-- **No regressions on the classical suite.** The 22-problem suite defined
+- **No regressions on the classical suite.** The classical suite defined
   in `src/torch_dfo/benchmarks/classical.py` is the baseline — if your
   change might touch it, run `benchmarks/run_benchmarks.py` and report.
 - **Gated mechanisms** specific to particular dim ranges (e.g. the

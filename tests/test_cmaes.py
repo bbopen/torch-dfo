@@ -15,6 +15,7 @@ from tests._thresholds import (
     CONV_SPHERE_1D,
     CONV_SPHERE_10D_TIGHT,
     CONV_SPHERE_HIGH_DIM,
+    POP_CMAES_MIN,
     RTOL_DEFAULT,
     SMOKE_F_INIT_CMAES,
     TOL_CMAES_BEST_F32,
@@ -50,6 +51,11 @@ class TestConstruction:
         dtype = best_float_dtype(device)
         opt = CMAES(dim=5, bounds=5.0, pop_size=20, device=device, dtype=dtype, seed=42)
         assert opt.pop_size == 20
+
+    def test_population_below_minimum_raises(self, device: torch.device) -> None:
+        dtype = best_float_dtype(device)
+        with pytest.raises(ValueError, match="pop_size"):
+            CMAES(dim=5, bounds=5.0, pop_size=POP_CMAES_MIN - 1, device=device, dtype=dtype)
 
     def test_state_shapes(self, device: torch.device) -> None:
         dtype = best_float_dtype(device)
@@ -643,6 +649,23 @@ class TestRestart:
         opt.restart(mean=new_mean, sigma=0.5)
         assert torch.allclose(opt.mean, new_mean.to(device=device, dtype=dtype))
         assert opt.sigma == 0.5
+
+    def test_restart_restores_configured_sigma0(self, device: torch.device) -> None:
+        """The default restart step size must match the constructor setting."""
+        dtype = best_float_dtype(device)
+        opt = CMAES(dim=3, bounds=5.0, device=device, dtype=dtype, seed=42, sigma0=0.8)
+        initial_sigma = opt.sigma
+        opt.restart()
+        assert opt.sigma == initial_sigma
+
+    def test_state_roundtrip_preserves_restart_sigma0(self, device: torch.device) -> None:
+        """A restored optimizer keeps the saved default restart step size."""
+        dtype = best_float_dtype(device)
+        original = CMAES(dim=3, bounds=5.0, device=device, dtype=dtype, seed=42, sigma0=0.8)
+        restored = CMAES(dim=3, bounds=5.0, device=device, dtype=dtype, seed=99, sigma0=0.3)
+        restored.load_state_dict(original.state_dict())
+        restored.restart()
+        assert restored.sigma == original.sigma
 
     def test_generation_reset(self, device: torch.device) -> None:
         dtype = best_float_dtype(device)

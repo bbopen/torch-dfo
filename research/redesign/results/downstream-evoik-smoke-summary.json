@@ -1,0 +1,56 @@
+{
+  "versions": {
+    "torch": "2.14.0+cu130",
+    "torch_dfo": "0.11.0b1",
+    "pytorch_kinematics": "0.10.0",
+    "evotorch": "undefined (source mount)"
+  },
+  "settings": {
+    "device": "cuda:0",
+    "reachable_target_seeds": [1001, 1002],
+    "solver_seed": 2301,
+    "population": 32,
+    "generations": 20,
+    "evaluations_per_solver_per_case": 640,
+    "effective_normalized_stdev": 0.05,
+    "torch_dfo_sigma0": 0.025,
+    "distance_tolerance_m": 0.01,
+    "orientation_tolerance_rad": 0.349,
+    "evaluation_count_basis": "population * generations; no fitness-call counter"
+  },
+  "unmodified_upstream": {
+    "status": "failed before generation",
+    "exception": "ValueError",
+    "message": "Expected an unbounded problem, but this problem has lower and/or upper bounds."
+  },
+  "post_run_evaluator_audit": {
+    "known_joint_seed": 1001,
+    "known_joint_fitness": 0.0,
+    "known_joint_position_error_m": 0.0,
+    "known_joint_orientation_error_rad": 0.0,
+    "known_joint_success": true,
+    "out_of_bounds_normalized_value": 1.25,
+    "out_of_bounds_penalty": 0.375,
+    "optimizer_runs": 0
+  },
+  "comparison": [
+    {
+      "case": "reachable_seed_1001",
+      "known_reachable": true,
+      "evotorch_no_bounds_adapter": {"fitness": 0.005516184, "position_error_m": 0.003591938, "orientation_error_rad": 0.033581935, "success": true},
+      "torch_dfo_cmaes": {"fitness": 0.010311682, "position_error_m": 0.006180670, "orientation_error_rad": 0.072094463, "success": true}
+    },
+    {
+      "case": "reachable_seed_1002",
+      "known_reachable": true,
+      "evotorch_no_bounds_adapter": {"fitness": 0.024126191, "position_error_m": 0.003898524, "orientation_error_rad": 0.353013366, "success": false},
+      "torch_dfo_cmaes": {"fitness": 0.051396742, "position_error_m": 0.037570488, "orientation_error_rad": 0.241295964, "success": false}
+    },
+    {
+      "case": "unrelated_pose",
+      "known_reachable": false,
+      "evotorch_no_bounds_adapter": {"fitness": 16.485502243, "position_error_m": 16.452297211, "orientation_error_rad": 0.604595542, "success": false},
+      "torch_dfo_cmaes": {"fitness": 16.484813690, "position_error_m": 16.458414078, "orientation_error_rad": 0.460717082, "success": false}
+    }
+  ]
+}

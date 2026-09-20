@@ -1,0 +1,179 @@
+{
+  "device": "cuda",
+  "torch": "2.13.0+cu130",
+  "measurements": [
+    {
+      "objective": "sphere",
+      "pairs": [
+        {
+          "seed": 11,
+          "direct": {
+            "seconds": 0.01431148499250412,
+            "calls": 240,
+            "charged": 240,
+            "best": 0.22658756280506692
+          },
+          "managed": {
+            "seconds": 0.021569915115833282,
+            "calls": 240,
+            "charged": 240,
+            "best": 0.22658756280506692
+          },
+          "ratio": 1.507175190214774
+        },
+        {
+          "seed": 12,
+          "direct": {
+            "seconds": 0.014281532960012555,
+            "calls": 240,
+            "charged": 240,
+            "best": 0.48005925762452706
+          },
+          "managed": {
+            "seconds": 0.021453819004818797,
+            "calls": 240,
+            "charged": 240,
+            "best": 0.48005925762452706
+          },
+          "ratio": 1.5022070155135459
+        },
+        {
+          "seed": 13,
+          "direct": {
+            "seconds": 0.014383773086592555,
+            "calls": 240,
+            "charged": 240,
+            "best": 0.17275353993347697
+          },
+          "managed": {
+            "seconds": 0.021571706980466843,
+            "calls": 240,
+            "charged": 240,
+            "best": 0.17275353993347697
+          },
+          "ratio": 1.4997252007941035
+        },
+        {
+          "seed": 14,
+          "direct": {
+            "seconds": 0.014365291921421885,
+            "calls": 240,
+            "charged": 240,
+            "best": 0.30670016262418903
+          },
+          "managed": {
+            "seconds": 0.021477290894836187,
+            "calls": 240,
+            "charged": 240,
+            "best": 0.30670016262418903
+          },
+          "ratio": 1.4950821056973238
+        },
+        {
+          "seed": 15,
+          "direct": {
+            "seconds": 0.014331805054098368,
+            "calls": 240,
+            "charged": 240,
+            "best": 0.2122408851694859
+          },
+          "managed": {
+            "seconds": 0.021556459134444594,
+            "calls": 240,
+            "charged": 240,
+            "best": 0.2122408851694859
+          },
+          "ratio": 1.5040993826719853
+        }
+      ],
+      "median_ratio": 1.5022070155135459
+    },
+    {
+      "objective": "synthetic_compute",
+      "pairs": [
+        {
+          "seed": 11,
+          "direct": {
+            "seconds": 0.018836789997294545,
+            "calls": 240,
+            "charged": 240,
+            "best": 1.3770237268479293
+          },
+          "managed": {
+            "seconds": 0.02594800409860909,
+            "calls": 240,
+            "charged": 240,
+            "best": 1.3770237268479293
+          },
+          "ratio": 1.3775173000461278
+        },
+        {
+          "seed": 12,
+          "direct": {
+            "seconds": 0.018768693087622523,
+            "calls": 240,
+            "charged": 240,
+            "best": 1.5017092555842522
+          },
+          "managed": {
+            "seconds": 0.025915218982845545,
+            "calls": 240,
+            "charged": 240,
+            "best": 1.5017092555842522
+          },
+          "ratio": 1.3807684350667961
+        },
+        {
+          "seed": 13,
+          "direct": {
+            "seconds": 0.01904594199731946,
+            "calls": 240,
+            "charged": 240,
+            "best": 1.5207466828700507
+          },
+          "managed": {
+            "seconds": 0.0261899558827281,
+            "calls": 240,
+            "charged": 240,
+            "best": 1.5207466828700507
+          },
+          "ratio": 1.3750937541663255
+        },
+        {
+          "seed": 14,
+          "direct": {
+            "seconds": 0.019102390157058835,
+            "calls": 240,
+            "charged": 240,
+            "best": 1.1409780272137395
+          },
+          "managed": {
+            "seconds": 0.026154292980208993,
+            "calls": 240,
+            "charged": 240,
+            "best": 1.1409780272137395
+          },
+          "ratio": 1.369163375115354
+        },
+        {
+          "seed": 15,
+          "direct": {
+            "seconds": 0.018981269793584943,
+            "calls": 240,
+            "charged": 240,
+            "best": 1.4546833234908703
+          },
+          "managed": {
+            "seconds": 0.026173876132816076,
+            "calls": 240,
+            "charged": 240,
+            "best": 1.4546833234908703
+          },
+          "ratio": 1.3789317794567149
+        }
+      ],
+      "median_ratio": 1.3775173000461278
+    }
+  ],
+  "scope": "Five within-process pairs; synthetic workloads, no general speed claim."
+}

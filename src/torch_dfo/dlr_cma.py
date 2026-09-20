@@ -320,15 +320,22 @@ class DLRPortfolio:
         Parameters
         ----------
         remaining_budget : int | None
-            If provided, skip branches whose lambda exceeds the remaining budget.
-            When remaining_budget < min(lambdas), returns an empty (0, dim) tensor.
+            If provided, include branches in configured order while their
+            combined population fits this budget.  A branch that does not fit
+            is skipped, so a later smaller branch can still be included.
+            Returns an empty ``(0, dim)`` tensor when no branch fits.
         """
         K, n, k = self.K, self.dim, self.k_rank
         device, dtype = self.device, self.dtype
 
         # Determine which branches are active
         if remaining_budget is not None:
-            active = [ki for ki in range(K) if self.lambdas[ki] <= remaining_budget]
+            active = []
+            used = 0
+            for ki, lam_k in enumerate(self.lambdas):
+                if used + lam_k <= remaining_budget:
+                    active.append(ki)
+                    used += lam_k
         else:
             active = list(range(K))
 

@@ -1,193 +1,178 @@
 # torch-dfo
 
-**GPU-accelerated derivative-free optimization for PyTorch.**
+A PyTorch derivative-free optimization library for engineering and research.
 
 [![CI](https://github.com/bbopen/torch-dfo/actions/workflows/ci.yml/badge.svg)](https://github.com/bbopen/torch-dfo/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/torch-dfo)](https://pypi.org/project/torch-dfo/)
-[![Python](https://img.shields.io/pypi/pyversions/torch-dfo)](https://pypi.org/project/torch-dfo/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![codecov](https://codecov.io/gh/bbopen/torch-dfo/branch/master/graph/badge.svg)](https://codecov.io/gh/bbopen/torch-dfo)
 
-Five optimizers running natively on PyTorch tensors. No NumPy at runtime. Works on CPU, CUDA, and MPS.
+Optimize bounded objectives that do not provide usable gradients. The core package requires PyTorch and supports CPU, CUDA, and MPS tensors.
 
-## Why torch-dfo
+## When to use it
 
-Existing derivative-free libraries are either CPU-bound (pycma, Nevergrad, scipy) or GPL-licensed (EvoX). torch-dfo fills the gap:
+Use derivative-free search for discrete decisions, discontinuous scores, external simulators, or objectives with unavailable or unreliable gradients. Batched tensor objectives can benefit from a GPU. Small populations and CPU simulators may not.
 
-| | torch-dfo | pycma | Nevergrad | scipy.optimize |
-|---|---|---|---|---|
-| GPU-native | ✅ | ❌ | ❌ | ❌ |
-| `torch.compile` support | ✅ | ❌ | ❌ | ❌ |
-| Batched GPU objectives | ✅ | ❌ | ❌ | ❌ |
-| MIT license | ✅ | ✅ | MIT | BSD |
-| Ask/tell API | ✅ | ✅ | ✅ | ❌ |
-| `torch.optim` wrapper | ✅ | ❌ | ❌ | ❌ |
+For smooth objectives with reliable gradients, compare against autograd-based methods. For expensive evaluations, compare against Bayesian optimization. The best method depends on evaluation cost and solution quality.
+
+torch-dfo develops its own API, algorithms, and research tools. Application needs guide their design. The core depends only on PyTorch.
+
+We study derivative-free optimization across Python, JAX, and native numerical libraries. EvoTorch, EvoX, SciPy, pycma, Nevergrad, pymoo, evosax, pagmo, and NLopt are candidate implementation and benchmark references. Completed comparisons cover SciPy, EvoTorch, and pycma. The EvoX attempt exposed covariance and runtime failures; see [the CMA-ES comparison](research/redesign/cma-comparison-results.md). Public applications supply real workloads. See [the reference strategy](research/redesign/reference-strategy.md).
+
+As of September 20, 2026, EvoTorch's latest default-branch commit and release were dated May 14, 2025, about 16 months earlier. See its [latest commit at review](https://github.com/nnaisense/evotorch/commit/cebcac4f20979078becf8b908016cd8e5e6714a4) and [v0.6.1 release](https://github.com/nnaisense/evotorch/releases/tag/v0.6.1). Maintained PyTorch support is a torch-dfo priority; performance claims require separate benchmarks.
+
+Use task results, evaluation cost, and runtime to judge an implementation. Compatibility with another library's API is not a design requirement.
 
 ## Install
 
-**CPU (fastest install, great for development):**
+This branch contains the `0.11.0b1` beta candidate. Install it from the checkout:
+
 ```bash
-pip install torch-dfo
+pip install -e .
 ```
 
-**CUDA (recommended for production):**
-```bash
-pip install torch --index-url https://download.pytorch.org/whl/cu121
-pip install torch-dfo
-```
+Requires Python 3.10 or later and PyTorch 2.4 or later. Install a PyTorch build that supports your accelerator before selecting CUDA or MPS.
 
-**Apple Silicon (MPS):**
-```bash
-pip install torch  # standard PyPI build includes MPS support
-pip install torch-dfo
-```
-
-Requires Python ≥ 3.10 and PyTorch ≥ 2.4.
-
-## 30-second example
+## Budgeted search
 
 ```python
-import torch
-import torch_dfo
+from torch_dfo import CMAES, minimize
 
-# Pick any optimizer; swap device="cpu" ↔ "cuda" ↔ "mps" with no other changes
-opt = torch_dfo.CMAES(dim=30, bounds=(-5.12, 5.12), device="cuda")
-
-for _ in range(1000):
-    candidates = opt.ask()                    # (pop_size, 30) on GPU
-    fitness    = (candidates ** 2).sum(-1)    # batched objective, stays on GPU
-    opt.tell(candidates, fitness)
-
-best_x, best_f = opt.best()
+optimizer = CMAES(dim=10, bounds=(-5.0, 5.0), device="cpu", seed=42)
+result = minimize(lambda x: x.square().sum(-1), optimizer, max_evals=1000)
+print(result.best_value, result.charged_evals)
 ```
+
+The objective receives a batch and returns one scalar per candidate. Lower is better.
+`minimize` uses `SearchRun` to count evaluations and stop at the budget.
+CMA-ES and SHADE require full generations. Random search can use the final partial batch.
+
+Use `SearchRun` for manual ask/tell, fixed repeats, raw observations, and planned checkpoints.
+See [the run guide](docs/runs.md). Existing optimizer-level ask/tell interfaces remain available.
+
+Select `device="cuda"` when available. Use `dtype=torch.float32` on MPS.
+GPU speed depends on the objective and population size.
 
 ## Algorithms
 
-| Algorithm | Paper | Best for |
-|---|---|---|
-| `CMAES` | Hansen (2001) | Medium-dim, ill-conditioned, curved valleys |
-| `SHADE` | Tanabe & Fukunaga (2014) | Multimodal, self-adaptive, general-purpose |
-| `NelderMead` | Nelder & Mead (1965) | Low-dim local polishing |
-| `PhasedDFO` | 3-phase pipeline | General-purpose, strongest on benchmarks |
-| `DLRPortfolio` | Loshchilov (2014) | High-dim, GPU-native, no eigendecomp |
+| Algorithm | Mechanism |
+| --- | --- |
+| `RandomSearch` | Uniform bounded search with a private random generator |
+| `CMAES` | Full covariance adaptation with restart support |
+| `SHADE` | Differential evolution with adaptive parameters |
+| `NelderMead` | Simplex-based local search |
+| `PhasedDFO` | SHADE exploration, CMA-ES search, and local polishing under an evaluation budget |
+| `DLRPortfolio` | Multiple search branches with diagonal-plus-low-rank covariance approximations |
 
-All share the same `ask()` / `tell()` interface — swap optimizers with one line change.
+The optimizers expose `ask()` and `tell()`. Population sizes, budget handling, and supported parameters differ. Check the class documentation before switching algorithms.
 
-## `torch.optim` wrapper
+`PhasedDFO` includes finite-difference local polishing. Its calls count against the evaluation budget; it does not use autograd.
 
-Use any torch-dfo optimizer as a drop-in `torch.optim.Optimizer` for gradient-free neural network training:
+## Model parameter search
+
+`DFOOptimizer` supports the `shade`, `cmaes`, and `nelder_mead` algorithms. Each step evaluates several candidate parameter vectors. This can cost much more than one gradient step.
 
 ```python
-from torch_dfo import DFOOptimizer, CMAES
-import torch.nn as nn
+import torch
+from torch_dfo import DFOOptimizer
 
-model = nn.Sequential(nn.Linear(8, 4), nn.ReLU(), nn.Linear(4, 1))
-optimizer = DFOOptimizer(model.parameters(), algorithm=CMAES, dim=None, bounds=1.0)
+model = torch.nn.Linear(2, 1)
+x = torch.tensor([[0.0, 1.0], [1.0, 0.0]])
+y = torch.tensor([[1.0], [1.0]])
+optimizer = DFOOptimizer(
+    model.parameters(), algorithm="cmaes", bounds=(-2.0, 2.0), budget=100, seed=42
+)
 
 def closure():
-    loss = criterion(model(X), y)
-    return loss
+    return (model(x) - y).square().mean()
 
-for _ in range(500):
-    optimizer.step(closure)
+while not optimizer.is_exhausted:
+    loss = optimizer.step(closure)
 ```
+
+Bounds are absolute parameter limits. The wrapper derives device and dtype from the model. A final budget residue can remain unused if a complete generation will not fit. Use a batched closure when the objective can evaluate candidate models together.
 
 ## Checkpointing
 
-Save and restore optimizer state across devices:
+`SearchRun.state_dict()` saves a completed batch boundary. `SearchRun.from_checkpoint()` restores the search as a new run with parent lineage.
+The beta uses trusted Python checkpoints on the same device. See [the checkpoint example](docs/runs.md#planned-checkpoints).
+
+Optimizer-level `state_dict()` and `load_state_dict()` remain available. Their cross-device behavior can reinitialize the random generator.
+
+## Accelerator and compilation limits
+
+Tensor operations can remain on the selected device. Python control flow and scalar extraction can synchronize with the host. The package does not provide a fully asynchronous GPU search loop.
+
+Optimizer compilation tests cover selected methods with graph breaks. They do not establish full-graph compilation or a general speedup. Measure objective time, optimizer time, and total time separately.
+
+The thermal-control example has an optional compiled CUDA scorer. On one DGX Spark GB10 study, warm CMA-ES runs were 1.28 to 1.68 times faster at equal budgets and matching final reference scores. Compilation adds setup cost. These results apply to this workload. See [the CUDA study](research/redesign/cuda-results.md) and its reproduction command.
+
+Historical memory-capacity measurements appear in [the benchmark notes](docs/benchmarks.rst). A dimension that fits in memory is not evidence that an optimizer can solve a problem at that dimension.
+
+## Evaluation status
+
+The benchmark harness supports COCO/BBOB, YAHPO, and Gymnasium. COCO's official target flag determines success. The harness does not estimate global optima with a local solver. It reports unknown precision as `null` in JSON.
+
+The former README reported 14 of 16 classical problems solved. That historical claim lacks a pinned, independently verified result bundle here. It is not the current acceptance criterion. Classical examples are useful smoke tests; they do not establish general performance.
+
+The YAHPO runner uses one torch-dfo seed and several random seeds. Its mean comparison is descriptive. Equalize repeated runs before making superiority claims.
+
+Run bounded, seeded comparisons against random or Sobol search, EvoTorch, pycma, and suitable gradient or Bayesian methods. Report evaluation counts and wall time. Keep failures in the results and reserve unseen problem instances for confirmation.
+
+The first 16-dimensional CMA-ES panel compared torch-dfo with pycma at equal budgets on DGX Spark. CPU execution was faster than CUDA for these small eager batches. No canonical target was reached within 3,200 evaluations. EvoX 1.4.0 failed on the tested Torch build. See [the comparison results](research/redesign/cma-comparison-results.md).
+
+## Structured search
+
+`SearchSpace` supports `Float`, `Int`, and `Categorical` parameters. `PhasedDFO` can decode these parameters into individual trials.
 
 ```python
-# Save
-state = opt.state_dict()
-torch.save(state, "checkpoint.pt")
+import torch
+from torch_dfo import Float, Int, SearchSpace, PhasedDFO
 
-# Restore on any device (CPU ↔ CUDA ↔ MPS)
-opt2 = torch_dfo.CMAES(dim=30, bounds=(-5.12, 5.12), device="cuda")
-opt2.load_state_dict(torch.load("checkpoint.pt"))
+space = SearchSpace([Float("scale", 0.1, 2.0), Int("count", 1, 8)])
+search = PhasedDFO(space=space, budget=100, seed=42)
+def objective(trials):
+    return torch.tensor([
+        (trial["scale"] - 1.0) ** 2 + abs(trial["count"] - 4)
+        for trial in trials
+    ], dtype=search.dtype, device=search.device)
+
+best_encoded, best_score = search.optimize(objective)
 ```
 
-Same-device round-trips are bit-exact. Cross-device loads fall back to seed-based RNG re-initialisation (non-bit-exact continuation, documented).
+Integer and categorical decoding does not replace domain-specific mutation or feasibility rules. General constraints and multi-objective search need further design and evaluation.
 
-## GPU performance
+## Research lab
 
-torch-dfo is designed around batched tensor operations — all candidate evaluation, covariance updates, and selection happen on-device with no host round-trips. `DLRPortfolio` uses a diagonal-plus-low-rank covariance approximation (no eigendecomposition) to scale to high dimensions without falling back to CPU.
+The [calibration benchmark](benchmarks/calibration.py) adapts a public predator-prey simulation task.
+It compares native torch-dfo methods with SciPy differential evolution and optional EvoTorch CMA-ES.
+The [protocol](research/redesign/calibration-protocol.md) specifies candidate budgets, seeds, evaluator checks, and an exploratory temporal split.
+This CPU simulator benchmark does not measure GPU acceleration. Its dependencies stay outside the core package.
 
-Scaling ceiling on a single NVIDIA RTX A4500 (19.6 GB usable, double precision):
+The repository includes a quantized thermal-control reference study.
+It compares CMA-ES, SHADE, random search, and simple domain baselines on fixed train and held-out scenarios.
+An optional EvoTorch baseline runs against the same objective.
+The small RC model is a reproducible optimization example, not a validated building simulator.
 
-| Optimizer | Max dim (no OOM) |
-|---|---|
-| `DLRPortfolio` | ≥ 20 480 (ceiling not hit, peak ≤ 123 MB) |
-| `SHADE` | ≥ 20 480 (ceiling not hit, peak ≤ 151 MB) |
-| `NelderMead` | 20 480 |
-| `CMAES` | 10 240 (`O(d²)` covariance) |
-| `PhasedDFO` | 5 120 (pop scales ~4·d) |
+The study audits its evaluator before tuning and records every bounded development trial.
+See [the study protocol](research/redesign/engineering-study.md) and [the example](examples/06_engineering_control.py).
+General autonomous code editing and frontier research remain later milestones in [the roadmap](research/redesign/roadmap.md).
 
-Full per-optimizer guidance, the quality caveat, and reproduction instructions live in [`docs/benchmarks.rst`](docs/benchmarks.rst).
+## Acknowledgements
 
-## PhasedDFO pipeline
+[EvoTorch](https://github.com/nnaisense/evotorch), developed by NNAISENSE and its contributors, is an implementation reference and source for this project. We study its algorithms and functional implementations and will adapt suitable code as the library develops. Reused implementations retain their source attribution.
 
-`PhasedDFO` is the library's flagship optimizer, combining three phases under a single budget-managed interface:
+The calibration benchmark adapts the Lotka-Volterra example and observed series from [calisim](https://github.com/Plant-Food-Research-Open/calisim). Its source revision and changes are recorded in the benchmark protocol. The benchmark retains the source license.
 
-1. **SHADE-DE** — global exploration with opposition-based init, Levy flight perturbation, and success-history adaptive parameters.
-2. **IPOP-CMA-ES** — exploitation with warm-started covariance from DE elites, mirrored sampling, active CMA updates, and population-doubling restarts.
-3. **Polish** — directional basin search (CMA eigenvectors + PCA + elite displacements), coordinate basin search, and FD-BFGS local convergence.
-
-### Benchmark results
-
-16 classical benchmarks (sphere/rosenbrock/rastrigin/ackley + shifted + rotated + shifted-rotated variants), 10 runs each, budget = `dim × 5000` FE, blackbox evaluation (no autograd):
-
-| Benchmark | Mean Fitness |
-|---|---|
-| Sphere 10d / 30d | 0.000000 |
-| Rosenbrock 10d / 30d | 0.000000 |
-| Rastrigin 10d / 30d | 0.000000 |
-| Ackley 10d / 30d | 0.000000 |
-| Shifted Sphere / Rosenbrock / Rastrigin / Ackley 30d | 0.000000 |
-| Rotated Rastrigin 30d | ~4.278 |
-| Rotated Ackley / ShiftRot Rastrigin / ShiftRot Ackley 30d | 0.000000 |
-| **Mean across 16 benchmarks** | **0.267** |
-
-14 of 16 solved to effectively zero. The residual mean is dominated by rotated Rastrigin 30d, where full covariance rotation combined with multimodal basin structure is the recognised hard case for DFO.
-
-## Search space API
-
-For structured (mixed continuous / integer / categorical) problems:
-
-```python
-from torch_dfo import SearchSpace, Float, Int, PhasedDFO
-
-space = SearchSpace([
-    Float("lr", 1e-5, 1e-1, log=True),
-    Int("batch_size", 16, 512),
-])
-
-opt = PhasedDFO(space=space, budget=500)
-for _ in range(opt.budget):
-    trial = opt.ask()               # dict of {param: value}
-    score = evaluate(trial)
-    opt.tell(trial, score)
-```
-
-## Citation
+## Citation and license
 
 ```bibtex
 @software{bonner2026torchdfo,
-  author  = {Bonner, Brett G.},
-  title   = {torch-dfo: GPU-accelerated derivative-free optimization for PyTorch},
-  year    = {2026},
-  url     = {https://github.com/bbopen/torch-dfo},
-  version = {0.10.0}
+  author = {Bonner, Brett G.},
+  title = {torch-dfo: Derivative-free optimization for PyTorch},
+  year = {2026},
+  url = {https://github.com/bbopen/torch-dfo},
+  version = {0.11.0b1}
 }
 ```
 
-## License
-
-MIT — see [LICENSE](LICENSE).
-
-## References
-
-- Hansen, N. (2001). Completely derandomized self-adaptation in evolution strategies. *Evolutionary Computation*.
-- Tanabe, R. & Fukunaga, A. (2014). Improving the search performance of SHADE using linear population size reduction. *IEEE CEC*.
-- Nelder, J. & Mead, R. (1965). A simplex method for function minimization. *Computer Journal*.
-- Loshchilov, I. (2014). A computationally efficient limited memory CMA-ES for large scale optimization. *GECCO*.
-- Zhang, J. & Sanderson, A. (2009). JADE: Adaptive differential evolution with optional external archive. *IEEE T-EC*.
+MIT. See [LICENSE](LICENSE).

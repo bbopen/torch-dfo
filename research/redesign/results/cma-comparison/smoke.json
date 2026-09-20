@@ -1,0 +1,3521 @@
+{
+  "protocol": "cma-comparison-v1",
+  "status": "failed",
+  "config": {
+    "dim": 16,
+    "population": 32,
+    "budget": 64,
+    "seeds": [
+      11
+    ],
+    "methods": [
+      "torch_dfo_cpu",
+      "torch_dfo_cuda",
+      "evox_cuda",
+      "pycma_cpu",
+      "pycma_cuda_objective",
+      "random_cpu"
+    ],
+    "tasks": [
+      "shifted_sphere",
+      "rotated_ellipsoid",
+      "rotated_rastrigin",
+      "thermal_train"
+    ],
+    "sigma": 0.6,
+    "native_guard_abs": 1000000.0,
+    "native_sigma0_fraction": 3e-07,
+    "float_dtype": "torch.float64",
+    "cpu_threads": 1,
+    "thermal_note": "All optimizers search raw requests. The objective saturates and quantizes actuators. This differs from the older bounded study.",
+    "timing_note": "Task setup, method initialization, and all generations are included. CUDA synchronizes at timing boundaries. Objectives run eager. EvoX torch.cond may compile internally.",
+    "target_time_note": "target_hit_elapsed_s starts at method initialization. target_hit_complete_elapsed_s also includes task setup.",
+    "algorithm_modes": {
+      "torch_dfo": "Passive, unmirrored CMA-ES. Each eigendecomposition clamps eigenvalues and normalizes them by their mean.",
+      "evox": "Stock v1.4.0 passive CMA-ES. It decomposes periodically and clamps eigenvalues. Its rank-one covariance update has the confirmed scalar-dot-product error.",
+      "pycma": "Stock 4.5.0 CMA-ES with active update and mirroring disabled. Its own adaptation and decomposition remain unchanged."
+    },
+    "evox_reference_status": "stock_upstream_covariance_bug_confirmed; quality_results_quarantined"
+  },
+  "fixture": {
+    "seed": 20260920,
+    "shift": [
+      0.5,
+      0.5666666666666667,
+      0.6333333333333333,
+      0.7,
+      0.7666666666666666,
+      0.8333333333333334,
+      0.9,
+      0.9666666666666667,
+      1.0333333333333334,
+      1.1,
+      1.1666666666666667,
+      1.2333333333333334,
+      1.3,
+      1.3666666666666667,
+      1.4333333333333333,
+      1.5
+    ],
+    "rotation": [
+      [
+        0.10996695538042411,
+        0.3027702718292469,
+        -0.17314046414817494,
+        -0.027966353809434713,
+        0.4345325589834405,
+        0.13729555962994466,
+        0.0653342592164277,
+        0.32211252611159075,
+        -0.10064869265219883,
+        0.04188111649724521,
+        0.4259073923723999,
+        0.23502329055556662,
+        0.3302344159416639,
+        0.3810392273668096,
+        0.0522686580576867,
+        0.2104497978648645
+      ],
+      [
+        0.18539051712049615,
+        -0.39199960817908713,
+        -0.32931524615591556,
+        0.06776981457287012,
+        0.08124922561056605,
+        0.3308889901062846,
+        -0.3475719630266115,
+        -0.11555689511971429,
+        0.25179334459976793,
+        -0.2034953819478784,
+        0.31932034846266727,
+        0.045988007252915006,
+        -0.29645173732854546,
+        0.041501729847062116,
+        -0.3836152352005229,
+        0.05494945739388523
+      ],
+      [
+        -0.2503096078730918,
+        -0.21873364102216608,
+        0.3033326315208135,
+        -0.0672677126647706,
+        -0.10418765790489956,
+        -0.47704179170417793,
+        -0.2647839546188668,
+        -0.3086096899903749,
+        0.14282027212947498,
+        -0.05431418950041506,
+        0.16689595673418575,
+        0.22589654562121142,
+        0.10974643628619597,
+        0.47892624465579714,
+        0.015642989236344353,
+        0.21283829375279043
+      ],
+      [
+        0.29062869351532794,
+        0.3958663112399043,
+        0.31639424474388117,
+        -0.09297555368294727,
+        0.15166310611637532,
+        0.07802211998456775,
+        -0.4825763553177301,
+        -0.264095416598689,
+        -0.38043316434475444,
+        0.10887954363483818,
+        -0.0033039006768069614,
+        -0.21928950282753706,
+        -0.2686034381675097,
+        -0.003000156725247734,
+        -0.03642633202050905,
+        0.20048177655705948
+      ],
+      [
+        -0.109279916280497,
+        0.14532261006544778,
+        -0.13653194567841492,
+        -0.07293566117860417,
+        0.6166642748849356,
+        -0.2635718300023973,
+        -0.013901214829163509,
+        -0.29733252535304694,
+        0.09493941208468368,
+        0.038516744998437796,
+        -0.13009754564461387,
+        0.16619344754999213,
+        -0.10584201926473101,
+        -0.01951850259557659,
+        -0.13922452386357653,
+        -0.5644680735951889
+      ],
+      [
+        0.07358538200193464,
+        0.22696962487758876,
+        -0.3426017378479897,
+        -0.043511970985254646,
+        0.03755918753055396,
+        -0.224264121944289,
+        -0.10903238734130753,
+        0.13258621677801558,
+        0.16010154899041712,
+        -0.5422751723043484,
+        -0.3200860130840408,
+        0.06633939372289538,
+        -0.31175805465963685,
+        0.07928511625526485,
+        0.38378059784817337,
+        0.25555993857987325
+      ],
+      [
+        -0.1324465946934077,
+        -0.11899864310857838,
+        -0.005567143269713775,
+        -0.43621784155519067,
+        0.0975571059008715,
+        0.3898819560235012,
+        0.07253843417221163,
+        -0.4520345199763037,
+        0.019743213197054143,
+        -0.21803072996870573,
+        0.18304384677394953,
+        -0.1322472839049873,
+        0.20165287571435858,
+        -0.10071023273975806,
+        0.5056418108554382,
+        -0.03816021649228087
+      ],
+      [
+        0.06530968841133009,
+        0.37835769122035495,
+        -0.25344760716782005,
+        -0.057426048640368856,
+        -0.5061619901942099,
+        0.061411201964133376,
+        0.17354264293480406,
+        -0.2797968704369795,
+        -0.01125781233789471,
+        0.23143741448356933,
+        0.24930746192098152,
+        0.38471331232531014,
+        -0.30934800800778317,
+        0.13615764090476148,
+        0.07653332128295519,
+        -0.18091718235786372
+      ],
+      [
+        0.1426246353275969,
+        0.005354356131336814,
+        -0.21822588670810905,
+        -0.3199632975237444,
+        0.06968684261210915,
+        -0.3425146534846205,
+        0.048966846908010855,
+        0.04064378353738922,
+        0.42540828965872407,
+        0.4843150472110395,
+        0.1964666373818719,
+        -0.4115966638867898,
+        -0.08930811478215084,
+        -0.12906952091941465,
+        0.08018232020214905,
+        0.22090714224176317
+      ],
+      [
+        0.7237560041189927,
+        -0.23837207766449825,
+        -0.12089451629741715,
+        0.2389263599479299,
+        -0.05733451041874925,
+        -0.20596999605626956,
+        -0.10714233197057772,
+        -0.17540480291948035,
+        -0.07539355769131553,
+        0.05314004061470541,
+        -0.060410629443828696,
+        0.10591134555945,
+        0.3541402168190162,
+        -0.02388311504554169,
+        0.2830250065720762,
+        -0.17387909469298182
+      ],
+      [
+        -0.030131253279513312,
+        -0.20561476411286972,
+        0.08043386950555685,
+        -0.38399818082859033,
+        -0.06442425481079732,
+        0.14180352026516083,
+        -0.45354939171044334,
+        0.4769775132734476,
+        0.0017372856552529087,
+        0.2645711175497359,
+        -0.1298197191610784,
+        0.23285639017992593,
+        -0.12152181638862232,
+        0.09743495069426968,
+        0.2731655377242897,
+        -0.3247467620243828
+      ],
+      [
+        -0.10091419594554073,
+        0.05764514970115501,
+        0.309245454299527,
+        0.4827721955176572,
+        0.10024933342247425,
+        -0.08061861336132543,
+        -0.08399179999149724,
+        0.14348779846159798,
+        0.18218214051940076,
+        -0.06726671115453839,
+        0.4983795153615343,
+        -0.005258183032143758,
+        -0.24377159790138203,
+        -0.2849980339446751,
+        0.40043598048975604,
+        -0.16271625369496293
+      ],
+      [
+        -0.25847466170596345,
+        0.006119349894620867,
+        -0.3877981182940168,
+        0.20513338140110554,
+        -0.14922270039533397,
+        -0.09101608718296879,
+        -0.20483340434546804,
+        0.031120360734671646,
+        -0.3032019793582525,
+        -0.02154075062715072,
+        0.12197829672524341,
+        -0.5682115938925457,
+        0.06407381347012397,
+        0.3586910586927887,
+        0.0949856511279339,
+        -0.3086814015434722
+      ],
+      [
+        0.12001430371031421,
+        0.38418340777813803,
+        0.11906228100316897,
+        -0.2562481369416308,
+        -0.27845410026464934,
+        -0.1048325464545208,
+        -0.22905010949287977,
+        0.13300783994864102,
+        0.28171292108525486,
+        -0.3845942414823914,
+        0.18015650424402044,
+        -0.10133897176879862,
+        0.37242173351097013,
+        -0.17172752098916536,
+        -0.2842754894801015,
+        -0.2836854914661575
+      ],
+      [
+        -0.355838627797312,
+        0.16378024797215018,
+        -0.3259952922941991,
+        0.23214310608152666,
+        -0.03204124833024601,
+        0.07088362976640349,
+        -0.45053000251042696,
+        -0.14123359594559237,
+        0.06826609057367763,
+        0.24674711878476016,
+        -0.13088855989970008,
+        0.22087902839435342,
+        0.34374658501322713,
+        -0.38578720085049056,
+        0.04488089266887106,
+        0.23863083009168445
+      ],
+      [
+        -0.06452521108319763,
+        -0.20797648542056385,
+        -0.18438470995186282,
+        -0.28114041235001547,
+        -0.012071683733603674,
+        -0.38963636351523545,
+        0.020919875804204582,
+        0.1008712731749328,
+        -0.5747841139100085,
+        -0.1556140949171907,
+        0.3190325593183437,
+        0.17092935724413136,
+        -0.07460112902400623,
+        -0.4164500382199887,
+        -0.08356964636428671,
+        0.07347624008766751
+      ]
+    ],
+    "sha256_float64_le_shift_then_rotation": "0eaea792e5815e14d987984d3505411dea7b7c2a9704ef29e50fb63719b6cc18"
+  },
+  "sources": {
+    "torch_dfo_head": null,
+    "torch_dfo_cma_sha256": "ecd49f62513f23dcb3211a5dbe28dc265b00309c395c717f3707c3ef2f55e955",
+    "comparison_sha256": "ed4b19fe690e0039b8dd5e26e0a52af8bc51646a8f8a213e48c81335160d2c34",
+    "thermal_sha256": "50e705ff64bcdcf9fcad581917c16a5d0352b588aaa74ec80074da5529f00661",
+    "thermal_task_hash": "38f1c9b6297c6bfff0f8e9b1a486a6c55e0608dc87512992f3015c2bad91a2dd",
+    "evox_covariance_probe_sha256": "c99bbaff390496341820378617412a0bfad813c5d2782d73c77771419cbc8f07",
+    "evox": {
+      "distribution": "evox",
+      "version": "1.4.0",
+      "file": "/work/deps/evox/algorithms/so/es_variants/cma_es.py",
+      "sha256": "3c68f5f274af8fe9f85f7257a368a84b71800a4611c94ccae3b589bfca69cb0a",
+      "git_head": null
+    },
+    "pycma": {
+      "distribution": "cma",
+      "version": "4.5.0",
+      "file": "/work/deps/cma/evolution_strategy.py",
+      "sha256": "77076e97a1df36a9c744b4820adebc6acbf8288599263c119804827f89070700",
+      "git_head": null
+    }
+  },
+  "environment": {
+    "python": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+    "platform": "Linux-6.17.0-1031-nvidia-aarch64-with-glibc2.39",
+    "torch": "2.13.0+cu130",
+    "numpy": "2.3.5",
+    "cuda_runtime": "13.0",
+    "gpu": "NVIDIA GB10"
+  },
+  "runs": [
+    {
+      "seed": 11,
+      "task": "shifted_sphere",
+      "method": "torch_dfo_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 10.751479202232524,
+      "best_x": [
+        0.7274348735305939,
+        0.3599738590748927,
+        -0.38090574648151415,
+        0.22742256247701842,
+        -0.15034156128279724,
+        0.6680500432226358,
+        0.4091587631618204,
+        0.940960986040725,
+        0.3349558050144821,
+        0.5580540975028696,
+        -0.13642485622003253,
+        0.06826593541660647,
+        0.2022262646295904,
+        0.8394508473561751,
+        -0.2606186371089317,
+        1.174717513438644
+      ],
+      "target": 1e-08,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 10.751479202232527,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.0004107370041310787,
+        "generation_1": 0.0008027858566492796,
+        "remaining_generations": 0.0003048810176551342,
+        "total": 0.0015184038784354925,
+        "task_setup": 7.056002505123615e-05,
+        "complete_total": 0.0015889639034867287
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 13.661516393069187,
+          "elapsed_s": 0.0012124190106987953
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 10.751479202232524,
+          "elapsed_s": 0.0015176518354564905
+        }
+      ],
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": null
+    },
+    {
+      "seed": 11,
+      "task": "shifted_sphere",
+      "method": "torch_dfo_cuda",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 9.096500916122327,
+      "best_x": [
+        -0.1859071976478048,
+        0.4126992865558521,
+        0.5087771304618313,
+        0.4258788880905929,
+        0.44388850706895155,
+        0.5638741028515635,
+        0.5579435672990137,
+        0.18992546728056536,
+        0.5937771027906584,
+        1.339074340526765,
+        0.37444586159791193,
+        0.3509984062739722,
+        1.2498986110254897,
+        -0.1886573608459473,
+        1.0305810770427273,
+        -0.33692646234617246
+      ],
+      "target": 1e-08,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 9.096500916122327,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.00730595295317471,
+        "generation_1": 0.0800866091158241,
+        "remaining_generations": 0.0017399718053638935,
+        "total": 0.08913253387436271,
+        "task_setup": 8.025695569813251e-05,
+        "complete_total": 0.08921279083006084
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 14.924117160695733,
+          "elapsed_s": 0.08738859393633902
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 9.096500916122327,
+          "elapsed_s": 0.08913139789365232
+        }
+      ],
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": null,
+      "cuda_allocated_bytes": {
+        "baseline": 33554432,
+        "peak": 34243584,
+        "end": 33554944,
+        "peak_delta": 689152
+      }
+    },
+    {
+      "seed": 11,
+      "task": "shifted_sphere",
+      "method": "evox_cuda",
+      "budget": 64,
+      "status": "failed",
+      "error": "PartialRunError('This higher order operator doesn\\'t work unless it is captured completely with torch.compile. Got graph break/error:\\n\\nEncountered aliasing during higher order op tracing\\n  Higher Order Operator: torch.cond\\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\\n  Hint: Consider using the debug context to change user code to avoid aliasing.\\n  Hint: Please open an issue.\\n\\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\\n     graph():\\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\\n        return (stack,)\\n\\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\\n\\nfrom user code:\\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\\n    return cond_op(*args, **kwargs)\\n           ^^^^^^^^^^^^^^^^^^^^^^^^\\n\\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you\\'re reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\\n')",
+      "traceback": "Traceback (most recent call last):\n  File \"/work/source/benchmarks/cma_comparison.py\", line 591, in run_one\n    output = _evox(task, seed, budget, evox_source, objective)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/source/benchmarks/cma_comparison.py\", line 469, in _evox\n    workflow.init_step()\n  File \"/work/deps/evox/workflows/std_workflow.py\", line 215, in init_step\n    self._step(init=True, final=False)\n  File \"/work/deps/evox/workflows/std_workflow.py\", line 204, in _step\n    self.algorithm.step()\n  File \"/work/deps/evox/algorithms/so/es_variants/cma_es.py\", line 116, in step\n    self.B, self.D, self.C_invsqrt = self._conditional_decomposition(self.iteration, self.C)\n                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/deps/evox/algorithms/so/es_variants/cma_es.py\", line 155, in _conditional_decomposition\n    B, D, C_invsqrt = torch.cond(\n                      ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 246, in cond\n    return _hop_compile_and_call(_cond_op_wrapper, (pred, true_fn, false_fn, operands))\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/utils.py\", line 113, in _hop_compile_and_call\n    return torch.compile(fn, backend=backend, fullgraph=True)(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_dynamo/eval_frame.py\", line 1177, in compile_wrapper\n    raise e.with_traceback(\ntorch._dynamo.exc.UncapturedHigherOrderOpError: This higher order operator doesn't work unless it is captured completely with torch.compile. Got graph break/error:\n\nEncountered aliasing during higher order op tracing\n  Higher Order Operator: torch.cond\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\n  Hint: Consider using the debug context to change user code to avoid aliasing.\n  Hint: Please open an issue.\n\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\n     graph():\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\n        return (stack,)\n\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\n\nfrom user code:\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\n    return cond_op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\n\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/work/source/benchmarks/cma_comparison.py\", line 835, in main\n    run_one(\n  File \"/work/source/benchmarks/cma_comparison.py\", line 595, in run_one\n    raise PartialRunError(error, objective.partial()) from error\nPartialRunError: This higher order operator doesn't work unless it is captured completely with torch.compile. Got graph break/error:\n\nEncountered aliasing during higher order op tracing\n  Higher Order Operator: torch.cond\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\n  Hint: Consider using the debug context to change user code to avoid aliasing.\n  Hint: Please open an issue.\n\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\n     graph():\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\n        return (stack,)\n\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\n\nfrom user code:\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\n    return cond_op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\n\n",
+      "attempted": 32,
+      "completed": 32,
+      "batch_calls": 1,
+      "best_value": 14.924117160695733,
+      "best_x": [
+        1.2946578263537092,
+        0.038453948667690294,
+        -0.1371886359961969,
+        -0.3313724377902,
+        0.5205427860401763,
+        0.3403587011859983,
+        -0.17757336503837318,
+        0.17167632113591627,
+        0.057331475244905956,
+        0.41323307716456126,
+        0.4739553986841956,
+        1.1890993546581186,
+        0.663916779759924,
+        -0.5636564359229924,
+        0.6156635668916056,
+        -0.38521942626097916
+      ],
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "trace": []
+    },
+    {
+      "seed": 11,
+      "task": "shifted_sphere",
+      "method": "pycma_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 5.898378802657887,
+      "best_x": [
+        1.2655852952545004,
+        0.5177119734620642,
+        1.2274201470477006,
+        1.2953436477411653,
+        0.38116998856408535,
+        -0.07196723113577425,
+        2.0827791147843975,
+        0.612589573071858,
+        0.2955599733813551,
+        0.5993222645219185,
+        0.6650122457091763,
+        0.953400584571557,
+        1.2895043954910643,
+        0.5212683909815345,
+        1.1714397355358228,
+        1.051033981659295
+      ],
+      "target": 1e-08,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 5.898378802657886,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.0014327880926430225,
+        "generation_1": 0.0006308970041573048,
+        "remaining_generations": 0.0026779419276863337,
+        "total": 0.004741627024486661,
+        "task_setup": 6.892811506986618e-05,
+        "complete_total": 0.004810555139556527
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 11.132358063827036,
+          "elapsed_s": 0.002062740968540311
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 5.898378802657887,
+          "elapsed_s": 0.004740939009934664
+        }
+      ],
+      "imported_source": {
+        "file": "/work/deps/cma/evolution_strategy.py",
+        "sha256": "77076e97a1df36a9c744b4820adebc6acbf8288599263c119804827f89070700"
+      },
+      "pycma_mode": "CPU_strategy_CPU_objective",
+      "pycma_stop_conditions_ignored_until_fixed_budget": true,
+      "target_hit_complete_elapsed_s": null
+    },
+    {
+      "seed": 11,
+      "task": "shifted_sphere",
+      "method": "pycma_cuda_objective",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 5.898378802657887,
+      "best_x": [
+        1.2655852952545004,
+        0.5177119734620642,
+        1.2274201470477006,
+        1.2953436477411653,
+        0.38116998856408535,
+        -0.07196723113577425,
+        2.0827791147843975,
+        0.612589573071858,
+        0.2955599733813551,
+        0.5993222645219185,
+        0.6650122457091763,
+        0.953400584571557,
+        1.2895043954910643,
+        0.5212683909815345,
+        1.1714397355358228,
+        1.051033981659295
+      ],
+      "target": 1e-08,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 5.898378802657886,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.0012086268980056047,
+        "generation_1": 0.0005608501378446817,
+        "remaining_generations": 0.00047854497097432613,
+        "total": 0.0022480220068246126,
+        "task_setup": 0.00012047984637320042,
+        "complete_total": 0.002368501853197813
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 11.132358063827036,
+          "elapsed_s": 0.001769044902175665
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 5.898378802657887,
+          "elapsed_s": 0.0022475419100373983
+        }
+      ],
+      "imported_source": {
+        "file": "/work/deps/cma/evolution_strategy.py",
+        "sha256": "77076e97a1df36a9c744b4820adebc6acbf8288599263c119804827f89070700"
+      },
+      "pycma_mode": "CPU_strategy_CUDA_objective",
+      "pycma_stop_conditions_ignored_until_fixed_budget": true,
+      "target_hit_complete_elapsed_s": null,
+      "cuda_allocated_bytes": {
+        "baseline": 33554432,
+        "peak": 33568256,
+        "end": 33554944,
+        "peak_delta": 13824
+      }
+    },
+    {
+      "seed": 11,
+      "task": "shifted_sphere",
+      "method": "random_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 16.615196941755748,
+      "best_x": [
+        0.9124134622502114,
+        -0.06858690601557926,
+        -1.6040027130128105,
+        -1.3640887935732589,
+        1.2365445742039642,
+        1.1301376262939766,
+        1.235683603790081,
+        0.28370134459436525,
+        -0.883528482524643,
+        1.0218401807001265,
+        1.8770466213260142,
+        0.7934242367357665,
+        1.0589914070352249,
+        0.30258955256345343,
+        1.413634967182055,
+        0.9360269944548611
+      ],
+      "target": 1e-08,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 16.615196941755748,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 8.908798918128014e-05,
+        "generation_1": 0.00030036899261176586,
+        "remaining_generations": 0.00014228792861104012,
+        "total": 0.0005317449104040861,
+        "task_setup": 3.137602470815182e-05,
+        "complete_total": 0.0005631209351122379
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 17.752074675376775,
+          "elapsed_s": 0.00038912100717425346
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 16.615196941755748,
+          "elapsed_s": 0.000531280878931284
+        }
+      ],
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": null
+    },
+    {
+      "seed": 11,
+      "task": "rotated_ellipsoid",
+      "method": "torch_dfo_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 101284.27763995377,
+      "best_x": [
+        0.1627221839621853,
+        -0.1340509535227683,
+        -1.5562958576818926,
+        -0.3714786205462695,
+        0.8014662790988238,
+        -0.13832277165318574,
+        0.9184868374599374,
+        0.2555132776145303,
+        0.952848932858028,
+        2.170182109815211,
+        0.6491647152817633,
+        -0.019944438853821078,
+        -0.33332322456135177,
+        -0.9951711905125268,
+        0.681936229319465,
+        -0.08732465458745126
+      ],
+      "target": 0.0001,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 101284.2776399538,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.0001414890866726637,
+        "generation_1": 0.0004255208186805248,
+        "remaining_generations": 0.0002745441161096096,
+        "total": 0.0008415540214627981,
+        "task_setup": 5.777599290013313e-05,
+        "complete_total": 0.0008993300143629313
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 250788.10557131685,
+          "elapsed_s": 0.0005666259676218033
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 101284.27763995377,
+          "elapsed_s": 0.000841089989989996
+        }
+      ],
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": null
+    },
+    {
+      "seed": 11,
+      "task": "rotated_ellipsoid",
+      "method": "torch_dfo_cuda",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 378718.4803003962,
+      "best_x": [
+        0.7593543359845836,
+        -0.004488231193717732,
+        0.4712451369028959,
+        0.09411528495938097,
+        0.5582288934559552,
+        0.5343670494952182,
+        0.6912347902851462,
+        1.0382770167848228,
+        -0.4177982871435663,
+        0.44468861750285893,
+        -0.40773967963945,
+        1.4740512690586143,
+        1.3543668777616489,
+        -0.27930886913374586,
+        0.06995597264037351,
+        0.03703713049926305
+      ],
+      "target": 0.0001,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 378718.4803003963,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.0003230080474168062,
+        "generation_1": 0.0015691400039941072,
+        "remaining_generations": 0.0013222109992057085,
+        "total": 0.003214359050616622,
+        "task_setup": 9.470409713685513e-05,
+        "complete_total": 0.003309063147753477
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 488578.9041752305,
+          "elapsed_s": 0.0018915559630841017
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 378718.4803003962,
+          "elapsed_s": 0.003213814925402403
+        }
+      ],
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": null,
+      "cuda_allocated_bytes": {
+        "baseline": 33554432,
+        "peak": 34246144,
+        "end": 33557504,
+        "peak_delta": 691712
+      }
+    },
+    {
+      "seed": 11,
+      "task": "rotated_ellipsoid",
+      "method": "evox_cuda",
+      "budget": 64,
+      "status": "failed",
+      "error": "PartialRunError('This higher order operator doesn\\'t work unless it is captured completely with torch.compile. Got graph break/error:\\n\\nEncountered aliasing during higher order op tracing\\n  Higher Order Operator: torch.cond\\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\\n  Hint: Consider using the debug context to change user code to avoid aliasing.\\n  Hint: Please open an issue.\\n\\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\\n     graph():\\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\\n        return (stack,)\\n\\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\\n\\nfrom user code:\\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\\n    return cond_op(*args, **kwargs)\\n           ^^^^^^^^^^^^^^^^^^^^^^^^\\n\\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you\\'re reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\\n')",
+      "traceback": "Traceback (most recent call last):\n  File \"/work/source/benchmarks/cma_comparison.py\", line 591, in run_one\n    output = _evox(task, seed, budget, evox_source, objective)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/source/benchmarks/cma_comparison.py\", line 469, in _evox\n    workflow.init_step()\n  File \"/work/deps/evox/workflows/std_workflow.py\", line 215, in init_step\n    self._step(init=True, final=False)\n  File \"/work/deps/evox/workflows/std_workflow.py\", line 204, in _step\n    self.algorithm.step()\n  File \"/work/deps/evox/algorithms/so/es_variants/cma_es.py\", line 116, in step\n    self.B, self.D, self.C_invsqrt = self._conditional_decomposition(self.iteration, self.C)\n                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/deps/evox/algorithms/so/es_variants/cma_es.py\", line 155, in _conditional_decomposition\n    B, D, C_invsqrt = torch.cond(\n                      ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 246, in cond\n    return _hop_compile_and_call(_cond_op_wrapper, (pred, true_fn, false_fn, operands))\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/utils.py\", line 113, in _hop_compile_and_call\n    return torch.compile(fn, backend=backend, fullgraph=True)(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_dynamo/eval_frame.py\", line 1177, in compile_wrapper\n    raise e.with_traceback(\ntorch._dynamo.exc.UncapturedHigherOrderOpError: This higher order operator doesn't work unless it is captured completely with torch.compile. Got graph break/error:\n\nEncountered aliasing during higher order op tracing\n  Higher Order Operator: torch.cond\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\n  Hint: Consider using the debug context to change user code to avoid aliasing.\n  Hint: Please open an issue.\n\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\n     graph():\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\n        return (stack,)\n\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\n\nfrom user code:\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\n    return cond_op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\n\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/work/source/benchmarks/cma_comparison.py\", line 835, in main\n    run_one(\n  File \"/work/source/benchmarks/cma_comparison.py\", line 595, in run_one\n    raise PartialRunError(error, objective.partial()) from error\nPartialRunError: This higher order operator doesn't work unless it is captured completely with torch.compile. Got graph break/error:\n\nEncountered aliasing during higher order op tracing\n  Higher Order Operator: torch.cond\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\n  Hint: Consider using the debug context to change user code to avoid aliasing.\n  Hint: Please open an issue.\n\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\n     graph():\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\n        return (stack,)\n\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\n\nfrom user code:\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\n    return cond_op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\n\n",
+      "attempted": 32,
+      "completed": 32,
+      "batch_calls": 1,
+      "best_value": 488578.9041752305,
+      "best_x": [
+        0.7337164956469038,
+        -0.21163419214066836,
+        -0.13003600573620425,
+        0.4778526317033008,
+        -0.09214809729622679,
+        0.1291765461556558,
+        0.48415920200726686,
+        0.8959986454532501,
+        -0.0036584011169140214,
+        1.655877475660043,
+        -0.9754272630583449,
+        1.0327704363729455,
+        0.8300795308229938,
+        0.20836444174847354,
+        -0.5130552229917996,
+        -0.7068915022057547
+      ],
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "trace": []
+    },
+    {
+      "seed": 11,
+      "task": "rotated_ellipsoid",
+      "method": "pycma_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 59115.95601256017,
+      "best_x": [
+        0.3315646111602898,
+        -1.073283359905047,
+        0.04359330479284457,
+        -1.2760537534066507,
+        0.9434198163330996,
+        1.0852266574185945,
+        0.8458719193608124,
+        0.72014826008628,
+        0.11853059660917586,
+        -0.289568032224555,
+        0.5769920762354924,
+        1.1622208808527887,
+        -0.7336375634331517,
+        0.6905406951834188,
+        -0.016281173248363312,
+        0.3290596486058293
+      ],
+      "target": 0.0001,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 59115.9560125602,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.0011986908502876759,
+        "generation_1": 0.0004175049252808094,
+        "remaining_generations": 0.00036356900818645954,
+        "total": 0.001979764783754945,
+        "task_setup": 6.233598105609417e-05,
+        "complete_total": 0.002042100764811039
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 535913.6976743973,
+          "elapsed_s": 0.001615795772522688
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 59115.95601256017,
+          "elapsed_s": 0.001979476772248745
+        }
+      ],
+      "imported_source": {
+        "file": "/work/deps/cma/evolution_strategy.py",
+        "sha256": "77076e97a1df36a9c744b4820adebc6acbf8288599263c119804827f89070700"
+      },
+      "pycma_mode": "CPU_strategy_CPU_objective",
+      "pycma_stop_conditions_ignored_until_fixed_budget": true,
+      "target_hit_complete_elapsed_s": null
+    },
+    {
+      "seed": 11,
+      "task": "rotated_ellipsoid",
+      "method": "pycma_cuda_objective",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 59115.95601256018,
+      "best_x": [
+        0.3315646111602898,
+        -1.073283359905047,
+        0.04359330479284457,
+        -1.2760537534066507,
+        0.9434198163330996,
+        1.0852266574185945,
+        0.8458719193608124,
+        0.72014826008628,
+        0.11853059660917586,
+        -0.289568032224555,
+        0.5769920762354924,
+        1.1622208808527887,
+        -0.7336375634331517,
+        0.6905406951834188,
+        -0.016281173248363312,
+        0.3290596486058293
+      ],
+      "target": 0.0001,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 59115.9560125602,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.0010862431954592466,
+        "generation_1": 0.0005100008565932512,
+        "remaining_generations": 0.0004785931669175625,
+        "total": 0.0020748372189700603,
+        "task_setup": 0.00010139215737581253,
+        "complete_total": 0.002176229376345873
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 535913.6976743973,
+          "elapsed_s": 0.0015958920121192932
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 59115.95601256018,
+          "elapsed_s": 0.0020744691137224436
+        }
+      ],
+      "imported_source": {
+        "file": "/work/deps/cma/evolution_strategy.py",
+        "sha256": "77076e97a1df36a9c744b4820adebc6acbf8288599263c119804827f89070700"
+      },
+      "pycma_mode": "CPU_strategy_CUDA_objective",
+      "pycma_stop_conditions_ignored_until_fixed_budget": true,
+      "target_hit_complete_elapsed_s": null,
+      "cuda_allocated_bytes": {
+        "baseline": 33589760,
+        "peak": 33605632,
+        "end": 33592832,
+        "peak_delta": 15872
+      }
+    },
+    {
+      "seed": 11,
+      "task": "rotated_ellipsoid",
+      "method": "random_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 355313.92471895943,
+      "best_x": [
+        0.5142680577486338,
+        -0.7293375424623005,
+        -0.7325692025208341,
+        -1.4670793594235119,
+        -0.17104320264767958,
+        1.835024558368307,
+        -0.032200227028114536,
+        0.7540124127312415,
+        -0.0389179626311047,
+        -1.5274338625675705,
+        1.9658228473655575,
+        1.3256726951835334,
+        0.6838676809662121,
+        1.7168891555039645,
+        -0.04843323440613645,
+        -0.5518883340576961
+      ],
+      "target": 0.0001,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 355313.92471895955,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 5.974387750029564e-05,
+        "generation_1": 0.00028020795434713364,
+        "remaining_generations": 0.0001439051702618599,
+        "total": 0.00048385700210928917,
+        "task_setup": 4.796893335878849e-05,
+        "complete_total": 0.0005318259354680777
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 363121.7931588946,
+          "elapsed_s": 0.00033963192254304886
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 355313.92471895943,
+          "elapsed_s": 0.0004834888968616724
+        }
+      ],
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": null
+    },
+    {
+      "seed": 11,
+      "task": "rotated_rastrigin",
+      "method": "torch_dfo_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 121.84245665969678,
+      "best_x": [
+        -0.10889591024923356,
+        0.4559510547783775,
+        -1.0783298430787598,
+        0.16011281870985108,
+        -0.5518579439712302,
+        -0.055927158247490165,
+        0.9962294423648429,
+        -0.6540010457228642,
+        -0.2887763507703237,
+        0.5374513085732531,
+        -0.5458952748795003,
+        -0.7501057738292601,
+        -0.4829095190604557,
+        0.5245745252528322,
+        -1.0868702761676954,
+        0.16216720268070925
+      ],
+      "target": 0.0001,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 121.84245665969686,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.00011766399256885052,
+        "generation_1": 0.00038784113712608814,
+        "remaining_generations": 0.000270273070782423,
+        "total": 0.0007757782004773617,
+        "task_setup": 2.719997428357601e-05,
+        "complete_total": 0.0008029781747609377
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 143.37885094353572,
+          "elapsed_s": 0.0005050571635365486
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 121.84245665969678,
+          "elapsed_s": 0.0007753621321171522
+        }
+      ],
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": null
+    },
+    {
+      "seed": 11,
+      "task": "rotated_rastrigin",
+      "method": "torch_dfo_cuda",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 100.72201086951299,
+      "best_x": [
+        -0.3625538264304119,
+        -0.8959473309084284,
+        1.1173621601429753,
+        -0.5901307600422517,
+        0.3451399207574941,
+        -0.4186796880833095,
+        -0.7680883174911024,
+        0.32751180389005163,
+        0.18872080572007557,
+        0.004709070757858938,
+        -0.17391175926284702,
+        -0.02667527673719554,
+        -0.011998199312024907,
+        -0.40422646797264344,
+        0.013249330944833866,
+        0.26129604283165586
+      ],
+      "target": 0.0001,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 100.72201086951299,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.00030388799495995045,
+        "generation_1": 0.0014212680980563164,
+        "remaining_generations": 0.0013105790130794048,
+        "total": 0.0030357351060956717,
+        "task_setup": 5.582394078373909e-05,
+        "complete_total": 0.0030915590468794107
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 100.72201086951299,
+          "elapsed_s": 0.001724660163745284
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 100.72201086951299,
+          "elapsed_s": 0.003035175148397684
+        }
+      ],
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": null,
+      "cuda_allocated_bytes": {
+        "baseline": 33589760,
+        "peak": 34280960,
+        "end": 33592320,
+        "peak_delta": 691200
+      }
+    },
+    {
+      "seed": 11,
+      "task": "rotated_rastrigin",
+      "method": "evox_cuda",
+      "budget": 64,
+      "status": "failed",
+      "error": "PartialRunError('This higher order operator doesn\\'t work unless it is captured completely with torch.compile. Got graph break/error:\\n\\nEncountered aliasing during higher order op tracing\\n  Higher Order Operator: torch.cond\\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\\n  Hint: Consider using the debug context to change user code to avoid aliasing.\\n  Hint: Please open an issue.\\n\\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\\n     graph():\\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\\n        return (stack,)\\n\\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\\n\\nfrom user code:\\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\\n    return cond_op(*args, **kwargs)\\n           ^^^^^^^^^^^^^^^^^^^^^^^^\\n\\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you\\'re reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\\n')",
+      "traceback": "Traceback (most recent call last):\n  File \"/work/source/benchmarks/cma_comparison.py\", line 591, in run_one\n    output = _evox(task, seed, budget, evox_source, objective)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/source/benchmarks/cma_comparison.py\", line 469, in _evox\n    workflow.init_step()\n  File \"/work/deps/evox/workflows/std_workflow.py\", line 215, in init_step\n    self._step(init=True, final=False)\n  File \"/work/deps/evox/workflows/std_workflow.py\", line 204, in _step\n    self.algorithm.step()\n  File \"/work/deps/evox/algorithms/so/es_variants/cma_es.py\", line 116, in step\n    self.B, self.D, self.C_invsqrt = self._conditional_decomposition(self.iteration, self.C)\n                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/deps/evox/algorithms/so/es_variants/cma_es.py\", line 155, in _conditional_decomposition\n    B, D, C_invsqrt = torch.cond(\n                      ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 246, in cond\n    return _hop_compile_and_call(_cond_op_wrapper, (pred, true_fn, false_fn, operands))\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/utils.py\", line 113, in _hop_compile_and_call\n    return torch.compile(fn, backend=backend, fullgraph=True)(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_dynamo/eval_frame.py\", line 1177, in compile_wrapper\n    raise e.with_traceback(\ntorch._dynamo.exc.UncapturedHigherOrderOpError: This higher order operator doesn't work unless it is captured completely with torch.compile. Got graph break/error:\n\nEncountered aliasing during higher order op tracing\n  Higher Order Operator: torch.cond\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\n  Hint: Consider using the debug context to change user code to avoid aliasing.\n  Hint: Please open an issue.\n\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\n     graph():\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\n        return (stack,)\n\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\n\nfrom user code:\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\n    return cond_op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\n\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/work/source/benchmarks/cma_comparison.py\", line 835, in main\n    run_one(\n  File \"/work/source/benchmarks/cma_comparison.py\", line 595, in run_one\n    raise PartialRunError(error, objective.partial()) from error\nPartialRunError: This higher order operator doesn't work unless it is captured completely with torch.compile. Got graph break/error:\n\nEncountered aliasing during higher order op tracing\n  Higher Order Operator: torch.cond\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\n  Hint: Consider using the debug context to change user code to avoid aliasing.\n  Hint: Please open an issue.\n\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\n     graph():\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\n        return (stack,)\n\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\n\nfrom user code:\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\n    return cond_op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\n\n",
+      "attempted": 32,
+      "completed": 32,
+      "batch_calls": 1,
+      "best_value": 100.72201086951299,
+      "best_x": [
+        -0.3625538264304119,
+        -0.8959473309084284,
+        1.1173621601429753,
+        -0.5901307600422517,
+        0.3451399207574941,
+        -0.4186796880833095,
+        -0.7680883174911024,
+        0.32751180389005163,
+        0.18872080572007557,
+        0.004709070757858938,
+        -0.17391175926284702,
+        -0.02667527673719554,
+        -0.011998199312024907,
+        -0.40422646797264344,
+        0.013249330944833866,
+        0.26129604283165586
+      ],
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "trace": []
+    },
+    {
+      "seed": 11,
+      "task": "rotated_rastrigin",
+      "method": "pycma_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 115.22515560928127,
+      "best_x": [
+        0.021572581082655196,
+        -0.016083098301168566,
+        -0.04914736886247545,
+        -0.9871735108740427,
+        1.0455192184768418,
+        -0.3549609681342592,
+        1.2752340459189484,
+        -0.31947531068124435,
+        0.11442746671688275,
+        -0.7875171237446255,
+        -0.5023714980090174,
+        0.962298634071796,
+        0.6410178926364682,
+        0.08010160533995114,
+        0.03091613300950819,
+        0.837666771962123
+      ],
+      "target": 0.0001,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 115.22515560928127,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.0011959390249103308,
+        "generation_1": 0.0004147849977016449,
+        "remaining_generations": 0.0003654251340776682,
+        "total": 0.001976149156689644,
+        "task_setup": 3.358395770192146e-05,
+        "complete_total": 0.0020097331143915653
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 134.3082081456671,
+          "elapsed_s": 0.001610371982678771
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 115.22515560928127,
+          "elapsed_s": 0.001975797116756439
+        }
+      ],
+      "imported_source": {
+        "file": "/work/deps/cma/evolution_strategy.py",
+        "sha256": "77076e97a1df36a9c744b4820adebc6acbf8288599263c119804827f89070700"
+      },
+      "pycma_mode": "CPU_strategy_CPU_objective",
+      "pycma_stop_conditions_ignored_until_fixed_budget": true,
+      "target_hit_complete_elapsed_s": null
+    },
+    {
+      "seed": 11,
+      "task": "rotated_rastrigin",
+      "method": "pycma_cuda_objective",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 115.22515560928127,
+      "best_x": [
+        0.021572581082655196,
+        -0.016083098301168566,
+        -0.04914736886247545,
+        -0.9871735108740427,
+        1.0455192184768418,
+        -0.3549609681342592,
+        1.2752340459189484,
+        -0.31947531068124435,
+        0.11442746671688275,
+        -0.7875171237446255,
+        -0.5023714980090174,
+        0.962298634071796,
+        0.6410178926364682,
+        0.08010160533995114,
+        0.03091613300950819,
+        0.837666771962123
+      ],
+      "target": 0.0001,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 115.22515560928127,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.001096643041819334,
+        "generation_1": 0.000526817049831152,
+        "remaining_generations": 0.0005147058982402086,
+        "total": 0.0021381659898906946,
+        "task_setup": 6.544007919728756e-05,
+        "complete_total": 0.002203606069087982
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 134.3082081456671,
+          "elapsed_s": 0.0016231080517172813
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 115.22515560928127,
+          "elapsed_s": 0.0021377659868448973
+        }
+      ],
+      "imported_source": {
+        "file": "/work/deps/cma/evolution_strategy.py",
+        "sha256": "77076e97a1df36a9c744b4820adebc6acbf8288599263c119804827f89070700"
+      },
+      "pycma_mode": "CPU_strategy_CUDA_objective",
+      "pycma_stop_conditions_ignored_until_fixed_budget": true,
+      "target_hit_complete_elapsed_s": null,
+      "cuda_allocated_bytes": {
+        "baseline": 33624576,
+        "peak": 33648128,
+        "end": 33627136,
+        "peak_delta": 23552
+      }
+    },
+    {
+      "seed": 11,
+      "task": "rotated_rastrigin",
+      "method": "random_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 121.86326060630336,
+      "best_x": [
+        -1.3586258887370373,
+        -0.15110366363380434,
+        1.2327542365699302,
+        -1.4085688061459982,
+        0.9614824394507053,
+        0.019067670587890273,
+        -0.5638966344776346,
+        1.4270983373419384,
+        -0.35908815732400345,
+        1.9847512092034543,
+        0.4658407952581949,
+        1.9977061789873263,
+        0.3997120374623977,
+        -0.3888198615251315,
+        -0.5444457242220508,
+        1.008932036798516
+      ],
+      "target": 0.0001,
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "cpu_oracle_value": 121.86326060630334,
+      "oracle_relative_tolerance": 1e-12,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 6.0191843658685684e-05,
+        "generation_1": 0.00024635205045342445,
+        "remaining_generations": 0.00014451309107244015,
+        "total": 0.0004510569851845503,
+        "task_setup": 3.0176015570759773e-05,
+        "complete_total": 0.00048123300075531006
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 121.86326060630336,
+          "elapsed_s": 0.0003061438910663128
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 121.86326060630336,
+          "elapsed_s": 0.0004506248515099287
+        }
+      ],
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": null
+    },
+    {
+      "seed": 11,
+      "task": "thermal_train",
+      "method": "torch_dfo_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 2.0541493593150113,
+      "best_x": [
+        -0.18375550277009034,
+        0.048271801333755554,
+        -0.7870666561261973,
+        -0.8603550945819443,
+        -0.42009069636059493,
+        -0.7553794026430678,
+        -1.2593909057594237,
+        -0.101574620003029,
+        0.38245778750912246,
+        -0.31894274664230216,
+        -0.6959817708685382,
+        -1.0783102274244163,
+        -0.00994660691189745,
+        -1.7663564400208112,
+        -0.8043003015822233,
+        -0.46070055147136113
+      ],
+      "target": 3.5,
+      "evals_to_target": 2,
+      "target_hit_elapsed_s": 0.0005764330271631479,
+      "guard_hits": 0,
+      "cpu_oracle_value": 2.0541493593150113,
+      "oracle_relative_tolerance": 0.0,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.00011420785449445248,
+        "generation_1": 0.0007316821720451117,
+        "remaining_generations": 0.0005223208572715521,
+        "total": 0.0013682108838111162,
+        "task_setup": 0.000225903932005167,
+        "complete_total": 0.0015941148158162832
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 3.211203166454825,
+          "elapsed_s": 0.0008454739581793547
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 2.0541493593150113,
+          "elapsed_s": 0.0013677950482815504
+        }
+      ],
+      "effective_actuation": [
+        -0.25,
+        0.0,
+        -0.75,
+        -0.75,
+        -0.5,
+        -0.75,
+        -1.0,
+        -0.0,
+        0.5,
+        -0.25,
+        -0.75,
+        -1.0,
+        -0.0,
+        -1.0,
+        -0.75,
+        -0.5
+      ],
+      "heldout_diagnostic": 4.841592740128445,
+      "heldout_candidate_evaluations": 1,
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": 0.0008023369591683149
+    },
+    {
+      "seed": 11,
+      "task": "thermal_train",
+      "method": "torch_dfo_cuda",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 2.647918733023207,
+      "best_x": [
+        -0.8345798447656435,
+        -1.3451927476983998,
+        -0.04629769111794985,
+        -0.2715651444861875,
+        -0.22584891879173696,
+        -0.1069807713149492,
+        -0.5933508205342638,
+        -0.6437709699349657,
+        -0.7838203327621412,
+        -0.10338035004706012,
+        -0.7426218193515539,
+        -0.3866851280471024,
+        -0.35827250394901833,
+        -0.507220198087644,
+        0.1111541920793465,
+        0.6904383143422068
+      ],
+      "target": 3.5,
+      "evals_to_target": 42,
+      "target_hit_elapsed_s": 0.003283511847257614,
+      "guard_hits": 0,
+      "cpu_oracle_value": 2.6479187330232064,
+      "oracle_relative_tolerance": 0.0,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.00029779202304780483,
+        "generation_1": 0.002079060999676585,
+        "remaining_generations": 0.001957524800673127,
+        "total": 0.004334377823397517,
+        "task_setup": 0.000254881102591753,
+        "complete_total": 0.00458925892598927
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 4.974997519272622,
+          "elapsed_s": 0.002376308897510171
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 2.647918733023207,
+          "elapsed_s": 0.004333738004788756
+        }
+      ],
+      "effective_actuation": [
+        -0.75,
+        -1.0,
+        -0.0,
+        -0.25,
+        -0.25,
+        -0.0,
+        -0.5,
+        -0.75,
+        -0.75,
+        -0.0,
+        -0.75,
+        -0.5,
+        -0.25,
+        -0.5,
+        0.0,
+        0.75
+      ],
+      "heldout_diagnostic": 5.680748091745978,
+      "heldout_candidate_evaluations": 1,
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": 0.003538392949849367,
+      "cuda_allocated_bytes": {
+        "baseline": 33624576,
+        "peak": 34315776,
+        "end": 33627136,
+        "peak_delta": 691200
+      }
+    },
+    {
+      "seed": 11,
+      "task": "thermal_train",
+      "method": "evox_cuda",
+      "budget": 64,
+      "status": "failed",
+      "error": "PartialRunError('This higher order operator doesn\\'t work unless it is captured completely with torch.compile. Got graph break/error:\\n\\nEncountered aliasing during higher order op tracing\\n  Higher Order Operator: torch.cond\\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\\n  Hint: Consider using the debug context to change user code to avoid aliasing.\\n  Hint: Please open an issue.\\n\\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\\n     graph():\\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\\n        return (stack,)\\n\\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\\n\\nfrom user code:\\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\\n    return cond_op(*args, **kwargs)\\n           ^^^^^^^^^^^^^^^^^^^^^^^^\\n\\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you\\'re reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\\n')",
+      "traceback": "Traceback (most recent call last):\n  File \"/work/source/benchmarks/cma_comparison.py\", line 591, in run_one\n    output = _evox(task, seed, budget, evox_source, objective)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/source/benchmarks/cma_comparison.py\", line 469, in _evox\n    workflow.init_step()\n  File \"/work/deps/evox/workflows/std_workflow.py\", line 215, in init_step\n    self._step(init=True, final=False)\n  File \"/work/deps/evox/workflows/std_workflow.py\", line 204, in _step\n    self.algorithm.step()\n  File \"/work/deps/evox/algorithms/so/es_variants/cma_es.py\", line 116, in step\n    self.B, self.D, self.C_invsqrt = self._conditional_decomposition(self.iteration, self.C)\n                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/work/deps/evox/algorithms/so/es_variants/cma_es.py\", line 155, in _conditional_decomposition\n    B, D, C_invsqrt = torch.cond(\n                      ^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 246, in cond\n    return _hop_compile_and_call(_cond_op_wrapper, (pred, true_fn, false_fn, operands))\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/utils.py\", line 113, in _hop_compile_and_call\n    return torch.compile(fn, backend=backend, fullgraph=True)(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.12/dist-packages/torch/_dynamo/eval_frame.py\", line 1177, in compile_wrapper\n    raise e.with_traceback(\ntorch._dynamo.exc.UncapturedHigherOrderOpError: This higher order operator doesn't work unless it is captured completely with torch.compile. Got graph break/error:\n\nEncountered aliasing during higher order op tracing\n  Higher Order Operator: torch.cond\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\n  Hint: Consider using the debug context to change user code to avoid aliasing.\n  Hint: Please open an issue.\n\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\n     graph():\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\n        return (stack,)\n\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\n\nfrom user code:\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\n    return cond_op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\n\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/work/source/benchmarks/cma_comparison.py\", line 835, in main\n    run_one(\n  File \"/work/source/benchmarks/cma_comparison.py\", line 595, in run_one\n    raise PartialRunError(error, objective.partial()) from error\nPartialRunError: This higher order operator doesn't work unless it is captured completely with torch.compile. Got graph break/error:\n\nEncountered aliasing during higher order op tracing\n  Higher Order Operator: torch.cond\n  Explanation: Higher order ops do not support aliasing. Found in <bound method HigherOrderOperator.name of <torch._higher_order_ops.cond.CondOp object at 0xff406337a270>>\n  Hint: Replace `return input` with `return input.clone()` to avoid aliasing.\n  Hint: Consider using the debug context to change user code to avoid aliasing.\n  Hint: Please open an issue.\n\n  Developer debug context: Input-to-input aliasing detected at nodes l_args_3_0_ and getattr_1 in\n     graph():\n        %l_args_3_0_ : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=l_args_3_0_]\n        %getattr_1 : torch._subclasses.fake_tensor.FakeTensor [num_users=1] = placeholder[target=getattr_1]\n        %add : [num_users=1] = call_function[target=operator.add](args = (%l_args_3_0_, %getattr_1), kwargs = {})\n        %C : [num_users=1] = call_function[target=operator.truediv](args = (%add, 2), kwargs = {})\n        %linalg_eigh : [num_users=2] = call_function[target=torch._C._linalg.linalg_eigh](args = (%C,), kwargs = {})\n        %D : [num_users=1] = call_function[target=operator.getitem](args = (%linalg_eigh, 0), kwargs = {})\n        %B : [num_users=4] = call_function[target=operator.getitem](args = (%linalg_eigh, 1), kwargs = {})\n        %D_1 : [num_users=2] = call_function[target=torch.clamp](args = (%D,), kwargs = {min: 1e-08})\n        %sqrt : [num_users=1] = call_function[target=torch.sqrt](args = (%D_1,), kwargs = {})\n        %truediv_1 : [num_users=1] = call_function[target=operator.truediv](args = (1.0, %sqrt), kwargs = {})\n        %diag : [num_users=1] = call_function[target=torch.diag](args = (%truediv_1,), kwargs = {})\n        %matmul : [num_users=1] = call_function[target=operator.matmul](args = (%B, %diag), kwargs = {})\n        %getattr_2 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %C_invsqrt : [num_users=1] = call_function[target=operator.matmul](args = (%matmul, %getattr_2), kwargs = {})\n        %D_2 : [num_users=1] = call_function[target=torch.diag](args = (%D_1,), kwargs = {})\n        %D_3 : [num_users=1] = call_function[target=torch.sqrt](args = (%D_2,), kwargs = {})\n        %D_4 : [num_users=1] = call_function[target=operator.matmul](args = (%B, %D_3), kwargs = {})\n        %getattr_3 : [num_users=1] = call_function[target=builtins.getattr](args = (%B, T), kwargs = {})\n        %stack : [num_users=1] = call_function[target=torch.stack](args = ([%getattr_3, %D_4, %C_invsqrt],), kwargs = {dim: 0})\n        return (stack,)\n\n For more details about this graph break, please visit: https://meta-pytorch.github.io/compile-graph-break-site/gb/gb0040.html\n\nfrom user code:\n   File \"/usr/local/lib/python3.12/dist-packages/torch/_higher_order_ops/cond.py\", line 242, in _cond_op_wrapper\n    return cond_op(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^\n\nSet TORCHDYNAMO_VERBOSE=1 for the internal stack trace (please do this especially if you're reporting a bug to PyTorch). For even more developer context, set TORCH_LOGS=\"+dynamo\"\n\n",
+      "attempted": 32,
+      "completed": 32,
+      "batch_calls": 1,
+      "best_value": 4.974997519272622,
+      "best_x": [
+        -0.5146253006275131,
+        -1.6998640949184811,
+        -0.33230350505537637,
+        0.21047766788917896,
+        -0.8515525597211192,
+        0.9821071879804983,
+        -0.5438986538865623,
+        -0.14514367291507846,
+        -0.9240889906590193,
+        -0.04055248266077584,
+        -0.40701589154270196,
+        -0.543217612018093,
+        0.10850115131855433,
+        0.5362603422205614,
+        -0.6347417010231416,
+        -0.47694468987789707
+      ],
+      "evals_to_target": null,
+      "target_hit_elapsed_s": null,
+      "guard_hits": 0,
+      "trace": []
+    },
+    {
+      "seed": 11,
+      "task": "thermal_train",
+      "method": "pycma_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 2.732633571777853,
+      "best_x": [
+        -0.9764072873145071,
+        -0.8130588534914969,
+        -0.08546386032744752,
+        0.4560975942927,
+        -0.6091617227324514,
+        -0.6689204192223019,
+        0.09805628935640892,
+        -0.9075061192200076,
+        -0.4189610471711485,
+        -0.6544025638528914,
+        -0.8131559529736199,
+        -0.6301657997718921,
+        -0.7219946643460642,
+        1.89332510206148,
+        0.29091870880880544,
+        0.12883319793309156
+      ],
+      "target": 3.5,
+      "evals_to_target": 44,
+      "target_hit_elapsed_s": 0.0023849818389862776,
+      "guard_hits": 0,
+      "cpu_oracle_value": 2.732633571777853,
+      "oracle_relative_tolerance": 0.0,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.0012236349284648895,
+        "generation_1": 0.0007187859155237675,
+        "remaining_generations": 0.000648226123303175,
+        "total": 0.002590646967291832,
+        "task_setup": 0.00022795284166932106,
+        "complete_total": 0.002818599808961153
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 7.1020828475293065,
+          "elapsed_s": 0.0019418930169194937
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 2.732633571777853,
+          "elapsed_s": 0.002590278862044215
+        }
+      ],
+      "effective_actuation": [
+        -1.0,
+        -0.75,
+        -0.0,
+        0.5,
+        -0.5,
+        -0.75,
+        0.0,
+        -1.0,
+        -0.5,
+        -0.75,
+        -0.75,
+        -0.75,
+        -0.75,
+        1.0,
+        0.25,
+        0.25
+      ],
+      "heldout_diagnostic": 5.61463484200268,
+      "heldout_candidate_evaluations": 1,
+      "imported_source": {
+        "file": "/work/deps/cma/evolution_strategy.py",
+        "sha256": "77076e97a1df36a9c744b4820adebc6acbf8288599263c119804827f89070700"
+      },
+      "pycma_mode": "CPU_strategy_CPU_objective",
+      "pycma_stop_conditions_ignored_until_fixed_budget": true,
+      "target_hit_complete_elapsed_s": 0.0026129346806555986
+    },
+    {
+      "seed": 11,
+      "task": "thermal_train",
+      "method": "pycma_cuda_objective",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 2.732633571777853,
+      "best_x": [
+        -0.9764072873145071,
+        -0.8130588534914969,
+        -0.08546386032744752,
+        0.4560975942927,
+        -0.6091617227324514,
+        -0.6689204192223019,
+        0.09805628935640892,
+        -0.9075061192200076,
+        -0.4189610471711485,
+        -0.6544025638528914,
+        -0.8131559529736199,
+        -0.6301657997718921,
+        -0.7219946643460642,
+        1.89332510206148,
+        0.29091870880880544,
+        0.12883319793309156
+      ],
+      "target": 3.5,
+      "evals_to_target": 44,
+      "target_hit_elapsed_s": 0.0032328241504728794,
+      "guard_hits": 0,
+      "cpu_oracle_value": 2.732633571777853,
+      "oracle_relative_tolerance": 0.0,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 0.0011047860607504845,
+        "generation_1": 0.0011820669751614332,
+        "remaining_generations": 0.001181154977530241,
+        "total": 0.0034680080134421587,
+        "task_setup": 0.0002594881225377321,
+        "complete_total": 0.003727496135979891
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 7.1020828475293065,
+          "elapsed_s": 0.0022865331266075373
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 2.732633571777853,
+          "elapsed_s": 0.003467655973508954
+        }
+      ],
+      "effective_actuation": [
+        -1.0,
+        -0.75,
+        -0.0,
+        0.5,
+        -0.5,
+        -0.75,
+        0.0,
+        -1.0,
+        -0.5,
+        -0.75,
+        -0.75,
+        -0.75,
+        -0.75,
+        1.0,
+        0.25,
+        0.25
+      ],
+      "heldout_diagnostic": 5.61463484200268,
+      "heldout_candidate_evaluations": 1,
+      "imported_source": {
+        "file": "/work/deps/cma/evolution_strategy.py",
+        "sha256": "77076e97a1df36a9c744b4820adebc6acbf8288599263c119804827f89070700"
+      },
+      "pycma_mode": "CPU_strategy_CUDA_objective",
+      "pycma_stop_conditions_ignored_until_fixed_budget": true,
+      "target_hit_complete_elapsed_s": 0.0034923122730106115,
+      "cuda_allocated_bytes": {
+        "baseline": 33659392,
+        "peak": 33841152,
+        "end": 33661952,
+        "peak_delta": 181760
+      }
+    },
+    {
+      "seed": 11,
+      "task": "thermal_train",
+      "method": "random_cpu",
+      "budget": 64,
+      "status": "ok",
+      "attempted": 64,
+      "completed": 64,
+      "batch_calls": 2,
+      "best_value": 2.9923770249753243,
+      "best_x": [
+        -1.4082240112433002,
+        0.6030677080873774,
+        -1.5632640409977148,
+        0.9672955610803013,
+        -0.2991919057762611,
+        -0.14641699735330294,
+        -1.9061723138107722,
+        -1.2562393586395997,
+        -0.47196649175690775,
+        -1.049049635328268,
+        1.0854218383914107,
+        -1.2628684075858767,
+        -0.16317171669173414,
+        -0.7186454418620594,
+        -1.6388427537309442,
+        -1.7695192587512847
+      ],
+      "target": 3.5,
+      "evals_to_target": 3,
+      "target_hit_elapsed_s": 0.0004167689476162195,
+      "guard_hits": 0,
+      "cpu_oracle_value": 2.9923770249753243,
+      "oracle_relative_tolerance": 0.0,
+      "oracle_absolute_tolerance": 1e-10,
+      "timings_s": {
+        "initialization": 5.963188596069813e-05,
+        "generation_1": 0.0004842570051550865,
+        "remaining_generations": 0.00037768110632896423,
+        "total": 0.0009215699974447489,
+        "task_setup": 0.00020118500106036663,
+        "complete_total": 0.0011227549985051155
+      },
+      "trace": [
+        {
+          "generation": 1,
+          "attempted": 32,
+          "completed": 32,
+          "best_value": 3.122525970570846,
+          "elapsed_s": 0.0005435049533843994
+        },
+        {
+          "generation": 2,
+          "attempted": 64,
+          "completed": 64,
+          "best_value": 2.9923770249753243,
+          "elapsed_s": 0.0009210738353431225
+        }
+      ],
+      "effective_actuation": [
+        -1.0,
+        0.5,
+        -1.0,
+        1.0,
+        -0.25,
+        -0.25,
+        -1.0,
+        -1.0,
+        -0.5,
+        -1.0,
+        1.0,
+        -1.0,
+        -0.25,
+        -0.75,
+        -1.0,
+        -1.0
+      ],
+      "heldout_diagnostic": 5.9907444006053945,
+      "heldout_candidate_evaluations": 1,
+      "search_run": {
+        "scheduled": 64,
+        "charged": 64,
+        "attempted": 64,
+        "completed": 64,
+        "stop_reason": "budget exhausted",
+        "failures": []
+      },
+      "target_hit_complete_elapsed_s": 0.0006179539486765862
+    }
+  ],
+  "objective_probes": [
+    {
+      "task": "shifted_sphere",
+      "device": "cpu",
+      "probe": "known_optimum",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          1.0333333333333334,
+          1.1,
+          1.1666666666666667,
+          1.2333333333333334,
+          1.3,
+          1.3666666666666667,
+          1.4333333333333333,
+          1.5
+        ]
+      ],
+      "observed": [
+        0.0
+      ],
+      "cpu_oracle": [
+        0.0
+      ]
+    },
+    {
+      "task": "shifted_sphere",
+      "device": "cpu",
+      "probe": "shifted_origin",
+      "points": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        17.511111111111113
+      ],
+      "cpu_oracle": [
+        17.511111111111113
+      ]
+    },
+    {
+      "task": "shifted_sphere",
+      "device": "cpu",
+      "probe": "partial_candidate",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        13.022222222222222
+      ],
+      "cpu_oracle": [
+        13.022222222222222
+      ]
+    },
+    {
+      "task": "shifted_sphere",
+      "device": "cpu",
+      "probe": "fixed_random_batch",
+      "points": [
+        [
+          0.6557581278193431,
+          0.8874941787825629,
+          1.0092506171935465,
+          -0.4140305173345513,
+          1.1953666013050663,
+          0.47051359338261006,
+          0.4749046624234216,
+          2.464690362252852,
+          0.23095131142917774,
+          1.3015606959920334,
+          0.45494349087604535,
+          -2.083492883945266,
+          1.9936854722055966,
+          -0.3439257037997279,
+          -0.5898367760808754,
+          -1.3812921137801533
+        ],
+        [
+          1.254684917077464,
+          -0.1332923467650762,
+          1.4077452122803007,
+          0.5512362025309389,
+          -1.3793670654267534,
+          -0.31139797828673343,
+          -0.8948434189882402,
+          -0.4796838411686532,
+          -1.2955212350124576,
+          0.2735581797581221,
+          0.5996031683009873,
+          -1.1719970605429324,
+          -0.07952156945312285,
+          0.13895799188253197,
+          -1.6936116504799408,
+          0.03497935047155997
+        ],
+        [
+          -0.5580339221938312,
+          0.42732165213503887,
+          -0.3675765272442772,
+          -1.58922982672336,
+          0.005992837280040604,
+          0.2838005606730334,
+          -0.06427358947480198,
+          2.035510318851286,
+          -1.6057996962420023,
+          0.20886477640726478,
+          -0.8697339124431767,
+          -1.5770354392435655,
+          1.1856986588166367,
+          -0.8064204551793611,
+          1.1419899536366291,
+          0.9491507145759341
+        ],
+        [
+          -0.7334392487389926,
+          1.183165096676766,
+          -0.8020120839117704,
+          1.7942119209249803,
+          -0.009631986509339188,
+          -0.36799973249459217,
+          0.27176445205819916,
+          -0.5549015673859559,
+          -1.2165396036694807,
+          -0.09691485085428944,
+          0.03119300179157476,
+          0.25950244794883975,
+          -0.7534166079654854,
+          -1.1319478560622036,
+          -0.004209649580535197,
+          0.3101029296459057
+        ]
+      ],
+      "observed": [
+        32.244488507627395,
+        40.45876339922704,
+        35.26204124013657,
+        32.58880901241483
+      ],
+      "cpu_oracle": [
+        32.244488507627395,
+        40.45876339922704,
+        35.26204124013657,
+        32.58880901241483
+      ]
+    },
+    {
+      "task": "shifted_sphere",
+      "device": "cuda:0",
+      "probe": "known_optimum",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          1.0333333333333334,
+          1.1,
+          1.1666666666666667,
+          1.2333333333333334,
+          1.3,
+          1.3666666666666667,
+          1.4333333333333333,
+          1.5
+        ]
+      ],
+      "observed": [
+        0.0
+      ],
+      "cpu_oracle": [
+        0.0
+      ],
+      "cpu_cuda_max_abs_difference": 0.0
+    },
+    {
+      "task": "shifted_sphere",
+      "device": "cuda:0",
+      "probe": "shifted_origin",
+      "points": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        17.511111111111113
+      ],
+      "cpu_oracle": [
+        17.511111111111113
+      ],
+      "cpu_cuda_max_abs_difference": 0.0
+    },
+    {
+      "task": "shifted_sphere",
+      "device": "cuda:0",
+      "probe": "partial_candidate",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        13.022222222222222
+      ],
+      "cpu_oracle": [
+        13.022222222222222
+      ],
+      "cpu_cuda_max_abs_difference": 0.0
+    },
+    {
+      "task": "shifted_sphere",
+      "device": "cuda:0",
+      "probe": "fixed_random_batch",
+      "points": [
+        [
+          0.6557581278193431,
+          0.8874941787825629,
+          1.0092506171935465,
+          -0.4140305173345513,
+          1.1953666013050663,
+          0.47051359338261006,
+          0.4749046624234216,
+          2.464690362252852,
+          0.23095131142917774,
+          1.3015606959920334,
+          0.45494349087604535,
+          -2.083492883945266,
+          1.9936854722055966,
+          -0.3439257037997279,
+          -0.5898367760808754,
+          -1.3812921137801533
+        ],
+        [
+          1.254684917077464,
+          -0.1332923467650762,
+          1.4077452122803007,
+          0.5512362025309389,
+          -1.3793670654267534,
+          -0.31139797828673343,
+          -0.8948434189882402,
+          -0.4796838411686532,
+          -1.2955212350124576,
+          0.2735581797581221,
+          0.5996031683009873,
+          -1.1719970605429324,
+          -0.07952156945312285,
+          0.13895799188253197,
+          -1.6936116504799408,
+          0.03497935047155997
+        ],
+        [
+          -0.5580339221938312,
+          0.42732165213503887,
+          -0.3675765272442772,
+          -1.58922982672336,
+          0.005992837280040604,
+          0.2838005606730334,
+          -0.06427358947480198,
+          2.035510318851286,
+          -1.6057996962420023,
+          0.20886477640726478,
+          -0.8697339124431767,
+          -1.5770354392435655,
+          1.1856986588166367,
+          -0.8064204551793611,
+          1.1419899536366291,
+          0.9491507145759341
+        ],
+        [
+          -0.7334392487389926,
+          1.183165096676766,
+          -0.8020120839117704,
+          1.7942119209249803,
+          -0.009631986509339188,
+          -0.36799973249459217,
+          0.27176445205819916,
+          -0.5549015673859559,
+          -1.2165396036694807,
+          -0.09691485085428944,
+          0.03119300179157476,
+          0.25950244794883975,
+          -0.7534166079654854,
+          -1.1319478560622036,
+          -0.004209649580535197,
+          0.3101029296459057
+        ]
+      ],
+      "observed": [
+        32.244488507627395,
+        40.45876339922704,
+        35.26204124013657,
+        32.588809012414835
+      ],
+      "cpu_oracle": [
+        32.244488507627395,
+        40.45876339922704,
+        35.26204124013657,
+        32.58880901241483
+      ],
+      "cpu_cuda_max_abs_difference": 7.105427357601002e-15
+    },
+    {
+      "task": "rotated_ellipsoid",
+      "device": "cpu",
+      "probe": "known_optimum",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          1.0333333333333334,
+          1.1,
+          1.1666666666666667,
+          1.2333333333333334,
+          1.3,
+          1.3666666666666667,
+          1.4333333333333333,
+          1.5
+        ]
+      ],
+      "observed": [
+        0.0
+      ],
+      "cpu_oracle": [
+        0.0
+      ]
+    },
+    {
+      "task": "rotated_ellipsoid",
+      "device": "cpu",
+      "probe": "shifted_origin",
+      "points": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        1728824.3811097415
+      ],
+      "cpu_oracle": [
+        1728824.3811097431
+      ]
+    },
+    {
+      "task": "rotated_ellipsoid",
+      "device": "cpu",
+      "probe": "partial_candidate",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        1433055.9999101553
+      ],
+      "cpu_oracle": [
+        1433055.9999101565
+      ]
+    },
+    {
+      "task": "rotated_ellipsoid",
+      "device": "cpu",
+      "probe": "fixed_random_batch",
+      "points": [
+        [
+          0.6557581278193431,
+          0.8874941787825629,
+          1.0092506171935465,
+          -0.4140305173345513,
+          1.1953666013050663,
+          0.47051359338261006,
+          0.4749046624234216,
+          2.464690362252852,
+          0.23095131142917774,
+          1.3015606959920334,
+          0.45494349087604535,
+          -2.083492883945266,
+          1.9936854722055966,
+          -0.3439257037997279,
+          -0.5898367760808754,
+          -1.3812921137801533
+        ],
+        [
+          1.254684917077464,
+          -0.1332923467650762,
+          1.4077452122803007,
+          0.5512362025309389,
+          -1.3793670654267534,
+          -0.31139797828673343,
+          -0.8948434189882402,
+          -0.4796838411686532,
+          -1.2955212350124576,
+          0.2735581797581221,
+          0.5996031683009873,
+          -1.1719970605429324,
+          -0.07952156945312285,
+          0.13895799188253197,
+          -1.6936116504799408,
+          0.03497935047155997
+        ],
+        [
+          -0.5580339221938312,
+          0.42732165213503887,
+          -0.3675765272442772,
+          -1.58922982672336,
+          0.005992837280040604,
+          0.2838005606730334,
+          -0.06427358947480198,
+          2.035510318851286,
+          -1.6057996962420023,
+          0.20886477640726478,
+          -0.8697339124431767,
+          -1.5770354392435655,
+          1.1856986588166367,
+          -0.8064204551793611,
+          1.1419899536366291,
+          0.9491507145759341
+        ],
+        [
+          -0.7334392487389926,
+          1.183165096676766,
+          -0.8020120839117704,
+          1.7942119209249803,
+          -0.009631986509339188,
+          -0.36799973249459217,
+          0.27176445205819916,
+          -0.5549015673859559,
+          -1.2165396036694807,
+          -0.09691485085428944,
+          0.03119300179157476,
+          0.25950244794883975,
+          -0.7534166079654854,
+          -1.1319478560622036,
+          -0.004209649580535197,
+          0.3101029296459057
+        ]
+      ],
+      "observed": [
+        3406694.623674099,
+        6051937.9165533865,
+        1971936.615178668,
+        3135513.1128161466
+      ],
+      "cpu_oracle": [
+        3406694.6236740993,
+        6051937.916553389,
+        1971936.6151786714,
+        3135513.1128161484
+      ]
+    },
+    {
+      "task": "rotated_ellipsoid",
+      "device": "cuda:0",
+      "probe": "known_optimum",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          1.0333333333333334,
+          1.1,
+          1.1666666666666667,
+          1.2333333333333334,
+          1.3,
+          1.3666666666666667,
+          1.4333333333333333,
+          1.5
+        ]
+      ],
+      "observed": [
+        0.0
+      ],
+      "cpu_oracle": [
+        0.0
+      ],
+      "cpu_cuda_max_abs_difference": 0.0
+    },
+    {
+      "task": "rotated_ellipsoid",
+      "device": "cuda:0",
+      "probe": "shifted_origin",
+      "points": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        1728824.3811097415
+      ],
+      "cpu_oracle": [
+        1728824.3811097431
+      ],
+      "cpu_cuda_max_abs_difference": 0.0
+    },
+    {
+      "task": "rotated_ellipsoid",
+      "device": "cuda:0",
+      "probe": "partial_candidate",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        1433055.9999101555
+      ],
+      "cpu_oracle": [
+        1433055.9999101565
+      ],
+      "cpu_cuda_max_abs_difference": 2.3283064365386963e-10
+    },
+    {
+      "task": "rotated_ellipsoid",
+      "device": "cuda:0",
+      "probe": "fixed_random_batch",
+      "points": [
+        [
+          0.6557581278193431,
+          0.8874941787825629,
+          1.0092506171935465,
+          -0.4140305173345513,
+          1.1953666013050663,
+          0.47051359338261006,
+          0.4749046624234216,
+          2.464690362252852,
+          0.23095131142917774,
+          1.3015606959920334,
+          0.45494349087604535,
+          -2.083492883945266,
+          1.9936854722055966,
+          -0.3439257037997279,
+          -0.5898367760808754,
+          -1.3812921137801533
+        ],
+        [
+          1.254684917077464,
+          -0.1332923467650762,
+          1.4077452122803007,
+          0.5512362025309389,
+          -1.3793670654267534,
+          -0.31139797828673343,
+          -0.8948434189882402,
+          -0.4796838411686532,
+          -1.2955212350124576,
+          0.2735581797581221,
+          0.5996031683009873,
+          -1.1719970605429324,
+          -0.07952156945312285,
+          0.13895799188253197,
+          -1.6936116504799408,
+          0.03497935047155997
+        ],
+        [
+          -0.5580339221938312,
+          0.42732165213503887,
+          -0.3675765272442772,
+          -1.58922982672336,
+          0.005992837280040604,
+          0.2838005606730334,
+          -0.06427358947480198,
+          2.035510318851286,
+          -1.6057996962420023,
+          0.20886477640726478,
+          -0.8697339124431767,
+          -1.5770354392435655,
+          1.1856986588166367,
+          -0.8064204551793611,
+          1.1419899536366291,
+          0.9491507145759341
+        ],
+        [
+          -0.7334392487389926,
+          1.183165096676766,
+          -0.8020120839117704,
+          1.7942119209249803,
+          -0.009631986509339188,
+          -0.36799973249459217,
+          0.27176445205819916,
+          -0.5549015673859559,
+          -1.2165396036694807,
+          -0.09691485085428944,
+          0.03119300179157476,
+          0.25950244794883975,
+          -0.7534166079654854,
+          -1.1319478560622036,
+          -0.004209649580535197,
+          0.3101029296459057
+        ]
+      ],
+      "observed": [
+        3406694.623674099,
+        6051937.916553387,
+        1971936.615178668,
+        3135513.112816147
+      ],
+      "cpu_oracle": [
+        3406694.6236740993,
+        6051937.916553389,
+        1971936.6151786714,
+        3135513.1128161484
+      ],
+      "cpu_cuda_max_abs_difference": 9.313225746154785e-10
+    },
+    {
+      "task": "rotated_rastrigin",
+      "device": "cpu",
+      "probe": "known_optimum",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          1.0333333333333334,
+          1.1,
+          1.1666666666666667,
+          1.2333333333333334,
+          1.3,
+          1.3666666666666667,
+          1.4333333333333333,
+          1.5
+        ]
+      ],
+      "observed": [
+        0.0
+      ],
+      "cpu_oracle": [
+        0.0
+      ]
+    },
+    {
+      "task": "rotated_rastrigin",
+      "device": "cpu",
+      "probe": "shifted_origin",
+      "points": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        173.11582832971195
+      ],
+      "cpu_oracle": [
+        173.11582832971195
+      ]
+    },
+    {
+      "task": "rotated_rastrigin",
+      "device": "cpu",
+      "probe": "partial_candidate",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        133.38608209437024
+      ],
+      "cpu_oracle": [
+        133.38608209437027
+      ]
+    },
+    {
+      "task": "rotated_rastrigin",
+      "device": "cpu",
+      "probe": "fixed_random_batch",
+      "points": [
+        [
+          0.6557581278193431,
+          0.8874941787825629,
+          1.0092506171935465,
+          -0.4140305173345513,
+          1.1953666013050663,
+          0.47051359338261006,
+          0.4749046624234216,
+          2.464690362252852,
+          0.23095131142917774,
+          1.3015606959920334,
+          0.45494349087604535,
+          -2.083492883945266,
+          1.9936854722055966,
+          -0.3439257037997279,
+          -0.5898367760808754,
+          -1.3812921137801533
+        ],
+        [
+          1.254684917077464,
+          -0.1332923467650762,
+          1.4077452122803007,
+          0.5512362025309389,
+          -1.3793670654267534,
+          -0.31139797828673343,
+          -0.8948434189882402,
+          -0.4796838411686532,
+          -1.2955212350124576,
+          0.2735581797581221,
+          0.5996031683009873,
+          -1.1719970605429324,
+          -0.07952156945312285,
+          0.13895799188253197,
+          -1.6936116504799408,
+          0.03497935047155997
+        ],
+        [
+          -0.5580339221938312,
+          0.42732165213503887,
+          -0.3675765272442772,
+          -1.58922982672336,
+          0.005992837280040604,
+          0.2838005606730334,
+          -0.06427358947480198,
+          2.035510318851286,
+          -1.6057996962420023,
+          0.20886477640726478,
+          -0.8697339124431767,
+          -1.5770354392435655,
+          1.1856986588166367,
+          -0.8064204551793611,
+          1.1419899536366291,
+          0.9491507145759341
+        ],
+        [
+          -0.7334392487389926,
+          1.183165096676766,
+          -0.8020120839117704,
+          1.7942119209249803,
+          -0.009631986509339188,
+          -0.36799973249459217,
+          0.27176445205819916,
+          -0.5549015673859559,
+          -1.2165396036694807,
+          -0.09691485085428944,
+          0.03119300179157476,
+          0.25950244794883975,
+          -0.7534166079654854,
+          -1.1319478560622036,
+          -0.004209649580535197,
+          0.3101029296459057
+        ]
+      ],
+      "observed": [
+        190.13005352935778,
+        203.09467332745385,
+        185.86150399250542,
+        180.67736034981792
+      ],
+      "cpu_oracle": [
+        190.13005352935784,
+        203.094673327454,
+        185.86150399250542,
+        180.67736034981795
+      ]
+    },
+    {
+      "task": "rotated_rastrigin",
+      "device": "cuda:0",
+      "probe": "known_optimum",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          1.0333333333333334,
+          1.1,
+          1.1666666666666667,
+          1.2333333333333334,
+          1.3,
+          1.3666666666666667,
+          1.4333333333333333,
+          1.5
+        ]
+      ],
+      "observed": [
+        0.0
+      ],
+      "cpu_oracle": [
+        0.0
+      ],
+      "cpu_cuda_max_abs_difference": 0.0
+    },
+    {
+      "task": "rotated_rastrigin",
+      "device": "cuda:0",
+      "probe": "shifted_origin",
+      "points": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        173.11582832971197
+      ],
+      "cpu_oracle": [
+        173.11582832971195
+      ],
+      "cpu_cuda_max_abs_difference": 2.842170943040401e-14
+    },
+    {
+      "task": "rotated_rastrigin",
+      "device": "cuda:0",
+      "probe": "partial_candidate",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        133.38608209437024
+      ],
+      "cpu_oracle": [
+        133.38608209437027
+      ],
+      "cpu_cuda_max_abs_difference": 0.0
+    },
+    {
+      "task": "rotated_rastrigin",
+      "device": "cuda:0",
+      "probe": "fixed_random_batch",
+      "points": [
+        [
+          0.6557581278193431,
+          0.8874941787825629,
+          1.0092506171935465,
+          -0.4140305173345513,
+          1.1953666013050663,
+          0.47051359338261006,
+          0.4749046624234216,
+          2.464690362252852,
+          0.23095131142917774,
+          1.3015606959920334,
+          0.45494349087604535,
+          -2.083492883945266,
+          1.9936854722055966,
+          -0.3439257037997279,
+          -0.5898367760808754,
+          -1.3812921137801533
+        ],
+        [
+          1.254684917077464,
+          -0.1332923467650762,
+          1.4077452122803007,
+          0.5512362025309389,
+          -1.3793670654267534,
+          -0.31139797828673343,
+          -0.8948434189882402,
+          -0.4796838411686532,
+          -1.2955212350124576,
+          0.2735581797581221,
+          0.5996031683009873,
+          -1.1719970605429324,
+          -0.07952156945312285,
+          0.13895799188253197,
+          -1.6936116504799408,
+          0.03497935047155997
+        ],
+        [
+          -0.5580339221938312,
+          0.42732165213503887,
+          -0.3675765272442772,
+          -1.58922982672336,
+          0.005992837280040604,
+          0.2838005606730334,
+          -0.06427358947480198,
+          2.035510318851286,
+          -1.6057996962420023,
+          0.20886477640726478,
+          -0.8697339124431767,
+          -1.5770354392435655,
+          1.1856986588166367,
+          -0.8064204551793611,
+          1.1419899536366291,
+          0.9491507145759341
+        ],
+        [
+          -0.7334392487389926,
+          1.183165096676766,
+          -0.8020120839117704,
+          1.7942119209249803,
+          -0.009631986509339188,
+          -0.36799973249459217,
+          0.27176445205819916,
+          -0.5549015673859559,
+          -1.2165396036694807,
+          -0.09691485085428944,
+          0.03119300179157476,
+          0.25950244794883975,
+          -0.7534166079654854,
+          -1.1319478560622036,
+          -0.004209649580535197,
+          0.3101029296459057
+        ]
+      ],
+      "observed": [
+        190.13005352935778,
+        203.09467332745385,
+        185.86150399250542,
+        180.6773603498179
+      ],
+      "cpu_oracle": [
+        190.13005352935784,
+        203.094673327454,
+        185.86150399250542,
+        180.67736034981795
+      ],
+      "cpu_cuda_max_abs_difference": 2.842170943040401e-14
+    },
+    {
+      "task": "thermal_train",
+      "device": "cpu",
+      "probe": "shifted_origin",
+      "points": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        14.716173141439802
+      ],
+      "cpu_oracle": [
+        14.716173141439802
+      ]
+    },
+    {
+      "task": "thermal_train",
+      "device": "cpu",
+      "probe": "partial_candidate",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        46.57625013918839
+      ],
+      "cpu_oracle": [
+        46.57625013918839
+      ]
+    },
+    {
+      "task": "thermal_train",
+      "device": "cpu",
+      "probe": "fixed_random_batch",
+      "points": [
+        [
+          0.6557581278193431,
+          0.8874941787825629,
+          1.0092506171935465,
+          -0.4140305173345513,
+          1.1953666013050663,
+          0.47051359338261006,
+          0.4749046624234216,
+          2.464690362252852,
+          0.23095131142917774,
+          1.3015606959920334,
+          0.45494349087604535,
+          -2.083492883945266,
+          1.9936854722055966,
+          -0.3439257037997279,
+          -0.5898367760808754,
+          -1.3812921137801533
+        ],
+        [
+          1.254684917077464,
+          -0.1332923467650762,
+          1.4077452122803007,
+          0.5512362025309389,
+          -1.3793670654267534,
+          -0.31139797828673343,
+          -0.8948434189882402,
+          -0.4796838411686532,
+          -1.2955212350124576,
+          0.2735581797581221,
+          0.5996031683009873,
+          -1.1719970605429324,
+          -0.07952156945312285,
+          0.13895799188253197,
+          -1.6936116504799408,
+          0.03497935047155997
+        ],
+        [
+          -0.5580339221938312,
+          0.42732165213503887,
+          -0.3675765272442772,
+          -1.58922982672336,
+          0.005992837280040604,
+          0.2838005606730334,
+          -0.06427358947480198,
+          2.035510318851286,
+          -1.6057996962420023,
+          0.20886477640726478,
+          -0.8697339124431767,
+          -1.5770354392435655,
+          1.1856986588166367,
+          -0.8064204551793611,
+          1.1419899536366291,
+          0.9491507145759341
+        ],
+        [
+          -0.7334392487389926,
+          1.183165096676766,
+          -0.8020120839117704,
+          1.7942119209249803,
+          -0.009631986509339188,
+          -0.36799973249459217,
+          0.27176445205819916,
+          -0.5549015673859559,
+          -1.2165396036694807,
+          -0.09691485085428944,
+          0.03119300179157476,
+          0.25950244794883975,
+          -0.7534166079654854,
+          -1.1319478560622036,
+          -0.004209649580535197,
+          0.3101029296459057
+        ]
+      ],
+      "observed": [
+        47.3320139675196,
+        9.951580866656853,
+        10.980619118860588,
+        10.127323164694973
+      ],
+      "cpu_oracle": [
+        47.3320139675196,
+        9.951580866656853,
+        10.980619118860588,
+        10.127323164694973
+      ]
+    },
+    {
+      "task": "thermal_train",
+      "device": "cuda:0",
+      "probe": "shifted_origin",
+      "points": [
+        [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        14.716173141439802
+      ],
+      "cpu_oracle": [
+        14.716173141439802
+      ],
+      "cpu_cuda_max_abs_difference": 0.0
+    },
+    {
+      "task": "thermal_train",
+      "device": "cuda:0",
+      "probe": "partial_candidate",
+      "points": [
+        [
+          0.5,
+          0.5666666666666667,
+          0.6333333333333333,
+          0.7,
+          0.7666666666666666,
+          0.8333333333333334,
+          0.9,
+          0.9666666666666667,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "observed": [
+        46.57625013918839
+      ],
+      "cpu_oracle": [
+        46.57625013918839
+      ],
+      "cpu_cuda_max_abs_difference": 0.0
+    },
+    {
+      "task": "thermal_train",
+      "device": "cuda:0",
+      "probe": "fixed_random_batch",
+      "points": [
+        [
+          0.6557581278193431,
+          0.8874941787825629,
+          1.0092506171935465,
+          -0.4140305173345513,
+          1.1953666013050663,
+          0.47051359338261006,
+          0.4749046624234216,
+          2.464690362252852,
+          0.23095131142917774,
+          1.3015606959920334,
+          0.45494349087604535,
+          -2.083492883945266,
+          1.9936854722055966,
+          -0.3439257037997279,
+          -0.5898367760808754,
+          -1.3812921137801533
+        ],
+        [
+          1.254684917077464,
+          -0.1332923467650762,
+          1.4077452122803007,
+          0.5512362025309389,
+          -1.3793670654267534,
+          -0.31139797828673343,
+          -0.8948434189882402,
+          -0.4796838411686532,
+          -1.2955212350124576,
+          0.2735581797581221,
+          0.5996031683009873,
+          -1.1719970605429324,
+          -0.07952156945312285,
+          0.13895799188253197,
+          -1.6936116504799408,
+          0.03497935047155997
+        ],
+        [
+          -0.5580339221938312,
+          0.42732165213503887,
+          -0.3675765272442772,
+          -1.58922982672336,
+          0.005992837280040604,
+          0.2838005606730334,
+          -0.06427358947480198,
+          2.035510318851286,
+          -1.6057996962420023,
+          0.20886477640726478,
+          -0.8697339124431767,
+          -1.5770354392435655,
+          1.1856986588166367,
+          -0.8064204551793611,
+          1.1419899536366291,
+          0.9491507145759341
+        ],
+        [
+          -0.7334392487389926,
+          1.183165096676766,
+          -0.8020120839117704,
+          1.7942119209249803,
+          -0.009631986509339188,
+          -0.36799973249459217,
+          0.27176445205819916,
+          -0.5549015673859559,
+          -1.2165396036694807,
+          -0.09691485085428944,
+          0.03119300179157476,
+          0.25950244794883975,
+          -0.7534166079654854,
+          -1.1319478560622036,
+          -0.004209649580535197,
+          0.3101029296459057
+        ]
+      ],
+      "observed": [
+        47.3320139675196,
+        9.951580866656853,
+        10.980619118860588,
+        10.127323164694973
+      ],
+      "cpu_oracle": [
+        47.3320139675196,
+        9.951580866656853,
+        10.980619118860588,
+        10.127323164694973
+      ],
+      "cpu_cuda_max_abs_difference": 0.0
+    }
+  ],
+  "thermal_evaluator_probes": {
+    "cpu": {
+      "degenerate_zero": {
+        "score": 14.716173141439802,
+        "passes": false
+      },
+      "ceiling_domain_control": {
+        "score": 2.941746733958009,
+        "passes": true
+      },
+      "cheap_exploit_constant_cooling": {
+        "score": 2.1494665993246,
+        "passes": true
+      },
+      "runaway_all_heat": {
+        "score": 102.6342264152812,
+        "passes": false
+      },
+      "null_uniform_random": {
+        "seed": 24681,
+        "sample_count": 64,
+        "min_score": 2.8849376186914633,
+        "median_score": 14.766557504636863,
+        "max_score": 42.56790822301674,
+        "mean_score": 16.244609174715304,
+        "pass_rate": 0.015625
+      }
+    },
+    "cuda:0": {
+      "degenerate_zero": {
+        "score": 14.716173141439802,
+        "passes": false
+      },
+      "ceiling_domain_control": {
+        "score": 2.941746733958009,
+        "passes": true
+      },
+      "cheap_exploit_constant_cooling": {
+        "score": 2.1494665993246,
+        "passes": true
+      },
+      "runaway_all_heat": {
+        "score": 102.63422641528119,
+        "passes": false
+      },
+      "null_uniform_random": {
+        "seed": 24681,
+        "sample_count": 64,
+        "min_score": 4.064485067032903,
+        "median_score": 14.585578340450914,
+        "max_score": 33.12019048797576,
+        "mean_score": 15.691806662415988,
+        "pass_rate": 0.0
+      }
+    }
+  },
+  "expected_runs": 24,
+  "failed_runs": 4
+}

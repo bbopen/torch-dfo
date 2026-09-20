@@ -1,0 +1,166 @@
+{
+  "evaluator_hash": "8c8e108e7de357e2157f7ebd40393ccd8373607a4367b0605badfacce8512b8c",
+  "scope": "Evaluator throughput only; five timed repetitions after three warmups. Compare best of tested CPU thread counts. Not end-to-end optimization speed.",
+  "results": [
+    {
+      "dtype": "torch.float32",
+      "population": 12,
+      "timings": {
+        "cpu-1threads": {
+          "median_seconds": 0.0002601121086627245,
+          "samples_seconds": [
+            0.0002640651073306799,
+            0.0002601121086627245,
+            0.00025804899632930756,
+            0.00025715213268995285,
+            0.00026054494082927704
+          ],
+          "max_abs_score_difference": 0.0
+        },
+        "cpu-8threads": {
+          "median_seconds": 0.000400640070438385,
+          "samples_seconds": [
+            0.00040353694930672646,
+            0.00040086498484015465,
+            0.000400640070438385,
+            0.00038681691512465477,
+            0.0003784969449043274
+          ],
+          "max_abs_score_difference": 0.0
+        },
+        "cuda-1threads": {
+          "median_seconds": 0.0007174250204116106,
+          "samples_seconds": [
+            0.0007355529814958572,
+            0.0007219701074063778,
+            0.0007174250204116106,
+            0.0007106899283826351,
+            0.000700624892488122
+          ],
+          "max_abs_score_difference": 1.9073486328125e-06
+        }
+      },
+      "fastest_tested_cpu_over_cuda": 0.36256347529319444
+    },
+    {
+      "dtype": "torch.float32",
+      "population": 4096,
+      "timings": {
+        "cpu-1threads": {
+          "median_seconds": 0.0019993481691926718,
+          "samples_seconds": [
+            0.0020002119708806276,
+            0.0019975239410996437,
+            0.0019993481691926718,
+            0.001985587878152728,
+            0.0020219720900058746
+          ],
+          "max_abs_score_difference": 0.0
+        },
+        "cpu-8threads": {
+          "median_seconds": 0.0038825508672744036,
+          "samples_seconds": [
+            0.004108136054128408,
+            0.004265769151970744,
+            0.0024771089665591717,
+            0.0038825508672744036,
+            0.0034409190993756056
+          ],
+          "max_abs_score_difference": 0.0
+        },
+        "cuda-1threads": {
+          "median_seconds": 0.0007552660536020994,
+          "samples_seconds": [
+            0.000748528866097331,
+            0.0007552660536020994,
+            0.0007584649138152599,
+            0.000759633956477046,
+            0.0007466569077223539
+          ],
+          "max_abs_score_difference": 1.33514404296875e-05
+        }
+      },
+      "fastest_tested_cpu_over_cuda": 2.64721042294587
+    },
+    {
+      "dtype": "torch.float64",
+      "population": 12,
+      "timings": {
+        "cpu-1threads": {
+          "median_seconds": 0.0002489921171218157,
+          "samples_seconds": [
+            0.0002557770349085331,
+            0.0002489921171218157,
+            0.00024824077263474464,
+            0.00025387201458215714,
+            0.0002485448494553566
+          ],
+          "max_abs_score_difference": 0.0
+        },
+        "cpu-8threads": {
+          "median_seconds": 0.0011782899964600801,
+          "samples_seconds": [
+            0.0011850588489323854,
+            0.0010721301659941673,
+            0.0011782899964600801,
+            0.0007907701656222343,
+            0.0012299378868192434
+          ],
+          "max_abs_score_difference": 0.0
+        },
+        "cuda-1threads": {
+          "median_seconds": 0.0007107059936970472,
+          "samples_seconds": [
+            0.0007258250843733549,
+            0.0007082570809870958,
+            0.0006954900454729795,
+            0.0007208329625427723,
+            0.0007107059936970472
+          ],
+          "max_abs_score_difference": 7.105427357601002e-15
+        }
+      },
+      "fastest_tested_cpu_over_cuda": 0.35034475483536387
+    },
+    {
+      "dtype": "torch.float64",
+      "population": 4096,
+      "timings": {
+        "cpu-1threads": {
+          "median_seconds": 0.0032079259399324656,
+          "samples_seconds": [
+            0.0032209991477429867,
+            0.0031751098576933146,
+            0.003224262036383152,
+            0.0031851751264184713,
+            0.0032079259399324656
+          ],
+          "max_abs_score_difference": 0.0
+        },
+        "cpu-8threads": {
+          "median_seconds": 0.007495630998164415,
+          "samples_seconds": [
+            0.009899139869958162,
+            0.007495630998164415,
+            0.008135488023981452,
+            0.00433522486127913,
+            0.004300103988498449
+          ],
+          "max_abs_score_difference": 0.0
+        },
+        "cuda-1threads": {
+          "median_seconds": 0.0008488500025123358,
+          "samples_seconds": [
+            0.0008651211392134428,
+            0.0008586419280618429,
+            0.0008485459256917238,
+            0.0008488500025123358,
+            0.0008364650420844555
+          ],
+          "max_abs_score_difference": 2.842170943040401e-14
+        }
+      },
+      "fastest_tested_cpu_over_cuda": 3.7791434652034965
+    }
+  ]
+}

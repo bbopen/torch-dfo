@@ -392,10 +392,40 @@ class TestBudget:
             seed=42,
         )
         opt.optimize(sphere)
-        # At most one extra batch overrun
-        assert opt.fe_count <= budget + opt.pop_size, (
-            f"Budget exceeded: {opt.fe_count} > {budget + opt.pop_size}"
-        )
+        assert opt.fe_count == budget
+
+
+@pytest.mark.parametrize("budget", range(1, 26))
+def test_optimize_honors_every_small_budget_exactly(budget: int) -> None:
+    """Every positive small budget caps reported and real objective calls."""
+    calls = 0
+    opt = PhasedDFO(dim=2, bounds=(-5.0, 5.0), budget=budget, seed=42, device="cpu")
+
+    def counted_sphere(candidates: torch.Tensor) -> torch.Tensor:
+        nonlocal calls
+        calls += candidates.shape[0]
+        return candidates.square().sum(dim=-1)
+
+    opt.optimize(counted_sphere)
+
+    assert calls == budget
+    assert opt.fe_count == budget
+
+
+def test_ask_skips_cmaes_generation_that_exceeds_remaining_budget() -> None:
+    """A phase transition cannot request a CMA-ES batch beyond the hard cap."""
+    opt = PhasedDFO(dim=2, bounds=(-5.0, 5.0), budget=7, seed=42, device="cpu")
+    de_candidates = opt.ask()
+    assert de_candidates.shape == (4, 2)
+    opt.tell(de_candidates, de_candidates.square().sum(dim=-1))
+    assert opt.phase == 1
+    assert opt.fe_count == 4
+
+    candidates = opt.ask()
+
+    assert candidates.shape == (0, 2)
+    assert opt.phase == 2
+    assert opt.fe_count == 4
 
 
 # ---------------------------------------------------------------------------

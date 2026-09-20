@@ -1,0 +1,19 @@
+{
+  "local_minimum_claimed_global": -422.29217687664914,
+  "better_candidate": -461.0950409429067,
+  "legacy_solved": true,
+  "official_solved": false,
+  "requested_instance_6_actual_id": "bbob_f001_i71_d02",
+  "literal_instance_6_id": "bbob_f001_i06_d02",
+  "requested_budget": 25,
+  "reported_calls": 30,
+  "actual_calls": 30,
+  "yahpo_before_reverse": [
+    0,
+    1
+  ],
+  "yahpo_after_reverse": [
+    1,
+    1
+  ]
+}

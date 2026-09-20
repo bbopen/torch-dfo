@@ -4,6 +4,22 @@ All notable changes to torch-dfo.
 
 ## [Unreleased]
 
+## 0.11.0b1 — 2026-09-19
+
+### Budgeted search
+
+- Add `SearchRun` and `minimize` for CMA-ES, SHADE, and random search.
+- Keep one pending batch, count logical evaluations, and preserve raw results.
+- Add fixed repeats and planned-pause checkpoints with explicit fork lineage.
+- Preserve the existing optimizer interfaces.
+
+### Evaluation and maintenance
+
+- Add a quantized thermal-control reference study with fixed train and held-out scenarios.
+- Record evaluator probes, domain and random baselines, and bounded tuning trials.
+- Correct budget, checkpoint, bounds, and benchmark-reporting defects found during the foundation review.
+- Document the beta interface and its supported behavior.
+
 ## 0.10.0 — 2026-04-18
 
 ### Internal State

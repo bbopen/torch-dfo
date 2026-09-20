@@ -1,0 +1,172 @@
+{
+  "trials": 18,
+  "before_overruns": 6,
+  "after_overruns": 0,
+  "quality_better": 5,
+  "quality_equal": 8,
+  "quality_worse": 5,
+  "rows": [
+    {
+      "problem": "bbob_f001_i06_d02",
+      "budget": 7,
+      "before_calls": 10,
+      "after_calls": 7,
+      "before_best": -193.76826025143615,
+      "after_best": -193.76826025143615,
+      "change": 0.0
+    },
+    {
+      "problem": "bbob_f001_i06_d02",
+      "budget": 40,
+      "before_calls": 40,
+      "after_calls": 40,
+      "before_best": -196.20676923343171,
+      "after_best": -196.20676923343171,
+      "change": 0.0
+    },
+    {
+      "problem": "bbob_f001_i06_d02",
+      "budget": 200,
+      "before_calls": 200,
+      "after_calls": 200,
+      "before_best": -201.71900908408406,
+      "after_best": -201.71900908408406,
+      "change": 0.0
+    },
+    {
+      "problem": "bbob_f003_i06_d02",
+      "budget": 7,
+      "before_calls": 10,
+      "after_calls": 7,
+      "before_best": -553.2488201288753,
+      "after_best": -553.2488201288753,
+      "change": 0.0
+    },
+    {
+      "problem": "bbob_f003_i06_d02",
+      "budget": 40,
+      "before_calls": 40,
+      "after_calls": 40,
+      "before_best": -563.8758304072538,
+      "after_best": -563.8758304072538,
+      "change": 0.0
+    },
+    {
+      "problem": "bbob_f003_i06_d02",
+      "budget": 200,
+      "before_calls": 200,
+      "after_calls": 200,
+      "before_best": -584.7087913109466,
+      "after_best": -584.7087913109466,
+      "change": 0.0
+    },
+    {
+      "problem": "bbob_f008_i06_d02",
+      "budget": 7,
+      "before_calls": 10,
+      "after_calls": 7,
+      "before_best": 6678.7614713655485,
+      "after_best": 6591.994911346382,
+      "change": -86.76656001916672
+    },
+    {
+      "problem": "bbob_f008_i06_d02",
+      "budget": 40,
+      "before_calls": 40,
+      "after_calls": 40,
+      "before_best": 97.71411021525978,
+      "after_best": -421.9629012648581,
+      "change": -519.6770114801179
+    },
+    {
+      "problem": "bbob_f008_i06_d02",
+      "budget": 200,
+      "before_calls": 200,
+      "after_calls": 200,
+      "before_best": -425.6814376906747,
+      "after_best": -425.6814376906747,
+      "change": 0.0
+    },
+    {
+      "problem": "bbob_f001_i06_d10",
+      "budget": 7,
+      "before_calls": 14,
+      "after_calls": 7,
+      "before_best": -182.25258736538288,
+      "after_best": -153.99799803374577,
+      "change": 28.254589331637106
+    },
+    {
+      "problem": "bbob_f001_i06_d10",
+      "budget": 40,
+      "before_calls": 40,
+      "after_calls": 40,
+      "before_best": -173.27702640898985,
+      "after_best": -173.27702640898985,
+      "change": 0.0
+    },
+    {
+      "problem": "bbob_f001_i06_d10",
+      "budget": 200,
+      "before_calls": 200,
+      "after_calls": 200,
+      "before_best": -190.64027010758284,
+      "after_best": -190.71887312304096,
+      "change": -0.07860301545812831
+    },
+    {
+      "problem": "bbob_f003_i06_d10",
+      "budget": 7,
+      "before_calls": 14,
+      "after_calls": 7,
+      "before_best": -412.0330575914895,
+      "after_best": -141.5665795239105,
+      "change": 270.46647806757903
+    },
+    {
+      "problem": "bbob_f003_i06_d10",
+      "budget": 40,
+      "before_calls": 40,
+      "after_calls": 40,
+      "before_best": -423.9382717394616,
+      "after_best": -405.1944343888108,
+      "change": 18.74383735065078
+    },
+    {
+      "problem": "bbob_f003_i06_d10",
+      "budget": 200,
+      "before_calls": 200,
+      "after_calls": 200,
+      "before_best": -463.1046987448899,
+      "after_best": -465.84256904343925,
+      "change": -2.7378702985493533
+    },
+    {
+      "problem": "bbob_f008_i06_d10",
+      "budget": 7,
+      "before_calls": 14,
+      "after_calls": 7,
+      "before_best": 25853.564689453047,
+      "after_best": 136019.46734281516,
+      "change": 110165.9026533621
+    },
+    {
+      "problem": "bbob_f008_i06_d10",
+      "budget": 40,
+      "before_calls": 40,
+      "after_calls": 40,
+      "before_best": 18885.75193470158,
+      "after_best": 17910.022297944037,
+      "change": -975.7296367575436
+    },
+    {
+      "problem": "bbob_f008_i06_d10",
+      "budget": 200,
+      "before_calls": 200,
+      "after_calls": 200,
+      "before_best": -71.31553488038969,
+      "after_best": 66.01099071120336,
+      "change": 137.32652559159305
+    }
+  ]
+}

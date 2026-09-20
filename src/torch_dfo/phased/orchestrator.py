@@ -1561,11 +1561,22 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         Returns
         -------
         torch.Tensor
-            (batch_size, dim) candidates. Batch size varies by phase.
+            ``(batch_size, dim)`` candidates. Batch size varies by phase.
+            Returns an empty tensor and enters Polish when the next atomic
+            sub-optimizer generation does not fit the remaining budget.
 
         """
+        remaining = self._budget - self._fe_count
+        if remaining <= 0:
+            self._phase = 2
+            return torch.empty(0, self.dim, device=self.device, dtype=self.dtype)
+
         if self._phase == 0:
-            return self._shade.ask()
+            candidates = self._shade.ask()
+            if candidates.shape[0] <= remaining:
+                return candidates
+            self._phase = 2
+            return torch.empty(0, self.dim, device=self.device, dtype=self.dtype)
         if self._phase == 1:
             if self._high_dim:
                 if self._cmaes_portfolio is None:
@@ -1573,14 +1584,19 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                 assert self._cmaes_portfolio is not None
                 active_indices = self._portfolio_active_indices_for_next_ask()
                 self._portfolio_active_indices = active_indices
-                return torch.cat(
+                candidates = torch.cat(
                     [self._cmaes_portfolio[i].ask() for i in active_indices],
                     dim=0,
                 )
-            if self._cmaes is None:
-                self._enter_cmaes_phase()
-            assert self._cmaes is not None
-            return self._cmaes.ask()
+            else:
+                if self._cmaes is None:
+                    self._enter_cmaes_phase()
+                assert self._cmaes is not None
+                candidates = self._cmaes.ask()
+            if candidates.shape[0] <= remaining:
+                return candidates
+            self._phase = 2
+            return torch.empty(0, self.dim, device=self.device, dtype=self.dtype)
         # Phase 2 (Polish) or 3 (Done): return empty tensor
         return torch.empty(0, self.dim, device=self.device, dtype=self.dtype)
 

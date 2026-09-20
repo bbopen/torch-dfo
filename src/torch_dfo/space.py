@@ -37,9 +37,9 @@ class Int:
     log: bool = False
 
     def __post_init__(self) -> None:
-        if self.upper < self.lower:
+        if self.upper <= self.lower:
             raise ValueError(
-                f"Int '{self.name}': upper ({self.upper}) must be >= lower ({self.lower})",
+                f"Int '{self.name}': upper ({self.upper}) must be > lower ({self.lower})",
             )
         if self.log and self.lower <= 0:
             raise ValueError(f"Int '{self.name}': log=True requires lower > 0, got {self.lower}")

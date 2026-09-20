@@ -1,0 +1,118 @@
+{
+  "as_of_local_date": "2026-09-19",
+  "method": "Public GitHub code search for from evotorch, import evotorch, and evotorch.algorithms; pinned source and project README inspection; no downstream execution",
+  "scope_limit": "Selected source integrations, not an adoption census or performance audit",
+  "listed_repos_github_fork_flag": false,
+  "entries": [
+    {
+      "repo": "Plant-Food-Research-Open/calisim",
+      "commit": "fa6539b2d1e4a39210fef3d9dabee97b893ec69c",
+      "source": "https://github.com/Plant-Food-Research-Open/calisim/blob/fa6539b2d1e4a39210fef3d9dabee97b893ec69c/calisim/evolutionary/evotorch_wrapper.py#L24-L143",
+      "kind": "packaged_integration",
+      "purpose": "mixed-variable simulation model calibration",
+      "algorithms": ["GeneticAlgorithm", "Cosyne", "PyCMAES"],
+      "objective": "simulation discrepancy via calibration_func_wrapper",
+      "hardware": "vectorized flag configurable; GPU not established",
+      "evidence_level": "source_call_path"
+    },
+    {
+      "repo": "michael-s-yao/DynAMO",
+      "commit": "52dfc8fe4cb4de6374635bc5f971974f027d4d1f",
+      "source": "https://github.com/michael-s-yao/DynAMO/blob/52dfc8fe4cb4de6374635bc5f971974f027d4d1f/src/dynamo/optim/cmaes.py#L28-L118",
+      "kind": "research_algorithm_integration",
+      "purpose": "offline model-based design acquisition",
+      "algorithms": ["CMAES"],
+      "objective": "batched learned surrogate acquisition score",
+      "hardware": "CUDA decorator and configurable GPU actors; speed unmeasured here",
+      "evidence_level": "source_call_path_and_authors_paper_repo"
+    },
+    {
+      "repo": "jsalvasoler/difusco_ddea",
+      "commit": "ff1d9a8e58f6a7fcf92f9bd426f2e1b4853d7393",
+      "source": "https://github.com/jsalvasoler/difusco_ddea/blob/ff1d9a8e58f6a7fcf92f9bd426f2e1b4853d7393/src/problems/mis/mis_ga.py#L34-L59",
+      "support": "https://github.com/jsalvasoler/difusco_ddea/blob/ff1d9a8e58f6a7fcf92f9bd426f2e1b4853d7393/src/problems/mis/mis_ga.py#L710-L756",
+      "kind": "research_algorithm_integration",
+      "purpose": "maximum independent set and TSP hybrid diffusion-evolution search",
+      "algorithms": ["custom GeneticAlgorithm"],
+      "objective": "vectorized discrete population score with feasible-solution handling",
+      "hardware": "configurable device; CUDA required by one diffusion sampler path",
+      "evidence_level": "source_call_path_and_author_reported_experiments"
+    },
+    {
+      "repo": "knowledgetechnologyuhh/evo_ik",
+      "commit": "090ad201d821d9043764c6ad180e180d3a3fdcfe",
+      "source": "https://github.com/knowledgetechnologyuhh/evo_ik/blob/090ad201d821d9043764c6ad180e180d3a3fdcfe/src/evo_ik/evo_ik.py#L78-L97",
+      "support": "https://github.com/knowledgetechnologyuhh/evo_ik/blob/090ad201d821d9043764c6ad180e180d3a3fdcfe/src/evo_ik/evo_ik.py#L288-L324",
+      "kind": "packaged_application",
+      "purpose": "robot inverse kinematics",
+      "algorithms": ["CMAES"],
+      "objective": "batched position, rotation, and bound penalty",
+      "hardware": "CPU or CUDA configuration; no comparative speed result verified",
+      "evidence_level": "source_call_path_and_project_tests_described"
+    },
+    {
+      "repo": "chopralab/ThePaddyManuscript",
+      "commit": "8506c27bb0e0786d29e48af7b4da8faca466891e",
+      "source": "https://github.com/chopralab/ThePaddyManuscript/blob/8506c27bb0e0786d29e48af7b4da8faca466891e/mlp/python_files/scripts/mlp_evotorch_GA.py#L100-L234",
+      "support": "https://github.com/chopralab/ThePaddyManuscript/blob/8506c27bb0e0786d29e48af7b4da8faca466891e/mlp/python_files/scripts/mlp_evotorch_GA.sh#L1-L22",
+      "kind": "benchmark_comparator",
+      "purpose": "MLP hyperparameter tuning in Paddy comparison",
+      "algorithms": ["GeneticAlgorithm"],
+      "objective": "three-fold validation F1 after inner gradient training",
+      "hardware": "Slurm requests one GPU; inner MLP selects CUDA; outer search GPU not shown",
+      "evidence_level": "source_call_path_hpc_script_and_author_reported_experiments"
+    },
+    {
+      "repo": "eth-siplab/contimask",
+      "commit": "f536b4e8946adf529ec58330dbc4207c4f321ec3",
+      "source": "https://github.com/eth-siplab/contimask/blob/f536b4e8946adf529ec58330dbc4207c4f321ec3/attribution/mask_conti.py#L197-L228",
+      "support": "https://github.com/eth-siplab/contimask/blob/f536b4e8946adf529ec58330dbc4207c4f321ec3/README.md",
+      "kind": "published_paper_code_branch",
+      "purpose": "non-differentiable perturbation masks for irregular time series",
+      "algorithms": ["PGPE"],
+      "objective": "prediction reconstruction with sparsity and temporal regularity terms",
+      "hardware": "README lists CUDA PyTorch build; execution of branch not verified",
+      "evidence_level": "source_branch; public sepsis experiment files absent per README"
+    },
+    {
+      "repo": "PKU-MARL/MyoChallenge",
+      "commit": "feef99336d2b09f6b8a57462ade30b3902017512",
+      "source": "https://github.com/PKU-MARL/MyoChallenge/blob/feef99336d2b09f6b8a57462ade30b3902017512/evotorch/train.py#L7-L87",
+      "kind": "research_training_script",
+      "purpose": "MyoSuite hand-control policy optimization",
+      "algorithms": ["PGPE", "ClipUp"],
+      "objective": "GymNE environment reward",
+      "hardware": "distributed actor configuration; GPU not established",
+      "evidence_level": "source_call_path_no_result_verified"
+    },
+    {
+      "repo": "synaptent/RingRift",
+      "commit": "a243b4e5ad1e7359052361a15a6be64c978d2746",
+      "source": "https://github.com/synaptent/RingRift/blob/a243b4e5ad1e7359052361a15a6be64c978d2746/ai-service/scripts/run_unified_cmaes.py#L529-L548",
+      "support": "https://github.com/synaptent/RingRift/blob/a243b4e5ad1e7359052361a15a6be64c978d2746/ai-service/scripts/run_evotorch_cmaes.py#L113-L125",
+      "kind": "application_script_integration",
+      "purpose": "board-game heuristic weight tuning",
+      "algorithms": ["CMAES"],
+      "objective": "simulated match win-rate against baseline weights",
+      "hardware": "GPU path claimed in source; CPU tensor-to-dict conversion remains; speed unverified",
+      "evidence_level": "source_call_path_no_result_verified"
+    }
+  ],
+  "qualified_exclusions": [
+    {
+      "repo": "fredericowieser/ASALPlusPlus",
+      "source": "https://github.com/fredericowieser/ASALPlusPlus/blob/16a0f918251bfa0f8deaf7e25c23ab40586a5a86/src/asal_pytorch/main_opt.py#L123-L200",
+      "reason": "EvoTorch route is an experimental PyTorch adapter; README says paper experiments use JAX"
+    },
+    {
+      "repo": "neuroevolution-ai/NaturalNets",
+      "source": "https://github.com/neuroevolution-ai/NaturalNets/blob/efc2037b5c8a701c8c39f4f11e9685a1a729f72e/naturalnets/optimizers/cma_es_evotorch.py#L70-L120",
+      "reason": "EvoTorch adapter exists, but README's example optimizer is DEAP; actual run not established"
+    },
+    {
+      "repo": "samholt/HDTwinGen",
+      "source": "https://github.com/samholt/HDTwinGen/blob/a7cd335fc9ba701b6e4a986a0485b28460290184/libs/cancer/env.py#L565-L670",
+      "reason": "CPU PGPE branch in cancer simulator source; completed run and clinical evidence not established"
+    }
+  ]
+}
