@@ -16,7 +16,9 @@ For smooth objectives with reliable gradients, compare against autograd-based me
 
 torch-dfo develops its own API, algorithms, and research tools. Application needs guide their design. The core depends only on PyTorch.
 
-We study derivative-free optimization across Python, JAX, and native numerical libraries. EvoTorch, SciPy, pycma, Nevergrad, pymoo, evosax, pagmo, and NLopt provide candidate implementations, workflows, and comparison baselines. Public applications supply real workloads. See [the reference strategy](research/redesign/reference-strategy.md).
+We study derivative-free optimization across Python, JAX, and native numerical libraries. EvoTorch, EvoX, SciPy, pycma, Nevergrad, pymoo, evosax, pagmo, and NLopt are candidate implementation and benchmark references. Completed cross-library studies currently cover SciPy and EvoTorch. Public applications supply real workloads. See [the reference strategy](research/redesign/reference-strategy.md).
+
+As of September 20, 2026, EvoTorch's latest default-branch commit and release were dated May 14, 2025, about 16 months earlier. See its [latest commit at review](https://github.com/nnaisense/evotorch/commit/cebcac4f20979078becf8b908016cd8e5e6714a4) and [v0.6.1 release](https://github.com/nnaisense/evotorch/releases/tag/v0.6.1). Maintained PyTorch support is a torch-dfo priority; performance claims require separate benchmarks.
 
 Use task results, evaluation cost, and runtime to judge an implementation. Compatibility with another library's API is not a design requirement.
 

@@ -17,6 +17,7 @@ The official sources below establish relevant capabilities. This table selects a
 | Reference | Stack and relevant capabilities | What to examine for torch-dfo |
 | --- | --- | --- |
 | [EvoTorch](https://github.com/nnaisense/evotorch) | PyTorch evolutionary search and neuroevolution | PGPE, ClipUp, vectorized objectives, public policy and mask workloads |
+| [EvoX](https://github.com/EMI-Group/evox) | PyTorch GPU evolutionary computation | Direct accelerator comparison for shared CMA-ES and differential-evolution workloads |
 | [SciPy](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.differential_evolution.html) | Python numerical optimization with differential evolution | A practical baseline, budget and stopping behavior, vectorized or parallel evaluation |
 | [pycma](https://github.com/CMA-ES/pycma) | CMA-ES with bounds, constraints, noise, and integer-variable support | Numerical behavior, covariance and step-size handling, restarts, noise treatment |
 | [Nevergrad](https://facebookresearch.github.io/nevergrad/optimization.html) | Gradient-free optimization with parametrization and ask/tell execution | Mixed search spaces, optimizer selection, noisy objectives, application benchmark design |
@@ -48,3 +49,25 @@ The evaluator counts actual candidate calls. Every method selects its incumbent 
 Use the same CPU environment for this SciPy simulator. It cannot establish GPU acceleration. Future tensor workloads must measure transfer, compilation, warm-up, memory, and complete search time across stacks.
 
 Broader algorithm coverage follows observed application needs. These references inform the work; they do not impose API compatibility or a requirement to beat every baseline.
+
+## Next comparison priorities
+
+Updated September 20, 2026. These comparisons are planned, not completed.
+
+1. Compare shared algorithms with EvoX on the Spark. It is a direct PyTorch GPU reference, with a [release dated September 9, 2026](https://github.com/EMI-Group/evox/releases/tag/v1.4.0).
+2. Add pycma as a numerical CMA-ES baseline. Compare solution quality per evaluation and complete runtime, including GPU objective transfers where used.
+3. Compare evosax on the same GPU workloads to test the PyTorch versus JAX execution choices. Check evaluator parity before timing.
+4. Add Nevergrad when the task uses mixed variables, noise, or optimizer selection. Compare suitable methods rather than an arbitrary default.
+
+Retain SciPy and EvoTorch in the application comparisons. Add pymoo for constrained
+or multi-objective tasks, and NLopt for low-dimensional local refinement. Use
+pagmo when parallel island search becomes a measured need.
+
+Use canonical numerical problems and a GPU engineering workload. Keep objective
+semantics, bounds, precision, candidate budgets, and stopping rules explicit.
+Report repeated-seed solution quality, time to a fixed target, total search time,
+compilation cost, transfers, and memory. Compare shared algorithms separately from
+each library's best suitable method. Keep random search and domain baselines.
+
+The current compiled-versus-eager CUDA result is an internal execution comparison.
+It does not establish an advantage over EvoX, evosax, or another DFO library.
