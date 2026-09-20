@@ -123,6 +123,16 @@ The next CUDA change must retain the current reference as a baseline. Repeat
 paired searches and include setup cost. Keep runtime and application dependencies
 outside the core library.
 
+## Discrete architecture-search benchmark
+
+EvoXBench is the selected next benchmark for discrete architecture search. Start with NASBench201 and a fixed scalar objective under counted evaluation budgets.
+Compare against random search and a categorical evolutionary baseline. Keep validation scores for search and test scores for final assessment.
+Record duplicate architectures, evaluator randomness, and unique evaluated designs. Add Pareto search only with a separate multi-objective protocol.
+
+EvoXBench uses stored results or predictive evaluators. It does not establish CUDA acceleration or network latency on DGX Spark.
+Measure selected networks on GB10 in a separate deployment study. Keep benchmark data and optional dependencies outside the core package.
+This is planned work and does not block merging the foundation beta.
+
 ## Maintenance and decision rules
 
 Keep one active implementation milestone and one bounded application-selection lane. Use independent review for meaningful numerical and state changes. Commit working increments and keep the verified baseline available.
