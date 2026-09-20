@@ -1,6 +1,6 @@
 # torch-dfo redesign program
 
-Status: active. Evaluators are not frozen yet. No optimization claim is accepted from this phase.
+Status: beta validation. The thermal-control v2 evaluator is frozen. No application superiority claim is accepted.
 Baseline: foundation correction commit `e446f68`.
 Branch: `redesign/contracts-20260919`.
 
@@ -16,17 +16,16 @@ Completion requires a minimal working implementation, independent contract check
 
 ## Active phase
 
-Stage 1 of `roadmap.md`: implement executable contracts, experiment records, and one working SearchRun. A bounded application-selection lane runs in parallel.
+Validate and package `0.11.0b1`. The run API supports CMA-ES, SHADE, and uniform random search.
+The engineering reference uses the public run API, fixed scenarios, simple domain baselines, and optional EvoTorch CMA-ES.
 
-Phase completion requires:
+Completion evidence consists of independent contract checks, full CPU/CUDA regression results, a fresh wheel installation, executable documentation, and a cost-accounted study.
+The study retains its held-out losses. A small open-loop schedule that fits train scenarios is not evidence of robust control.
 
-- Public-interface tests for budget, identity, candidate mutation, failure, RNG, and checkpoint behavior.
-- A tensor evaluator, CMA-ES adapter, and random-search adapter using the same run interface.
-- Reproducible CPU/CUDA runs, a planned-pause continuation, and measured overhead.
-- Versioned run records with seeds, evaluator identity, costs, failures, and source provenance.
-- A source-backed first engineering application selected through bounded runtime and reproducibility checks.
+Keep implementation simple. Use one pending batch and direct optimizer calls. Add no registry, scheduler, or application dependency to the core.
+The research loop currently performs three declared train-only configuration trials. General autonomous source editing remains future work.
 
-The detached Spark execution path is verified. The architecture received independent challenge and revisions. Application evaluator proposals remain provisional. Missing optional datasets must not block core implementation. Freeze each application's evaluator before optimizing against it.
+See `beta-report.md` for results and limitations. The detached Spark job survives loss of the local SSH connection.
 
 ## Research limits
 

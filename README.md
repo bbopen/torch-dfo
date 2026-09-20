@@ -18,32 +18,39 @@ For smooth objectives with reliable gradients, compare against autograd-based me
 
 ## Install
 
+This branch contains the `0.11.0b1` beta candidate. Install it from the checkout:
+
 ```bash
-pip install torch-dfo
+pip install -e .
 ```
 
 Requires Python 3.10 or later and PyTorch 2.4 or later. Install a PyTorch build that supports your accelerator before selecting CUDA or MPS.
 
-## Batched search
+## Budgeted search
 
 ```python
-import torch
-from torch_dfo import CMAES
+from torch_dfo import CMAES, minimize
 
-opt = CMAES(dim=30, bounds=(-5.12, 5.12), device="cpu", seed=42)
-for _ in range(100):
-    candidates = opt.ask()
-    fitness = candidates.square().sum(-1)
-    opt.tell(candidates, fitness)
-best_x, best_f = opt.best()
+optimizer = CMAES(dim=10, bounds=(-5.0, 5.0), device="cpu", seed=42)
+result = minimize(lambda x: x.square().sum(-1), optimizer, max_evals=1000)
+print(result.best_value, result.charged_evals)
 ```
 
-Select `device="cuda"` or `device="mps"` when available. The objective accepts a batch of candidates and returns one scalar fitness per candidate. Lower fitness is better.
+The objective receives a batch and returns one scalar per candidate. Lower is better.
+`minimize` uses `SearchRun` to count evaluations and stop at the budget.
+CMA-ES and SHADE require full generations. Random search can use the final partial batch.
+
+Use `SearchRun` for manual ask/tell, fixed repeats, raw observations, and planned checkpoints.
+See [the run guide](docs/runs.md). Existing optimizer-level ask/tell interfaces remain available.
+
+Select `device="cuda"` when available. Use `dtype=torch.float32` on MPS.
+GPU speed depends on the objective and population size.
 
 ## Algorithms
 
 | Algorithm | Mechanism |
 | --- | --- |
+| `RandomSearch` | Uniform bounded search with a private random generator |
 | `CMAES` | Full covariance adaptation with restart support |
 | `SHADE` | Differential evolution with adaptive parameters |
 | `NelderMead` | Simplex-based local search |
@@ -80,14 +87,10 @@ Bounds are absolute parameter limits. The wrapper derives device and dtype from 
 
 ## Checkpointing
 
-```python
-state = opt.state_dict()
-torch.save(state, "checkpoint.pt")
-restored = CMAES(dim=30, bounds=(-5.12, 5.12), device="cpu", seed=42)
-restored.load_state_dict(torch.load("checkpoint.pt", map_location="cpu"))
-```
+`SearchRun.state_dict()` saves a completed batch boundary. `SearchRun.from_checkpoint()` restores the search as a new run with parent lineage.
+The beta uses trusted Python checkpoints on the same device. See [the checkpoint example](docs/runs.md#planned-checkpoints).
 
-Use matching optimizer configuration for continuation. Same-device tests check exact continuation. Cross-device loads can reinitialize the random generator from its seed, so continuation is not bit-exact.
+Optimizer-level `state_dict()` and `load_state_dict()` remain available. Their cross-device behavior can reinitialize the random generator.
 
 ## Accelerator and compilation limits
 
@@ -130,7 +133,14 @@ Integer and categorical decoding does not replace domain-specific mutation or fe
 
 ## Research lab
 
-The redesign will include a research lab in this repository. Its program covers canonical evaluations, engineering applications, and autonomous experiments that propose, test, and retain measured improvements. See [the research program](research/redesign/program.md) for current scope and status.
+The repository includes a quantized thermal-control reference study.
+It compares CMA-ES, SHADE, random search, and simple domain baselines on fixed train and held-out scenarios.
+An optional EvoTorch baseline runs against the same objective.
+The small RC model is a reproducible optimization example, not a validated building simulator.
+
+The study audits its evaluator before tuning and records every bounded development trial.
+See [the study protocol](research/redesign/engineering-study.md) and [the example](examples/06_engineering_control.py).
+General autonomous code editing and frontier research remain later milestones in [the roadmap](research/redesign/roadmap.md).
 
 ## Acknowledgements
 
@@ -144,7 +154,7 @@ The redesign will include a research lab in this repository. Its program covers 
   title = {torch-dfo: Derivative-free optimization for PyTorch},
   year = {2026},
   url = {https://github.com/bbopen/torch-dfo},
-  version = {0.10.0}
+  version = {0.11.0b1}
 }
 ```
 

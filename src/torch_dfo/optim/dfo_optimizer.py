@@ -7,6 +7,8 @@ from typing import Any
 
 import torch
 
+from torch_dfo.base import BaseOptimizer
+
 
 class DFOOptimizer(torch.optim.Optimizer):
     """Derivative-free optimizer with torch.optim.Optimizer interface.
@@ -108,7 +110,7 @@ class DFOOptimizer(torch.optim.Optimizer):
             raise ValueError(f"Unknown algorithm '{algorithm}'. Choose from: {list(algo_map)}")
 
         algo_cls = algo_map[algorithm]
-        self._inner = algo_cls(
+        self._inner: BaseOptimizer = algo_cls(
             dim=self._dim,
             bounds=bounds,
             device=device,

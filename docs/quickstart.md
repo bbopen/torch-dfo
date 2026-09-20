@@ -1,70 +1,52 @@
 # Quickstart
 
-## Installation
+## Install
 
-**CPU:**
+Install a PyTorch build for your device. From this beta checkout, run:
+
 ```bash
-pip install torch-dfo
+pip install -e .
 ```
 
-**CUDA:**
-```bash
-pip install torch --index-url https://download.pytorch.org/whl/cu121
-pip install torch-dfo
-```
+The beta is version `0.11.0b1`. You can also install its built wheel.
 
-**Apple Silicon (MPS):**
-```bash
-pip install torch torch-dfo
-```
-
-## First optimization
+## Minimize a batched objective
 
 ```python
-import torch
-import torch_dfo
+from torch_dfo import CMAES, minimize
 
-opt = torch_dfo.CMAES(dim=10, bounds=(-5.0, 5.0), device="cuda")
-
-for _ in range(500):
-    x = opt.ask()                        # (pop_size, 10) tensor on CUDA
-    f = (x ** 2).sum(dim=-1)            # sphere — evaluated on GPU, no CPU transfer
-    opt.tell(x, f)
-
-best_x, best_f = opt.best()
-print(f"Best fitness: {best_f:.6f}")    # → ~0.0
+optimizer = CMAES(dim=10, bounds=(-5.0, 5.0), device="cpu", seed=42)
+result = minimize(lambda x: x.square().sum(-1), optimizer, max_evals=1000)
+print(result.best_value, result.charged_evals)
 ```
 
-## Swapping devices
+The objective receives a tensor with shape `[population, dimension]`.
+It returns one finite scalar per candidate. Lower values are better.
+A complete CMA-ES generation must fit the remaining budget, so some evaluations can remain unused.
 
-The device is the only thing that changes:
+Use `device="cuda"` for a CUDA-enabled PyTorch build. Use `dtype=torch.float32` with MPS.
+GPU speed depends on objective cost and population size. Measure total elapsed time on your task.
+
+## Select a method
+
+Start by comparing CMA-ES, SHADE, and random search under the same evaluation budget.
+CMA-ES learns correlations between variables. SHADE adapts differential-evolution proposals.
+Random search provides a simple baseline and can use a partial final batch.
 
 ```python
-opt_cpu  = torch_dfo.SHADE(dim=20, bounds=5.0, device="cpu")
-opt_cuda = torch_dfo.SHADE(dim=20, bounds=5.0, device="cuda")
-opt_mps  = torch_dfo.SHADE(dim=20, bounds=5.0, device="mps")
+from torch_dfo import RandomSearch, SHADE, minimize
+
+for method in (RandomSearch, SHADE):
+    optimizer = method(dim=10, bounds=5.0, pop_size=32, device="cpu", seed=42)
+    result = minimize(lambda x: x.square().sum(-1), optimizer, max_evals=1000)
+    print(method.__name__, result.best_value, result.charged_evals)
 ```
 
-## Choosing an optimizer
+Compare smooth objectives against gradient methods when reliable gradients are available.
+The thermal-control example demonstrates a quantized objective and a conventional controller baseline.
+It is a synthetic reference study, not a validated building model.
 
-| Situation | Recommended optimizer |
-|---|---|
-| General-purpose, strongest convergence | `PhasedDFO` |
-| High-dimensional (d > 100), GPU-first | `DLRPortfolio` |
-| Moderate-dim, ill-conditioned | `CMAES` |
-| Multimodal, robust | `SHADE` |
-| Low-dim local polish | `NelderMead` |
+## Control each batch
 
-## Checkpointing
-
-```python
-# Save
-state = opt.state_dict()
-torch.save(state, "checkpoint.pt")
-
-# Restore
-opt2 = torch_dfo.CMAES(dim=10, bounds=(-5.0, 5.0), device="cuda")
-opt2.load_state_dict(torch.load("checkpoint.pt"))
-```
-
-Same-device loads are bit-exact. Cross-device loads (CPU → CUDA) fall back to re-seeding — see {doc}`serialization` for details.
+Use {doc}`runs` for ask/tell, repeated evaluations, and planned checkpoints.
+Existing optimizer-level ask/tell code continues to work. That lower-level interface leaves evaluation accounting to the caller.

@@ -1,6 +1,13 @@
 # Architecture decision 1: search state and evaluation ownership
 
-Status: revised after independent review. Implementation acceptance still requires the contract tests below.
+Status: design record. The `0.11.0b1` beta implements the scalar synchronous subset in `docs/runs.md`.
+
+The beta uses existing optimizers directly. It adds no adapter registry or evaluator class hierarchy.
+It retains fixed repeats and raw observations. The objective owns scenario selection and simulation randomness.
+Microbatching, general constraint fields, automatic recovery, and portable checkpoint formats remain deferred.
+Checkpoints contain trusted Python objects for same-device continuation.
+The overhead margins below were proposals, not beta release gates. Measured overhead is reported separately.
+The implementation guide and beta evidence take precedence over unimplemented details in this earlier design.
 
 ## Problem
 

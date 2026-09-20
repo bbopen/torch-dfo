@@ -1,8 +1,25 @@
 API Reference
 =============
 
+Budgeted runs
+-------------
+
+.. autoclass:: torch_dfo.SearchRun
+   :members: ask, tell, step, result, done, state_dict, load_state_dict, from_checkpoint
+
+.. autofunction:: torch_dfo.minimize
+
+.. autoclass:: torch_dfo.CandidateBatch
+
+.. autoclass:: torch_dfo.EvaluationResult
+
+.. autoclass:: torch_dfo.SearchResult
+
 Optimizers
 ----------
+
+.. autoclass:: torch_dfo.RandomSearch
+   :members: ask, tell, best, state_dict, load_state_dict
 
 .. autoclass:: torch_dfo.CMAES
    :members: ask, tell, best, state_dict, load_state_dict, restart

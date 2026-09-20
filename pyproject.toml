@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "torch-dfo"
-version = "0.10.0"
+version = "0.11.0b1"
 description = "GPU-accelerated derivative-free optimization for PyTorch"
 readme = "README.md"
 license = "MIT"
@@ -53,11 +53,8 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.4.0",
     "mypy>=1.0",
-    # numpy: required by the optional benchmark harness
-    # (`benchmarks/run_benchmarks.py`) which the test suite's
-    # `test_benchmark_harness.py` imports transitively. The library
-    # itself does NOT depend on numpy at runtime.
-    "numpy>=1.26",
+    # Benchmark tests need NumPy. Version 2.5 stubs require Python 3.12 syntax.
+    "numpy>=1.26,<2.5",
 ]
 docs = [
     "sphinx>=7.0",

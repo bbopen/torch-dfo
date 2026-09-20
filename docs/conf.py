@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 project = "torch-dfo"
 copyright = "2026, Brett G. Bonner"
 author = "Brett G. Bonner"
-release = "0.10.0"
+release = "0.11.0b1"
 
 extensions = [
     "sphinx.ext.autodoc",
