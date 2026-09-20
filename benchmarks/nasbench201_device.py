@@ -395,9 +395,15 @@ def run_search(
     *,
     compile_evox: bool = False,
 ) -> dict:
-    """Time one complete eager search and save its observed validation trace."""
+    """Time one complete search and save its observed validation trace."""
     from benchmarks.nasbench201 import make_native_optimizer
 
+    cache_reset_seconds = None
+    if compile_evox:
+        sync(device)
+        reset_start = time.perf_counter()
+        torch.compiler.reset()
+        cache_reset_seconds = time.perf_counter() - reset_start
     sync(device)
     scorer_start = time.perf_counter()
     scorer_class = CompiledDeviceResidentScorer if compile_evox else DeviceResidentScorer
@@ -424,8 +430,9 @@ def run_search(
                 if method != "evox_de":
                     raise ValueError("optional compilation is limited to EvoX DE")
                 from evox.core import compile as evox_compile
+                from torch._dynamo.utils import counters as dynamo_counters
 
-                evox_step = evox_compile(workflow.step)
+                evox_step = evox_compile(workflow.step, fullgraph=True)
 
             def step(first: bool) -> None:
                 if first:
@@ -440,11 +447,17 @@ def run_search(
         sync(device)
         first_seconds = time.perf_counter() - start
         first_compiled_seconds = None
+        first_compiled_graphs = None
+        total_compiled_graphs = None
         if compile_evox:
+            graphs_before = int(dynamo_counters["stats"]["unique_graphs"])
             compiled_start = time.perf_counter()
             step(False)
             sync(device)
             first_compiled_seconds = time.perf_counter() - compiled_start
+            first_compiled_graphs = (
+                int(dynamo_counters["stats"]["unique_graphs"]) - graphs_before
+            )
             remaining_steps = BUDGET // POPULATION - 2
         else:
             remaining_steps = BUDGET // POPULATION - 1
@@ -455,6 +468,14 @@ def run_search(
         steady_seconds = time.perf_counter() - steady_start
         search_seconds = time.perf_counter() - start
         if compile_evox:
+            total_compiled_graphs = (
+                int(dynamo_counters["stats"]["unique_graphs"]) - graphs_before
+            )
+            if first_compiled_graphs < 1 or total_compiled_graphs != first_compiled_graphs:
+                raise RuntimeError(
+                    "compiled EvoX graph count differs: "
+                    f"first={first_compiled_graphs}, total={total_compiled_graphs}"
+                )
             scorer.charged = int(scorer.cursor.item())
         if scorer.charged != BUDGET:
             raise RuntimeError(f"search charged {scorer.charged} rather than {BUDGET}")
@@ -486,9 +507,12 @@ def run_search(
         return {
             "status": "complete",
             "scorer_staging_seconds": scorer_staging_seconds,
+            "compiler_cache_reset_seconds": cache_reset_seconds,
             "construction_seconds": construction_seconds,
             "first_query_seconds": first_seconds,
             "first_compiled_generation_seconds": first_compiled_seconds,
+            "first_compiled_unique_graphs": first_compiled_graphs,
+            "total_compiled_unique_graphs": total_compiled_graphs,
             "steady_generations_seconds": steady_seconds,
             "full_search_seconds": search_seconds,
             "remaining_search_seconds": search_seconds - first_seconds,
@@ -633,6 +657,8 @@ def main() -> None:
             "population": POPULATION,
             "budget": BUDGET,
             "compiled_evox_de_attempt": args.compile_evox,
+            "compiled_evox_fullgraph": args.compile_evox,
+            "compiled_cache_reset_per_search": args.compile_evox,
         },
         "table_loads": [],
         "warmups": [],
@@ -703,10 +729,19 @@ def main() -> None:
                         warmup["compiled"] = {
                             "status": "complete",
                             "charged": compiled["charged"],
+                            "compiler_cache_reset_seconds": compiled[
+                                "compiler_cache_reset_seconds"
+                            ],
                             "construction_seconds": compiled["construction_seconds"],
                             "first_query_seconds": compiled["first_query_seconds"],
                             "first_compiled_generation_seconds": compiled[
                                 "first_compiled_generation_seconds"
+                            ],
+                            "first_compiled_unique_graphs": compiled[
+                                "first_compiled_unique_graphs"
+                            ],
+                            "total_compiled_unique_graphs": compiled[
+                                "total_compiled_unique_graphs"
                             ],
                             "first_compiled_generation_includes_compile": True,
                         }

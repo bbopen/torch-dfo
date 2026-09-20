@@ -9,6 +9,7 @@ import torch
 from benchmarks.nasbench201 import decode_logits, tie_priority, trial_index
 from benchmarks.nasbench201_device import (
     POWERS,
+    CompiledDeviceResidentScorer,
     DeviceResidentScorer,
     ValidationTable,
     make_trial_schedule,
@@ -53,6 +54,25 @@ def test_duplicate_candidates_get_distinct_private_trial_visits() -> None:
     expected_errors = [table.values[0, trial] for trial in expected_trials]
     assert first + second == expected_errors
     assert trace["architecture_ids"] == [0] * 40
+    assert trace["visit_indices"] == list(range(40))
+    assert trace["trial_indices"] == expected_trials
+    assert trace["tied_edges"] == [6] * 40
+
+
+def test_fullgraph_scorer_keeps_duplicate_visit_trace() -> None:
+    seed = 7
+    table = _single_architecture_table(seed)
+    schedule = make_trial_schedule(table, seed, budget=40)
+    scorer = CompiledDeviceResidentScorer(table, schedule, seed, "cpu", budget=40)
+    compiled = torch.compile(scorer.__call__, backend="eager", fullgraph=True)
+    logits = torch.zeros((20, 30), dtype=torch.float64)
+
+    first = compiled(logits).tolist()
+    second = compiled(logits).tolist()
+    scorer.charged = int(scorer.cursor.item())
+    trace = scorer.trace()
+    expected_trials = [trial_index("cifar10", seed, table.ops[0], i, 3) for i in range(40)]
+    assert first + second == [table.values[0, trial] for trial in expected_trials]
     assert trace["visit_indices"] == list(range(40))
     assert trace["trial_indices"] == expected_trials
     assert trace["tied_edges"] == [6] * 40
