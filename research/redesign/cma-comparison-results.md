@@ -73,7 +73,7 @@ The earlier compiled CUDA study measured a different execution question.
 
 The isolated covariance probe reproduced a rank-one update defect on CPU and CUDA.
 EvoX computes `p_c @ p_c.T` for a one-dimensional path, producing a scalar.
-CMA-ES requires the outer product. We submitted [issue #250](https://github.com/EMI-Group/evox/issues/250) and [PR #251](https://github.com/EMI-Group/evox/pull/251) as `bbopen`.
+CMA-ES requires the outer product.
 
 The one-line correction passed focused eager, vmap, and full-graph compiled vmap regression checks on CPU and CUDA.
 The same tests failed against the original source. This validates the covariance correction, not the full upstream algorithm suite.

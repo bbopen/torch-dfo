@@ -118,7 +118,7 @@ The YAHPO runner uses one torch-dfo seed and several random seeds. Its mean comp
 
 Run bounded, seeded comparisons against random or Sobol search, EvoTorch, pycma, and suitable gradient or Bayesian methods. Report evaluation counts and wall time. Keep failures in the results and reserve unseen problem instances for confirmation.
 
-The first 16-dimensional CMA-ES panel compared torch-dfo with pycma at equal budgets on DGX Spark. CPU execution was faster than CUDA for these small eager batches. No canonical target was reached within 3,200 evaluations. EvoX 1.4.0 failed on the tested Torch build. See [the results and upstream fix](research/redesign/cma-comparison-results.md).
+The first 16-dimensional CMA-ES panel compared torch-dfo with pycma at equal budgets on DGX Spark. CPU execution was faster than CUDA for these small eager batches. No canonical target was reached within 3,200 evaluations. EvoX 1.4.0 failed on the tested Torch build. See [the comparison results](research/redesign/cma-comparison-results.md).
 
 ## Structured search
 
