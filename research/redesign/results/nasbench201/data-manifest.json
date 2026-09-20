@@ -1,0 +1,69 @@
+{
+  "source_repository": "https://github.com/EMI-Group/evoxbench",
+  "source_commit": "2f1ae28720a09fdf3e487bcd9de91433512fc106",
+  "schema_repository": "https://github.com/liuxukun2000/evoxdatabase",
+  "schema_repository_inspected_commit": "d1a3588ebbde9dd1d559a9d5c8fd5986f518d399",
+  "database_archive": {
+    "official_readme_url": "https://drive.google.com/file/d/11bQ1paHEWHDnnTPtxs2OyVY_Re-38DiO/view?usp=sharing",
+    "filename": "database.zip",
+    "bytes": 464864269,
+    "sha256": "eb53451b37365517078bd1442ceba428e5649160394e6359e4c178eb07c8bf71",
+    "zip_test": "passed"
+  },
+  "data_archive": {
+    "official_readme_url": "https://drive.google.com/file/d/1r0iSCq1gLFs5xnmp1MDiqcqxNcY5q6Hp/view?usp=sharing",
+    "filename": "data.zip",
+    "bytes": 286282425,
+    "sha256": "e98557c120b8b4889443d9b9467c4b0fd80495797fbc533d1be2ba59f3264c40",
+    "zip_test": "passed"
+  },
+  "sqlite": {
+    "relative_path": "database/db.sqlite3",
+    "bytes": 2749972480,
+    "sha256": "d2dbd2eff43fdbc59dd3ec1873a92c98a1e1c88ecbeb4f0b62cff818e82921a5",
+    "quick_check": "ok",
+    "table": "nasbench201_nasbench201result",
+    "record_count": 15625,
+    "unique_indices": 15625,
+    "index_min": 0,
+    "index_max": 15624,
+    "unique_phenotypes": 15625
+  },
+  "nb201_metadata": {
+    "relative_directory": "data20240229/data/nb201",
+    "pareto_front_sha256": "d3307db64c76f8967ce3f8c9c1c5242860d326f7d30a6ae83ed87718308efe24",
+    "pareto_set_sha256": "d671f16c25024c4bfb6780f58752c4728e8f1f036f23840a1eaecdae1c779ebc"
+  },
+  "search_validation_export": {
+    "relative_path": "search-validation-hp200.json",
+    "bytes": 11233932,
+    "sha256": "afe4bce58d24c83144ad12f8ff718425c59027203de945d12e1f8ca8a5b04c20",
+    "records": 15625,
+    "datasets": ["cifar10", "cifar100", "ImageNet16-120"],
+    "source_field": "more_info[dataset-or-cifar10-valid][hp200][i][valid-accuracy]",
+    "seed_order": "unchanged",
+    "test_accuracy_field_absent": true
+  },
+  "final_test_export": {
+    "relative_path": "final-test-hp200.json",
+    "bytes": 6129438,
+    "sha256": "bb120e83d82c386fc986a72b33322d90b4f966f14568e83c4d09360f72973a41",
+    "records": 15625,
+    "datasets": ["cifar10", "cifar100", "ImageNet16-120"],
+    "source_field": "more_info[dataset][hp200][i][test-accuracy]",
+    "seed_order": "unchanged",
+    "validation_accuracy_field_absent": true
+  },
+  "hp200_trial_count_distribution": {"three_trials": 8169, "two_trials": 7456},
+  "upstream_evaluator_parity": {
+    "relative_path": "upstream-evaluator-parity-audit.json",
+    "sha256": "53fd2d12a2a19fd8a2c17de585463527e59757f00ebaf043af26cc8fe06f26e2",
+    "validation_comparisons": 140625,
+    "test_mean_comparisons": 46875,
+    "mismatches_at_absolute_tolerance_1e-12": 0,
+    "max_validation_absolute_error": 0,
+    "max_test_mean_absolute_error": 2.842170943040401e-14,
+    "duplicate_phenotype_probe": "passed",
+    "invalid_phenotype_probe": "passed"
+  }
+}
