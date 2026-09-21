@@ -36,7 +36,7 @@ kill on the worker does not take down the sweep driver.
 
 Usage:
     python benchmarks/scaling_probe.py --optimizer CMAES --dim 640 \
-        --function sphere --device cuda --warmup 2 --timed 5 --max-sec-per-gen 300
+        --function sphere --device cuda --warmup 3 --timed 5 --max-sec-per-gen 300
 """
 
 from __future__ import annotations
@@ -135,7 +135,7 @@ def main() -> int:
     )
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--dtype", default="float64", choices=("float32", "float64"))
-    ap.add_argument("--warmup", type=int, default=2)
+    ap.add_argument("--warmup", type=int, default=3)
     ap.add_argument("--timed", type=int, default=5)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument(
