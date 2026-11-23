@@ -381,8 +381,21 @@ class SearchRun:
         if observed.values.shape[1] == 1:
             aggregate = observed.values[:, 0]
         else:
-            scale = observed.values.abs().amax(dim=1, keepdim=True).clamp(min=1.0)
-            aggregate = (observed.values / scale).mean(dim=1) * scale.squeeze(1)
+            work_dtype = (
+                torch.float64 if observed.values.device.type != "mps" else observed.values.dtype
+            )
+            vals = observed.values.to(dtype=work_dtype)
+            order = vals.abs().argsort(dim=1, descending=True)
+            ordered = vals.gather(1, order)
+            acc = torch.zeros(vals.shape[0], device=vals.device, dtype=work_dtype)
+            for col in range(ordered.shape[1]):
+                acc = acc + ordered[:, col]
+            mean_val = acc / ordered.shape[1]
+            if not torch.isfinite(mean_val).all():
+                scale = vals.abs().amax(dim=1, keepdim=True).clamp(min=1.0)
+                fallback = (vals / scale).mean(dim=1) * scale.squeeze(1)
+                mean_val = torch.where(torch.isfinite(mean_val), mean_val, fallback)
+            aggregate = mean_val.to(dtype=observed.values.dtype)
         if not torch.isfinite(aggregate).all():
             observed.error = "evaluation aggregate is non-finite"
             self._failure(observed, charge)

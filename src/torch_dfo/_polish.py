@@ -889,6 +889,8 @@ def nm_polish(
         device=x.device,
         dtype=x.dtype,
     )
+    if bounds is None:
+        nm._clamp_candidates = False
 
     x_clamped = (
         clamp_to_bounds(x.unsqueeze(0), nm.lb, nm.ub).squeeze(0)

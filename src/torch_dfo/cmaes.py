@@ -365,6 +365,7 @@ class CMAES(BaseOptimizer):
                 "mean": self.mean.clone(),
                 "sigma": self.sigma,
                 "_sigma0": self._sigma0,
+                "_initial_sigma": self._initial_sigma,
                 "sigma_min": self.sigma_min,
                 "sigma_max": self.sigma_max,
                 "active": self.active,
@@ -389,6 +390,9 @@ class CMAES(BaseOptimizer):
         self.mean.copy_(state["mean"])
         self.sigma = state["sigma"]
         self._sigma0 = float(state.get("_sigma0", self._sigma0))
+        self._initial_sigma = float(
+            state.get("_initial_sigma", self._sigma0 * (self.ub - self.lb).mean().item())
+        )
         self.sigma_min = state["sigma_min"]
         self.sigma_max = state["sigma_max"]
         self._path = CMAPathState.from_dict(
@@ -578,9 +582,9 @@ class CMAES(BaseOptimizer):
 
         finfo = torch.finfo(self.dtype)
         sigma_ref = getattr(self, "_initial_sigma", 1.0)
-        if self.sigma > 0.0 and math.isfinite(self.sigma):
-            sigma_ratio_sq = (sigma_ref / self.sigma) ** 2
-            eig_floor = min(1e-8, max(finfo.tiny * 1e6, 1e-8 * sigma_ratio_sq))
+        if self.sigma > sigma_ref and math.isfinite(self.sigma):
+            sigma_ratio = sigma_ref / self.sigma
+            eig_floor = max(finfo.tiny * 1e6, 1e-8 * sigma_ratio * sigma_ratio)
         else:
             eig_floor = 1e-8
         eigenvalues = torch.clamp(eigenvalues, min=eig_floor)
@@ -661,7 +665,7 @@ class CMAES(BaseOptimizer):
         if mean is not None:
             self.mean = mean.to(device=self.device, dtype=self.dtype).clone()
         else:
-            self.mean = ((self.lb + self.ub) / 2).clone()
+            self.mean = (0.5 * self.lb + 0.5 * self.ub).clone()
 
         if sigma is not None:
             self.sigma = sigma

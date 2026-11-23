@@ -994,3 +994,104 @@ class TestReviewRegressions:
 
         opt.optimize(noisy_sphere)
         assert len(draws) == len(set(draws)), "Global RNG state was rewound and replayed draws"
+
+    def test_dfo_optimizer_nelder_mead_uses_remaining_4_eval_step(self) -> None:
+        """DFOOptimizer with NelderMead dim=5 budget=10 does not stop early at 4 remaining."""
+        from torch_dfo import DFOOptimizer
+
+        p = torch.nn.Parameter(torch.zeros(5, dtype=torch.float64))
+        opt = DFOOptimizer([p], algorithm="nelder_mead", bounds=2.0, budget=10, seed=0)
+        opt.step(closure=lambda: (p**2).sum())
+        assert opt.budget_remaining == 4
+        assert not opt.is_exhausted
+        opt.step(closure=lambda: (p**2).sum())
+        assert opt.budget_remaining == 0
+        assert opt.is_exhausted
+
+    def test_dlr_and_cmaes_restart_stay_finite_on_large_same_sign_bounds(self) -> None:
+        """DLRPortfolio init and CMAES.restart stay finite on float32 bounds (2e38, 3e38)."""
+        dlr = DLRPortfolio(dim=2, bounds=(2e38, 3e38), seed=0, device="cpu", dtype=torch.float32)
+        assert torch.isfinite(dlr.means).all()
+        x0 = dlr.ask()
+        assert torch.isfinite(x0).all()
+        dlr.tell(x0, torch.arange(len(x0), dtype=torch.float32))
+        x1 = dlr.ask()
+        assert torch.isfinite(x1).all()
+
+        cma = CMAES(
+            dim=2, bounds=(2e38, 3e38), pop_size=6, seed=0, device="cpu", dtype=torch.float32
+        )
+        cma.restart()
+        assert torch.isfinite(cma.mean).all()
+        xc = cma.ask()
+        assert torch.isfinite(xc).all()
+        assert not torch.all(xc == 3e38)
+
+    def test_dlr_small_domain_preserves_interior_sampling(self) -> None:
+        """DLRPortfolio on float32 bounds (0, 1e-10) keeps interior samples after tell()."""
+        dlr = DLRPortfolio(dim=2, bounds=(0.0, 1e-10), seed=3, device="cpu", dtype=torch.float32)
+        x0 = dlr.ask()
+        dlr.tell(x0, x0.sum(dim=1))
+        x1 = dlr.ask()
+        interior = (x1 > 0.0) & (x1 < 1e-10)
+        assert interior.any(), f"All coordinates collapsed to bounds: {x1}"
+
+    def test_nm_polish_unbounded_moves_past_1e12_sentinel(self) -> None:
+        """Unbounded nm_polish starting at 0 moves freely past 1e12 toward 2e12."""
+        from torch_dfo._polish import nm_polish
+
+        x0 = torch.tensor([0.0], dtype=torch.float64)
+        bx, bf, _used = nm_polish(
+            x0, lambda X: (X - 2e12).abs().sum(dim=-1), budget=600, bounds=None
+        )
+        assert bx.item() > 1.5e12
+        assert bf.item() < 1e9
+
+    def test_search_run_repeat_mean_survives_large_cancellation(self) -> None:
+        """SearchRun preserves representable mean after opposite-sign float32 cancellation."""
+        from torch_dfo import RandomSearch, minimize
+
+        seq = iter([3e38, -3e38, 1e-10])
+        opt = RandomSearch(dim=1, bounds=1.0, pop_size=1, device="cpu", dtype=torch.float32, seed=0)
+        res = minimize(
+            lambda x: torch.full((x.shape[0],), next(seq), dtype=torch.float32),
+            opt,
+            max_evals=3,
+            repeats=3,
+        )
+        assert res.best_value is not None
+        assert res.best_value.item() == pytest.approx(1e-10 / 3.0, rel=1e-4)
+
+    def test_base_update_best_preserves_higher_precision_fitness(self) -> None:
+        """float32 optimizer given float64 fitness above f32.max still selects the finite best."""
+        from torch_dfo import RandomSearch
+
+        opt = RandomSearch(dim=2, bounds=1.0, pop_size=4, device="cpu", dtype=torch.float32, seed=0)
+        x = opt.ask()
+        fit64 = torch.tensor([2e50, 1e50, 4e50, 3e50], dtype=torch.float64)
+        opt.tell(x, fit64)
+        assert opt.best_fitness.item() == pytest.approx(1e50)
+        assert torch.allclose(opt.best_solution, x[1])
+
+    def test_cmaes_tiny_sigma_restart_and_checkpoint_initial_sigma(self) -> None:
+        """CMAES restart(sigma=1e-200) avoids overflow and checkpoints preserve _initial_sigma."""
+        opt = CMAES(dim=2, bounds=1.0, pop_size=6, device="cpu", dtype=torch.float64, seed=0)
+        opt.restart(sigma=1e-200)
+        assert torch.isfinite(opt.D_diag).all()
+
+        src = CMAES(
+            dim=2, bounds=1.0, pop_size=6, sigma0=0.01, device="cpu", dtype=torch.float64, seed=0
+        )
+        src.C = torch.diag(torch.tensor([1e-12, 1.0], dtype=torch.float64))
+        src.sigma = 1.0
+        state = src.state_dict()
+
+        dst = CMAES(
+            dim=2, bounds=1.0, pop_size=6, sigma0=1.0, device="cpu", dtype=torch.float64, seed=1
+        )
+        dst.load_state_dict(state)
+        src._update_eigensystem()
+        dst._update_eigensystem()
+        assert torch.allclose(
+            (src.sigma**2) * src.C, (dst.sigma**2) * dst.C, rtol=1e-12, atol=1e-12
+        )

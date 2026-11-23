@@ -270,7 +270,7 @@ class DLRPortfolio:
             self._c_1.append(c1)
             self._c_mu.append(cmu)
 
-        center = ((self.lb + self.ub) / 2).unsqueeze(0).expand(K, -1)
+        center = (0.5 * self.lb + 0.5 * self.ub).unsqueeze(0).expand(K, -1)
         self.means = center.clone()
         self.sigmas = torch.tensor([sf * span for sf in sigma_fracs], device=device, dtype=dtype)
         self.log_d = torch.zeros(K, n, device=device, dtype=dtype)
@@ -379,13 +379,10 @@ class DLRPortfolio:
             new_mean = old_mean + mean_diff
             self.means[ki] = new_mean
 
-            coord_scale = max(
-                float(old_mean.abs().max().item()),
-                float((self.ub - self.lb).max().item()),
-                1.0,
-            )
+            span_max = float((self.ub - self.lb).max().item())
+            coord_scale = max(float(old_mean.abs().max().item()), span_max)
             sigma_floor = max(finfo.tiny * 1e6, 10.0 * finfo.eps * coord_scale)
-            sigma_ceil = max(sigma_floor * 10.0, 10.0 * coord_scale)
+            sigma_ceil = max(sigma_floor * 10.0, 10.0 * max(span_max, coord_scale))
             sigma_old = float(self.sigmas[ki].item())
             eff_sigma = max(sigma_old, sigma_floor)
 

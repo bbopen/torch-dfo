@@ -515,7 +515,7 @@ def sample_restart_mean(opt: PhasedDFO, phase_idx: int, span: float) -> torch.Te
 
     if restart_mode == 3:
         best_x, _ = opt.best()
-        mirrored = opt.lb + opt.ub - best_x
+        mirrored = torch.clamp(opt.ub - (best_x - opt.lb), min=opt.lb, max=opt.ub)
         jitter = opt._randn(opt.dim) * (opt._config.cma_es_mirror_restart_jitter * span)
         restart_center = mirrored + jitter
         return clamp_to_bounds(restart_center.unsqueeze(0), opt.lb, opt.ub).squeeze(0)

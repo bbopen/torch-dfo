@@ -87,6 +87,7 @@ class NelderMead(BaseOptimizer):
         self._needs_full_eval = True
 
         self._candidates = torch.zeros(4, dim, device=self.device, dtype=self.dtype)
+        self._clamp_candidates = True
 
     def state_dict(self) -> dict[str, Any]:
         """Return Nelder-Mead state as a serializable dict."""
@@ -145,7 +146,8 @@ class NelderMead(BaseOptimizer):
         contracted_in = centroid - self.rho * (centroid - worst)
 
         candidates = torch.stack([reflected, expanded, contracted_out, contracted_in])
-        candidates = torch.clamp(candidates, self.lb, self.ub)
+        if self._clamp_candidates:
+            candidates = torch.clamp(candidates, self.lb, self.ub)
 
         self._candidates[:] = candidates
         return candidates

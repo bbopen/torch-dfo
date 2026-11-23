@@ -78,11 +78,18 @@ class BaseOptimizer:
         else:
             safe_fitness = fitness
         batch_best_idx = safe_fitness.argmin()
-        batch_best_f = safe_fitness[batch_best_idx].to(dtype=self.best_fitness.dtype)
+        raw_best = safe_fitness[batch_best_idx]
+        target_dtype = (
+            torch.promote_types(self.best_fitness.dtype, raw_best.dtype)
+            if raw_best.is_floating_point()
+            else self.best_fitness.dtype
+        )
+        batch_best_f = raw_best.to(dtype=target_dtype)
         batch_best_x = candidates[batch_best_idx]
 
-        improved = batch_best_f < self.best_fitness
-        self.best_fitness = torch.where(improved, batch_best_f, self.best_fitness)
+        cur_best_f = self.best_fitness.to(dtype=target_dtype)
+        improved = batch_best_f < cur_best_f
+        self.best_fitness = torch.where(improved, batch_best_f, cur_best_f)
         self.best_solution = torch.where(improved, batch_best_x, self.best_solution)
 
     def state_dict(self) -> dict[str, Any]:
