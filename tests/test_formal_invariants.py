@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pytest
 import torch
 
@@ -1095,3 +1097,70 @@ class TestReviewRegressions:
         assert torch.allclose(
             (src.sigma**2) * src.C, (dst.sigma**2) * dst.C, rtol=1e-12, atol=1e-12
         )
+
+    def test_dfo_optimizer_charges_on_keyboard_interrupt_and_tell_failure(self) -> None:
+        """DFOOptimizer charges attempts and marks residue on BaseException and tell() errors."""
+        from torch_dfo import DFOOptimizer
+
+        p = torch.nn.Parameter(torch.zeros(5, dtype=torch.float64))
+        opt = DFOOptimizer([p], algorithm="nelder_mead", bounds=2.0, budget=10, seed=0)
+
+        def interrupting_batch(_cands: torch.Tensor) -> torch.Tensor:
+            raise KeyboardInterrupt("stop")
+
+        with pytest.raises(KeyboardInterrupt):
+            opt.step(closure_batched=interrupting_batch)
+        assert opt.budget_remaining == 4
+        assert opt.is_exhausted
+
+        p2 = torch.nn.Parameter(torch.zeros(5, dtype=torch.float64))
+        opt2 = DFOOptimizer([p2], algorithm="nelder_mead", bounds=2.0, budget=10, seed=0)
+        with pytest.raises(RuntimeError):
+            opt2.step(closure_batched=lambda _c: torch.zeros(2, dtype=torch.float64))
+        assert opt2.budget_remaining == 4
+        assert opt2.is_exhausted
+
+    def test_dlr_and_cmaes_dim5_large_float32_bounds_have_finite_span_and_samples(self) -> None:
+        """dim=5 float32 bounds (2e38, 3e38) keep span, sigmas, and interior samples finite."""
+        dlr = DLRPortfolio(dim=5, bounds=(2e38, 3e38), seed=0, device="cpu", dtype=torch.float32)
+        assert torch.isfinite(dlr.sigmas).all()
+        xd = dlr.ask()
+        assert torch.isfinite(xd).all()
+        assert ((xd > 2e38) & (xd < 3e38)).any()
+
+        cma = CMAES(
+            dim=5, bounds=(2e38, 3e38), pop_size=8, seed=0, device="cpu", dtype=torch.float32
+        )
+        assert math.isfinite(cma.sigma)
+        cma.restart()
+        assert math.isfinite(cma.sigma)
+        xc = cma.ask()
+        assert torch.isfinite(xc).all()
+        assert ((xc > 2e38) & (xc < 3e38)).any()
+
+    def test_nm_polish_unbounded_shrink_does_not_clamp_to_1e12(self) -> None:
+        """Unbounded nm_polish preserves coordinates past 1e12 across simplex shrink steps."""
+        from torch_dfo._polish import nm_polish
+
+        x0 = torch.tensor([1.8e12], dtype=torch.float64)
+        bx, bf, _used = nm_polish(
+            x0, lambda X: torch.ones(X.shape[0], dtype=X.dtype), budget=20, bounds=None
+        )
+        assert bx.item() >= 1.7e12
+        assert bf.item() == pytest.approx(1.0)
+
+    def test_base_load_state_dict_preserves_promoted_best_fitness_dtype(self) -> None:
+        """Loading a float64 best_fitness checkpoint into a float32 optimizer preserves 1e50."""
+        from torch_dfo import RandomSearch
+
+        src = RandomSearch(dim=2, bounds=1.0, pop_size=4, device="cpu", dtype=torch.float32, seed=0)
+        x = src.ask()
+        src.tell(x, torch.tensor([2e50, 1e50, 4e50, 3e50], dtype=torch.float64))
+        state = src.state_dict()
+
+        dst = RandomSearch(dim=2, bounds=1.0, pop_size=4, device="cpu", dtype=torch.float32, seed=0)
+        dst.load_state_dict(state)
+        assert dst.best_fitness.item() == pytest.approx(1e50)
+        dst.tell(x, torch.tensor([2e50, 2e50, 2e50, 2e50], dtype=torch.float64))
+        assert dst.best_fitness.item() == pytest.approx(1e50)
+        assert torch.allclose(dst.best_solution, x[1])

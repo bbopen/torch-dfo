@@ -52,8 +52,9 @@ def multistart_basin_explore(
     Designed for low-dim multi-modal landscapes (e.g. Lunacek bi-Rastrigin f24)
     where a single CMA run converges to whichever basin it starts nearest to.
     Multiple random restarts give high probability of finding the global basin.
-    Because all sampling uses ``basin_gen``, caller-owned global torch RNG
-    state is neither consumed nor modified.
+    Because all optimizer-internal sampling uses ``basin_gen``, this helper
+    does not consume or rewind the global torch RNG (a stochastic
+    ``fitness_fn`` may still advance it normally).
     """
     remaining = budget_limit - opt._fe_count
     if remaining < 50:

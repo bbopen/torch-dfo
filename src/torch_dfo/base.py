@@ -140,7 +140,12 @@ class BaseOptimizer:
             self.population.copy_(saved_pop)
             self.fitness.copy_(state["fitness"])
         self.best_solution.copy_(state["best_solution"])
-        self.best_fitness.copy_(state["best_fitness"])
+        saved_best = state["best_fitness"]
+        if saved_best.is_floating_point():
+            target_dtype = torch.promote_types(self.best_fitness.dtype, saved_best.dtype)
+            self.best_fitness = saved_best.to(device=self.device, dtype=target_dtype).clone()
+        else:
+            self.best_fitness.copy_(saved_best)
         self._generation = state["_generation"]
 
         saved_device_type = state.get("_saved_device_type", self._gen.device.type)

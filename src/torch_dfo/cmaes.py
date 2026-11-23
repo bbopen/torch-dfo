@@ -20,7 +20,7 @@ import torch
 
 from torch_dfo._cmaes_state import CMAAdaptationRates, CMAPathState
 from torch_dfo.base import BaseOptimizer
-from torch_dfo.utils import clamp_to_bounds
+from torch_dfo.utils import clamp_to_bounds, mean_span
 
 
 def _default_pop_size(dim: int) -> int:
@@ -210,7 +210,7 @@ class CMAES(BaseOptimizer):
 
         self.mean = (0.5 * self.lb + 0.5 * self.ub).clone()
 
-        span = (self.ub - self.lb).mean().item()
+        span = mean_span(self.lb, self.ub)
         self.sigma = sigma0 * span
         self._initial_sigma = self.sigma
 
@@ -391,7 +391,7 @@ class CMAES(BaseOptimizer):
         self.sigma = state["sigma"]
         self._sigma0 = float(state.get("_sigma0", self._sigma0))
         self._initial_sigma = float(
-            state.get("_initial_sigma", self._sigma0 * (self.ub - self.lb).mean().item())
+            state.get("_initial_sigma", self._sigma0 * mean_span(self.lb, self.ub))
         )
         self.sigma_min = state["sigma_min"]
         self.sigma_max = state["sigma_max"]
@@ -653,7 +653,7 @@ class CMAES(BaseOptimizer):
                 )
 
         if math.isfinite(self.sigma_max):
-            span = (self.ub - self.lb).mean().item()
+            span = mean_span(self.lb, self.ub)
             self.sigma_max = 0.30 * span
 
         self._path.p_sigma.zero_()
@@ -670,7 +670,7 @@ class CMAES(BaseOptimizer):
         if sigma is not None:
             self.sigma = sigma
         else:
-            span = (self.ub - self.lb).mean().item()
+            span = mean_span(self.lb, self.ub)
             self.sigma = self._sigma0 * span
 
         if C_init is not None:

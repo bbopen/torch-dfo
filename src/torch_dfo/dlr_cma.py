@@ -33,7 +33,13 @@ from typing import Any
 import torch
 from torch import Tensor
 
-from torch_dfo.utils import clamp_to_bounds, make_generator, normalize_bounds, resolve_device
+from torch_dfo.utils import (
+    clamp_to_bounds,
+    make_generator,
+    mean_span,
+    normalize_bounds,
+    resolve_device,
+)
 
 _DLR_K_LAMBDAS: tuple[int, ...] = (24, 12, 12, 12)
 _DLR_K_SIGMA_FRACS: tuple[float, ...] = (0.200, 0.043, 0.0093, 0.002)
@@ -213,7 +219,7 @@ class DLRPortfolio:
 
         self.lb = lb_t
         self.ub = ub_t
-        span = (self.ub - self.lb).mean().item()
+        span = mean_span(self.lb, self.ub)
 
         K = self.K
         self.lam_default = 4 + math.floor(3 * math.log(max(dim, 2)))

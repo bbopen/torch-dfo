@@ -50,6 +50,12 @@ def sanitize_fitness(fitness: torch.Tensor) -> torch.Tensor:
     return fitness
 
 
+def mean_span(lb: torch.Tensor, ub: torch.Tensor) -> float:
+    """Return mean per-dimension box span without intermediate float32 sum overflow."""
+    n = max(lb.numel(), 1)
+    return float(((ub / n) - (lb / n)).sum().item())
+
+
 def resolve_device(device: str | torch.device | None = None) -> torch.device:
     """Return the best available device if *device* is ``None``.
 

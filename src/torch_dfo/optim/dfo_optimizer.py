@@ -175,41 +175,37 @@ class DFOOptimizer(torch.optim.Optimizer):
         pop_size = candidates.shape[0]
 
         if closure_batched is not None:
+            self._evals += pop_size
             try:
                 fitness = closure_batched(candidates)
-            except Exception:
-                self._evals += pop_size
+                self._inner.tell(candidates, fitness)
+            finally:
                 self._mark_terminal_residue()
-                raise
-            self._evals += pop_size
         else:
             assert closure is not None
             losses: list[torch.Tensor] = []
             original_params = self._flatten_params().clone()
             attempted = 0
-            failed = False
             try:
-                for i in range(pop_size):
-                    self._set_params(candidates[i])
-                    attempted += 1
-                    loss = closure()
-                    if not isinstance(loss, torch.Tensor):
-                        loss = torch.tensor(loss, device=candidates.device, dtype=candidates.dtype)
-                    losses.append(loss.detach().clone())
-            except Exception:
-                failed = True
-                raise
+                try:
+                    for i in range(pop_size):
+                        self._set_params(candidates[i])
+                        attempted += 1
+                        loss = closure()
+                        if not isinstance(loss, torch.Tensor):
+                            loss = torch.tensor(
+                                loss, device=candidates.device, dtype=candidates.dtype
+                            )
+                        losses.append(loss.detach().clone())
+                finally:
+                    self._set_params(original_params)
+                    self._evals += attempted
+                fitness = torch.stack(losses).to(device=candidates.device, dtype=candidates.dtype)
+                self._inner.tell(candidates, fitness)
             finally:
-                self._set_params(original_params)
-                self._evals += attempted
-                if failed:
-                    self._mark_terminal_residue()
-            fitness = torch.stack(losses).to(device=candidates.device, dtype=candidates.dtype)
-
-        self._inner.tell(candidates, fitness)
+                self._mark_terminal_residue()
 
         self._set_params(self._inner.best_solution)
-        self._mark_terminal_residue()
         return fitness.min()
 
     def _mark_terminal_residue(self) -> None:

@@ -212,7 +212,8 @@ class NelderMead(BaseOptimizer):
             self.population[1:] = best_vertex + self.shrink_coeff * (
                 self.population[1:] - best_vertex
             )
-            self.population[:] = torch.clamp(self.population, self.lb, self.ub)
+            if self._clamp_candidates:
+                self.population[:] = torch.clamp(self.population, self.lb, self.ub)
             self._needs_full_eval = True
         else:
             new_x = torch.where(
