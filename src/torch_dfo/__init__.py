@@ -47,13 +47,11 @@ from torch_dfo.shade import SHADE
 from torch_dfo.space import Categorical, Float, Int, SearchSpace
 
 __all__ = [
-    # Core
     "BaseOptimizer",
     "CandidateBatch",
     "EvaluationResult",
     "SearchResult",
     "SearchRun",
-    # Algorithms
     "CMAES",
     "SHADE",
     "NelderMead",
@@ -61,14 +59,11 @@ __all__ = [
     "DLRPortfolio",
     "RandomSearch",
     "minimize",
-    # Wrappers
     "DFOOptimizer",
-    # Search space
     "SearchSpace",
     "Float",
     "Int",
     "Categorical",
-    # Benchmarks
     "sphere",
     "rosenbrock",
     "rastrigin",

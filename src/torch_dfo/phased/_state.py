@@ -249,7 +249,7 @@ class PhasedCMAState:
         state: dict[str, Any],
         *,
         dim: int,
-        bounds: float | tuple[float, float],
+        bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor],
         device: torch.device,
         dtype: torch.dtype,
     ) -> PhasedCMAState:
@@ -292,7 +292,7 @@ class PhasedCMAState:
 def _restore_cmaes(
     state: dict[str, Any] | None,
     dim: int,
-    bounds: float | tuple[float, float],
+    bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor],
     device: torch.device,
     dtype: torch.dtype,
 ) -> CMAES | None:

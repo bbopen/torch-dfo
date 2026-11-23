@@ -62,41 +62,33 @@ if TYPE_CHECKING:
     from torch_dfo.phased.orchestrator import PhasedDFO
 
 
-def get_bounds_tuple(opt: PhasedDFO) -> tuple[float, float]:
-    """Return scalar bounds as a tuple for sub-optimizer construction."""
-    lb_val = opt.lb[0].item()
-    ub_val = opt.ub[0].item()
-    return (lb_val, ub_val)
+def get_bounds_tuple(opt: PhasedDFO) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return per-dimension tensor bounds for sub-optimizer construction."""
+    return (opt.lb, opt.ub)
 
 
 def enter_cmaes_phase(opt: PhasedDFO) -> None:
     """Create CMA-ES with warm-started covariance from DE elite."""
-    # Capture best fitness at CMA-ES overall start (set-once on first entry)
     if not opt._cmaes_entered:
         opt._cmaes_overall_start_f = float(opt.best_fitness)
         opt._cmaes_entered = True
 
-    # Compute elite covariance from SHADE population
     elite_count = min(opt._shade.pop_size // 2, opt._shade.pop_size)
     sorted_idx = opt._shade.fitness.argsort()
     elite = opt._shade.population[sorted_idx[:elite_count]]
     elite_mean = elite.mean(dim=0)
 
-    # Compute span for sigma scaling
     span = (opt.ub - opt.lb).mean().item()
 
-    # Compute elite covariance
     centered = elite - elite_mean.unsqueeze(0)
     elite_cov = (centered.T @ centered) / max(1, elite_count - 1)
 
-    # Determine sigma (bounds from _compute_cma_sigma_bounds)
     sigma_raw = max(
         elite.std(dim=0).mean().item(),
         opt._cma_sigma_min * span,
     )
     sigma = min(sigma_raw, opt._cma_sigma_max * span)
 
-    # Warm-started covariance: blend elite_cov / sigma^2 with identity
     eye = torch.eye(opt.dim, device=opt.device, dtype=opt.dtype)
     if sigma > 1e-30:  # noqa: SIM108
         normalized_cov = elite_cov / (sigma * sigma)
@@ -104,7 +96,6 @@ def enter_cmaes_phase(opt: PhasedDFO) -> None:
         normalized_cov = eye
     C_init = 0.7 * normalized_cov + 0.3 * eye
 
-    # Enforce symmetry and positive definiteness
     C_init = (C_init + C_init.T) / 2
     if opt.device.type not in ("cpu", "cuda"):
         eigvals = torch.linalg.eigvalsh(C_init.to("cpu"))
@@ -113,7 +104,6 @@ def enter_cmaes_phase(opt: PhasedDFO) -> None:
     if eigvals.min().item() < 1e-10:
         C_init = C_init + (1e-8 - eigvals.min().item()) * eye
 
-    # Base pop size for CMA-ES
     base_pop = max(
         4 + math.floor(3 * math.log(opt.dim)),
         opt._shade.pop_size // 2,
@@ -121,28 +111,24 @@ def enter_cmaes_phase(opt: PhasedDFO) -> None:
     if opt._high_dim:
         base_pop = max(base_pop, opt._high_dim_de_min_pop)
 
-    # Create CMA-ES
     opt._cmaes = CMAES(
         dim=opt.dim,
         bounds=get_bounds_tuple(opt),
         pop_size=base_pop,
         device=opt.device,
         dtype=opt.dtype,
-        seed=None,  # share RNG state via _gen
+        seed=None,
         sigma0=sigma / span if span > 0 else 0.3,
         mirrored=opt._high_dim,
         active=opt._high_dim,
     )
 
-    # Override mean and covariance with warm-started values
     opt._cmaes.mean = elite_mean.clone()
     opt._cmaes.sigma = sigma
-    # Normalize C at phase entry (not every decomp).
     opt._cmaes._normalize_on_decomp = False
     opt._cmaes.C = _normalize_covariance(C_init, opt.device, opt.dtype)
     opt._cmaes._update_eigensystem()
 
-    # Replace CMA-ES's generator with ours for reproducibility
     opt._cmaes._gen = opt._gen
     opt._cmaes._gen_device = opt._gen_device
 
@@ -151,7 +137,6 @@ def enter_cmaes_phase(opt: PhasedDFO) -> None:
     opt._cmaes_phase_best_f = opt.best_fitness.item()
     opt._cmaes_base_pop = base_pop
 
-    # Initialize search pool from DE elite
     elite_fitness = opt._shade.fitness[sorted_idx[:elite_count]]
     opt._search_population = elite.clone()
     opt._search_population_fitness = elite_fitness.clone()
@@ -164,10 +149,6 @@ def enter_cmaes_phase(opt: PhasedDFO) -> None:
         ),
     )
 
-    # Compute per-phase budget.
-    # Record the exact fe_count at CMA entry so _tell_cmaes can compute
-    # fe_in_cmaes = fe_count - _cmaes_fe_start accurately regardless of
-    # when DE actually terminated (early via stagnation or late via budget cap).
     opt._cmaes_fe_start = opt._fe_count
     remaining = opt._cmaes_budget - opt._fe_count
     opt._cmaes_phase_budgets = compute_cmaes_phase_budgets(opt, remaining)
@@ -208,8 +189,6 @@ def portfolio_active_indices_for_next_ask(opt: PhasedDFO) -> tuple[int, ...]:
     if in_valley_terminal_focus_window(opt):
         return (opt._config.high_dim_valley_entry_branch,)
     if _debug_is_disabled(TAG_DIM40_ADAPTIVE_BURST):
-        # Fall back to a fixed modular cycle: one full portfolio gen,
-        # then CYCLE-1 valley-only gens.
         if opt._portfolio_generation % opt._config.high_dim_valley_entry_focus_cycle == 0:
             return all_indices
         return (opt._config.high_dim_valley_entry_branch,)
@@ -254,10 +233,6 @@ def update_valley_focus_schedule(
     if _debug_is_disabled(TAG_DIM40_FOCUS_CYCLE) or _debug_is_disabled(
         TAG_DIM40_ADAPTIVE_BURST,
     ):
-        # dim40_focus_cycle off => no focus cycle at all;
-        # dim40_adaptive_burst off => fixed modular cycle, which the
-        # active-indices gate handles directly via the generation
-        # counter without consulting these state variables.
         opt._valley_focus_remaining = 0
         opt._valley_focus_streak = 0
         return
@@ -330,14 +305,6 @@ def enter_cmaes_phase_portfolio(opt: PhasedDFO) -> None:
     opt._valley_focus_remaining = 0
     opt._valley_focus_streak = 0
 
-    # Per-branch stagnation limit for the portfolio.  This is deliberately
-    # much smaller than _high_dim_cma_stagnation (which targets the IPOP
-    # path) because the portfolio needs many restarts from diverse x0 for
-    # multimodal functions.  Target: ~15-20 restarts per branch.
-    # With total_lam=60 evals/gen and ~55k CMA budget -> ~917 gens total.
-    # The dim40 Rosenbrock schedule lowers total_lam to 44, transferring
-    # budget into more incumbent-branch generations without adding another
-    # late local operator or changing dim20 behavior.
     total_lam = sum(portfolio_lambdas)
     cma_remaining = max(1, opt._cmaes_budget - opt._fe_count)
     total_portfolio_gens = cma_remaining // max(total_lam, 1)
@@ -435,17 +402,14 @@ def compute_cmaes_phase_budgets(opt: PhasedDFO, total: int) -> list[int]:
     remaining = total
 
     if n_phases <= 1:
-        # Single phase: all budget to phase 0.
         phase_budgets.append(max(remaining, 200))
         return phase_budgets
 
     if opt._high_dim:
-        # Front-load phase 0 with 40% of total (warm-started DE run).
         phase0_share = max(200, int(total * 0.40))
         phase0_share = min(phase0_share, remaining - (n_phases - 1) * 200)
         phase_budgets.append(phase0_share)
         remaining -= phase0_share
-        # Split the rest equally among remaining phases.
         for i in range(1, n_phases):
             phases_left = n_phases - i
             share = max(remaining // phases_left, 200)
@@ -453,7 +417,6 @@ def compute_cmaes_phase_budgets(opt: PhasedDFO, total: int) -> list[int]:
             phase_budgets.append(share)
             remaining -= share
     else:
-        # Low-dim: equal split (only 1 phase in practice).
         for i in range(n_phases):
             phases_left = n_phases - i
             share = max(remaining // phases_left, 200)
@@ -475,12 +438,6 @@ def restart_cmaes(opt: PhasedDFO) -> None:
     span = (opt.ub - opt.lb).mean().item()
     eye = torch.eye(opt.dim, device=opt.device, dtype=opt.dtype)
 
-    # High-dim small-sigma probe: every 4th restart (phase_idx % 4 == 1 -> phases 1, 5, ...)
-    # uses sigma = 0.002 * span ~= 0.020 on BBOB [-5,5] with a uniform-random center.
-    # This is the documented fix for f24 Lunacek bi-Rastrigin and similar deceptive
-    # multimodal functions: COCO docs state these require a small initial step-size
-    # to find the global optimum.  A fresh isotropic covariance avoids bias from the
-    # previous converged direction.
     if opt._high_dim and opt._cmaes_phase_idx % 4 == 1:
         new_pop = opt._cmaes_base_pop
         sigma = 0.002 * span
@@ -489,30 +446,24 @@ def restart_cmaes(opt: PhasedDFO) -> None:
     else:
         new_pop = opt._cmaes_base_pop * (opt._config.cma_es_pop_growth**opt._cmaes_phase_idx)
 
-        # Cap population to fit remaining budget (need at least a few generations)
         remaining = opt._cmaes_budget - opt._fe_count
         min_gens = 10
         max_pop = max(remaining // min_gens, opt._cmaes_base_pop)
         new_pop = min(new_pop, max_pop)
 
-        # 4-mode restart center cycling
         restart_center = sample_restart_mean(opt, opt._cmaes_phase_idx, span)
 
-        # Restart sigma: random within range for diversity (adaptive bounds)
         sigma = (
             opt._cma_restart_sigma_min
             + opt._rand(1).item() * (opt._cma_restart_sigma_max - opt._cma_restart_sigma_min)
         ) * span
 
-        # Inherit covariance from previous run: blend with identity
         old_C = opt._cmaes.C.clone()
         blend = opt._config.cma_es_restart_cov_blend
         C_init = (1 - blend) * eye + blend * old_C
 
-        # Enforce symmetry
         C_init = (C_init + C_init.T) / 2
 
-        # Normalize covariance at phase boundary.
         C_init = _normalize_covariance(C_init, opt.device, opt.dtype)
 
     opt._cmaes.restart(
@@ -534,7 +485,6 @@ def sample_restart_mean(opt: PhasedDFO, phase_idx: int, span: float) -> torch.Te
     Mode 2: differential restart (anchor + scale*(anchor - partner) + jitter).
     Mode 3: mirrored best_solution (lb + ub - best) + jitter.
     """
-    # Build restart pool from search_population or fall back to elite list
     restart_pool: torch.Tensor | None = None
     if opt._search_population is not None and opt._search_population.numel() > 0:
         restart_pool = opt._search_population
@@ -544,7 +494,6 @@ def sample_restart_mean(opt: PhasedDFO, phase_idx: int, span: float) -> torch.Te
     restart_mode = phase_idx % opt._config.cma_es_restart_modes
 
     if restart_mode == 1 and restart_pool is not None and restart_pool.shape[0] > 0:
-        # Random anchor from search pool + small jitter
         anchor_pos = int(opt._randint(0, restart_pool.shape[0], (1,)).item())
         anchor = restart_pool[anchor_pos]
         jitter = opt._randn(opt.dim) * (opt._config.cma_es_elite_restart_jitter * span)
@@ -552,7 +501,6 @@ def sample_restart_mean(opt: PhasedDFO, phase_idx: int, span: float) -> torch.Te
         return clamp_to_bounds(restart_center.unsqueeze(0), opt.lb, opt.ub).squeeze(0)
 
     if restart_mode == 2 and restart_pool is not None and restart_pool.shape[0] > 1:
-        # Differential restart: anchor + scale*(anchor - partner) + jitter
         pair = opt._randperm(restart_pool.shape[0])[:2]
         anchor = restart_pool[pair[0]]
         partner = restart_pool[pair[1]]
@@ -564,15 +512,12 @@ def sample_restart_mean(opt: PhasedDFO, phase_idx: int, span: float) -> torch.Te
                 anchor + opt._config.cma_es_differential_restart_scale * differential + jitter
             )
             return clamp_to_bounds(candidate.unsqueeze(0), opt.lb, opt.ub).squeeze(0)
-        # Fall through to mode 0 if differential is degenerate
 
     if restart_mode == 3:
-        # Mirrored best + jitter
         best_x, _ = opt.best()
-        mirrored = opt.lb + opt.ub - best_x
+        mirrored = torch.clamp(opt.ub - (best_x - opt.lb), min=opt.lb, max=opt.ub)
         jitter = opt._randn(opt.dim) * (opt._config.cma_es_mirror_restart_jitter * span)
         restart_center = mirrored + jitter
         return clamp_to_bounds(restart_center.unsqueeze(0), opt.lb, opt.ub).squeeze(0)
 
-    # Mode 0 (or fallback): fully random position
     return opt._rand(opt.dim) * (opt.ub - opt.lb) + opt.lb

@@ -19,10 +19,6 @@ from dataclasses import dataclass
 
 import torch
 
-# ---------------------------------------------------------------------------
-# Core benchmark functions
-# ---------------------------------------------------------------------------
-
 
 def sphere(x: torch.Tensor) -> torch.Tensor:
     """f(x) = sum(x_i^2). Optimum: f(0) = 0."""
@@ -62,7 +58,6 @@ def griewank(x: torch.Tensor) -> torch.Tensor:
     f(x) = 1 + sum(x_i^2)/4000 - prod(cos(x_i/sqrt(i+1)))
     """
     d = x.shape[-1]
-    # Build index tensor: 1, 2, ..., D  (1-based as in the standard formula)
     idx = torch.arange(1, d + 1, device=x.device, dtype=x.dtype)
     sum_term = (x**2).sum(dim=-1) / 4000.0
     prod_term = torch.cos(x / torch.sqrt(idx)).prod(dim=-1)
@@ -112,11 +107,6 @@ def zakharov(x: torch.Tensor) -> torch.Tensor:
     return sum_sq + weighted**2 + weighted**4
 
 
-# ---------------------------------------------------------------------------
-# Shifted / rotated variant constructors
-# ---------------------------------------------------------------------------
-
-
 def make_shifted(
     fn: Callable[[torch.Tensor], torch.Tensor],
     shift: torch.Tensor,
@@ -141,6 +131,18 @@ def make_rotated(
     return rotated_fn
 
 
+def _cpu_generator_for_draw(generator: torch.Generator | None) -> torch.Generator | None:
+    """Return a CPU generator that advances *generator* on each call."""
+    if generator is None:
+        return None
+    if generator.device.type == "cpu":
+        return generator
+    seed_val = int(
+        torch.randint(0, 2**63 - 1, (1,), device=generator.device, generator=generator).item()
+    )
+    return torch.Generator(device="cpu").manual_seed(seed_val)
+
+
 def random_rotation_matrix(
     dim: int,
     device: torch.device | None = None,
@@ -150,18 +152,12 @@ def random_rotation_matrix(
     """Generate a random orthogonal matrix via QR decomposition.
 
     Returns a ``(dim, dim)`` orthogonal matrix on the requested device/dtype.
+    Advances *generator* so repeated calls produce independent matrices.
     """
-    # Generate on CPU (torch.linalg.qr may not be available on all backends for randn)
-    # then move to the target device.
-    cpu_gen = None
-    if generator is not None:
-        # Clone generator state to CPU if needed
-        cpu_gen = torch.Generator(device="cpu")
-        cpu_gen.manual_seed(generator.initial_seed())
+    cpu_gen = _cpu_generator_for_draw(generator)
 
     z = torch.randn(dim, dim, dtype=dtype, device="cpu", generator=cpu_gen)
     q, r = torch.linalg.qr(z)
-    # Ensure a unique decomposition by making the diagonal of R positive
     d = torch.diag(r)
     ph = torch.diag(d / torch.abs(d))
     q = q @ ph
@@ -182,11 +178,9 @@ def random_shift(
 
     Shift is ``(rand - 0.5) * 0.4 * span`` then clamped with a 20% margin
     so the shifted optimum stays well within the search space.
+    Advances *generator* so repeated calls produce independent shift vectors.
     """
-    cpu_gen = None
-    if generator is not None:
-        cpu_gen = torch.Generator(device="cpu")
-        cpu_gen.manual_seed(generator.initial_seed())
+    cpu_gen = _cpu_generator_for_draw(generator)
 
     span = ub - lb
     margin = 0.2 * span
@@ -196,11 +190,6 @@ def random_shift(
     if device is not None:
         shift = shift.to(device=device)
     return shift
-
-
-# ---------------------------------------------------------------------------
-# Benchmark problem dataclass and suite
-# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
@@ -229,7 +218,6 @@ class BenchmarkProblem:
     known_optimum: float
 
 
-# Canonical bounds for each function family
 _BOUNDS: dict[str, tuple[float, float]] = {
     "sphere": (-5.12, 5.12),
     "rosenbrock": (-2.048, 2.048),
@@ -239,7 +227,6 @@ _BOUNDS: dict[str, tuple[float, float]] = {
     "levy": (-10.0, 10.0),
 }
 
-# Functions with their known global minimum values
 _FUNCTIONS: dict[str, tuple[Callable[..., torch.Tensor], float]] = {
     "sphere": (sphere, 0.0),
     "rosenbrock": (rosenbrock, 0.0),
@@ -299,7 +286,6 @@ class BenchmarkSuite:
         gen = torch.Generator(device="cpu")
         gen.manual_seed(seed)
 
-        # Shifted sphere at the stress dimension
         shift_s = random_shift(
             stress_dim,
             *_BOUNDS["sphere"],
@@ -317,7 +303,6 @@ class BenchmarkSuite:
             ),
         )
 
-        # Shifted rosenbrock at the stress dimension
         shift_r = random_shift(
             stress_dim,
             *_BOUNDS["rosenbrock"],
@@ -335,7 +320,6 @@ class BenchmarkSuite:
             ),
         )
 
-        # Rotated rastrigin at the stress dimension
         rot_rast = random_rotation_matrix(
             stress_dim,
             device=device,
@@ -352,7 +336,6 @@ class BenchmarkSuite:
             ),
         )
 
-        # Rotated ackley at the stress dimension
         rot_ack = random_rotation_matrix(
             stress_dim,
             device=device,

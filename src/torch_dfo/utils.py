@@ -33,11 +33,30 @@ def sanitize_fitness(fitness: torch.Tensor) -> torch.Tensor:
                     stacklevel=2,
                 )
                 _NAN_WARNED = True
-        finite = fitness[~nan_mask]
-        worst = finite.max() if finite.numel() > 0 else torch.tensor(0.0, device=fitness.device)
+        finite = fitness[torch.isfinite(fitness)]
+        worst = (
+            finite.max()
+            if finite.numel() > 0
+            else torch.tensor(0.0, device=fitness.device, dtype=fitness.dtype)
+        )
         fitness = fitness.clone()
-        fitness[nan_mask] = worst + 1.0
+        replacement = (worst + 1.0).to(dtype=fitness.dtype)
+        if replacement <= worst:
+            replacement = torch.nextafter(
+                worst,
+                torch.tensor(float("inf"), device=fitness.device, dtype=fitness.dtype),
+            )
+        fitness[nan_mask] = replacement
     return fitness
+
+
+def mean_span(lb: torch.Tensor, ub: torch.Tensor) -> float:
+    """Return mean per-dimension box span without float32 overflow."""
+    n = max(lb.numel(), 1)
+    target_dev = torch.device("cpu") if lb.device.type == "mps" else lb.device
+    lb64 = lb.to(device=target_dev, dtype=torch.float64)
+    ub64 = ub.to(device=target_dev, dtype=torch.float64)
+    return float(((ub64 / n) - (lb64 / n)).sum().item())
 
 
 def resolve_device(device: str | torch.device | None = None) -> torch.device:

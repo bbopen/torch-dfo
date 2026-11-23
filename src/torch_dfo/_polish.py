@@ -15,16 +15,7 @@ import torch
 
 from torch_dfo.utils import clamp_to_bounds
 
-# ---------------------------------------------------------------------------
-# constants
-# ---------------------------------------------------------------------------
-
-# Cap FD step at this fraction of the trust radius
 GRADIENT_FD_TRUST_RATIO = 0.10
-
-# ---------------------------------------------------------------------------
-# helpers
-# ---------------------------------------------------------------------------
 
 
 def _add_unique(targets: list[float], candidate: float, lb_val: float, ub_val: float) -> None:
@@ -32,11 +23,6 @@ def _add_unique(targets: list[float], candidate: float, lb_val: float, ub_val: f
     candidate = min(max(candidate, lb_val), ub_val)
     if all(abs(existing - candidate) > 1e-9 for existing in targets):
         targets.append(candidate)
-
-
-# ---------------------------------------------------------------------------
-# coordinate_basin_search
-# ---------------------------------------------------------------------------
 
 
 def coordinate_basin_search(
@@ -91,14 +77,13 @@ def coordinate_basin_search(
     best_f = f_x.clone()
     fe_used = 0
 
-    # Pre-compute elite_best from population (best individual per pop_fitness).
     elite_best: torch.Tensor | None = None
     if population is not None and pop_fitness is not None and population.shape[0] >= 4:
         elite_best = population[pop_fitness.argmin()]
 
+    gen_device = generator.device if generator is not None else x.device
     for _pass in range(passes):
-        # Random permutation instead of cyclic shift.
-        dim_order = torch.randperm(dim, device=x.device, generator=generator).tolist()
+        dim_order = torch.randperm(dim, device=gen_device, generator=generator).tolist()
 
         for d in dim_order:
             if budget is not None and fe_used >= budget:
@@ -107,35 +92,28 @@ def coordinate_basin_search(
             lb_d = float(lb[d])
             ub_d = float(ub[d])
 
-            # --- Collect target values along dimension d (deduplicated) ---
             target_list: list[float] = []
 
-            # Elite best coordinate
             if elite_best is not None:
                 _add_unique(target_list, float(elite_best[d].item()), lb_d, ub_d)
 
-            # Elite centroid / median hints
             if elite_centroid is not None:
                 _add_unique(target_list, float(elite_centroid[d].item()), lb_d, ub_d)
             if elite_median is not None:
                 _add_unique(target_list, float(elite_median[d].item()), lb_d, ub_d)
 
-            # Current coordinate value
             _add_unique(target_list, float(best_x[d].item()), lb_d, ub_d)
 
-            # Coarse linspace grid
             coarse_grid = torch.linspace(lb_d, ub_d, coarse_points, device=x.device, dtype=x.dtype)
             for val in coarse_grid.tolist():
                 _add_unique(target_list, val, lb_d, ub_d)
 
             all_targets = torch.tensor(target_list, device=x.device, dtype=x.dtype)
 
-            # --- Build probe matrix: replicate best_x, set dim d ---
             num_targets = all_targets.shape[0]
             probes = best_x.unsqueeze(0).expand(num_targets, -1).clone()
             probes[:, d] = all_targets
 
-            # Evaluate
             if budget is not None:
                 remaining = budget - fe_used
                 if remaining <= 0:
@@ -146,16 +124,14 @@ def coordinate_basin_search(
             f_vals = fitness_fn(probes)
             fe_used += num_targets
 
-            # Find best
             best_idx = f_vals.argmin()
             if f_vals[best_idx] < best_f:
                 best_f = f_vals[best_idx].clone()
                 best_x[d] = probes[best_idx, d].clone()
 
-            # --- Refinement stages ---
             center = best_x[d].clone()
             span = ub_d - lb_d
-            window = span * 0.5  # initial refinement window: half of full span
+            window = span * 0.5
 
             for _stage in range(refinement_stages):
                 if budget is not None and fe_used >= budget:
@@ -193,11 +169,6 @@ def coordinate_basin_search(
                     center = best_x[d].clone()
 
     return best_x, best_f, fe_used
-
-
-# ---------------------------------------------------------------------------
-# directional_basin_search
-# ---------------------------------------------------------------------------
 
 
 def directional_basin_search(
@@ -253,13 +224,13 @@ def directional_basin_search(
     fe_used = 0
     num_dirs = directions.shape[0]
 
-    # Priority/secondary ordering.
+    gen_device = generator.device if generator is not None else x.device
     if priority_count > 0:
         direction_order = list(range(priority_count))
         if num_dirs > priority_count:
             tail = torch.randperm(
                 num_dirs - priority_count,
-                device=x.device,
+                device=gen_device,
                 generator=generator,
             ).tolist()
             direction_order.extend(priority_count + idx for idx in tail)
@@ -270,14 +241,12 @@ def directional_basin_search(
         if budget is not None and fe_used >= budget:
             return best_x, best_f, fe_used
 
-        d_vec = directions[i]  # (dim,)
+        d_vec = directions[i]
 
-        # --- Compute valid step range by projecting bounds onto direction ---
         t_min, t_max = _direction_step_range(best_x, d_vec, lb, ub)
         if t_max <= t_min:
             continue
 
-        # --- Coarse grid along direction ---
         steps = torch.linspace(
             float(t_min),
             float(t_max),
@@ -287,10 +256,8 @@ def directional_basin_search(
         )
         alpha_list = steps.tolist()
 
-        # Always include alpha=0 (the current point).
         alpha_list.append(0.0)
 
-        # Priority hops for priority directions.
         is_priority = i < priority_count
         if is_priority:
             for hop in range(1, priority_hops + 1):
@@ -300,20 +267,17 @@ def directional_basin_search(
                 if t_min <= -delta <= t_max:
                     alpha_list.append(-delta)
 
-        # Elite projections.
         if elite_points is not None:
-            projections = (elite_points - best_x.unsqueeze(0)) @ d_vec  # (K,)
+            projections = (elite_points - best_x.unsqueeze(0)) @ d_vec
             for alpha in projections.tolist():
                 alpha_list.append(min(max(float(alpha), t_min), t_max))
 
-        # Deduplicate and sort
         alpha_list.sort()
         unique_alphas: list[float] = []
         for alpha in alpha_list:
             if not unique_alphas or abs(alpha - unique_alphas[-1]) > 1e-9:
                 unique_alphas.append(alpha)
 
-        # Build probe tensor from unique alphas
         alpha_tensor = torch.tensor(unique_alphas, device=x.device, dtype=x.dtype)
         probes = best_x.unsqueeze(0) + alpha_tensor.unsqueeze(1) * d_vec.unsqueeze(0)
         probes = clamp_to_bounds(probes, lb, ub)
@@ -334,9 +298,6 @@ def directional_basin_search(
             best_f = f_vals[best_idx].clone()
             best_x = probes[best_idx].clone()
 
-        # --- Refinement stages ---
-        # Each stage recomputes the step range relative to current best_x,
-        # with center_step = 0 (since best_x already incorporates the best step).
         window = (float(t_max) - float(t_min)) * 0.5
 
         for _stage in range(refinement_stages):
@@ -344,7 +305,6 @@ def directional_basin_search(
                 return best_x, best_f, fe_used
 
             window *= window_shrink
-            # Recompute valid step range from current best_x
             t_min_r, t_max_r = _direction_step_range(best_x, d_vec, lb, ub)
             lo_step = max(t_min_r, -window)
             hi_step = min(t_max_r, window)
@@ -397,31 +357,23 @@ def _direction_step_range(
     Returns intersection of all per-dimension intervals.
     """
     eps = 1e-30
-    # Avoid division by zero: mask out near-zero directions
     mask = d.abs() > eps
     if not mask.any():
         return 0.0, 0.0
 
     d_safe = d.clone()
-    d_safe[~mask] = 1.0  # placeholder, will be masked out
+    d_safe[~mask] = 1.0
 
     t_lo = (lb - x) / d_safe
     t_hi = (ub - x) / d_safe
 
-    # Swap so t_lo <= t_hi per dimension
     t_lower = torch.min(t_lo, t_hi)
     t_upper = torch.max(t_lo, t_hi)
 
-    # Apply mask: only consider dimensions where direction is non-zero
     t_min = float(t_lower[mask].max())
     t_max = float(t_upper[mask].min())
 
     return t_min, t_max
-
-
-# ---------------------------------------------------------------------------
-# fd_bfgs_polish
-# ---------------------------------------------------------------------------
 
 
 def fd_bfgs_polish(
@@ -461,54 +413,51 @@ def fd_bfgs_polish(
     best_f = f_x.clone()
     fe_used = 0
 
-    # Search span per dimension
-    span = ub - lb  # (dim,)
+    span = ub - lb
     span_mean = float(span.mean())
 
-    # Inverse Hessian approximation (identity)
     H = torch.eye(dim, device=device, dtype=dtype)
 
-    # Trust region parameters.
     trust_radius = 0.02 * span_mean
     max_trust_radius = 0.15 * span_mean
     min_trust_radius = 1e-10 * span_mean
 
     cur_x = x.clone()
     cur_f = f_x.clone()
+    grad: torch.Tensor | None = None
 
-    while fe_used + 2 * dim <= budget:
-        # --- Central-difference gradient ---
-        grad, grad_fe = _central_diff_gradient(
-            cur_x,
-            fitness_fn,
-            lb,
-            ub,
-            span,
-            fd_step,
-            trust_radius=trust_radius,
-        )
-        fe_used += grad_fe
+    while fe_used < budget:
+        if grad is None:
+            if fe_used + 2 * dim > budget:
+                break
+            grad, grad_fe = _central_diff_gradient(
+                cur_x,
+                fitness_fn,
+                lb,
+                ub,
+                span,
+                fd_step,
+                trust_radius=trust_radius,
+            )
+            fe_used += grad_fe
 
         if not torch.isfinite(grad).all():
             break
 
         grad_norm = grad.norm()
         if grad_norm < 1e-12:
-            break  # effectively at a stationary point
+            break
 
-        # --- BFGS search direction ---
         direction = -H @ grad
         dir_norm = direction.norm()
         if dir_norm < 1e-30:
             break
 
-        # Scale step by trust radius.
         step_scale = min(1.0, trust_radius / (float(dir_norm) + 1e-30))
 
-        # --- Backtracking line search ---
         accepted = False
         s: torch.Tensor | None = None
-        new_x = cur_x  # placate type checker
+        new_x = cur_x
         new_f = cur_f
         for _bt in range(max_backtracks):
             if budget is not None and fe_used >= budget:
@@ -521,10 +470,9 @@ def fd_bfgs_polish(
 
             if f_cand_scalar < cur_f:
                 accepted = True
-                s = candidate - cur_x  # actual step taken
+                s = candidate - cur_x
                 new_x = candidate.clone()
                 new_f = f_cand_scalar.clone()
-                # Trust growth capped at max_trust_radius.
                 actual_step_norm = float(s.norm())
                 trust_radius = min(
                     max_trust_radius,
@@ -534,24 +482,18 @@ def fd_bfgs_polish(
             step_scale *= 0.5
 
         if not accepted:
-            # Shrink trust radius.
             trust_radius *= 0.5
-            # Break if trust falls below min.
             if trust_radius < min_trust_radius:
                 break
-            # Reset H on failure
             H = torch.eye(dim, device=device, dtype=dtype)
+            grad = None
             continue
 
-        # Update best tracking
         if new_f < best_f:
             best_f = new_f.clone()
             best_x = new_x.clone()
 
-        # --- BFGS update ---
-        # Need gradient at new point for y = grad_new - grad_old
         if fe_used + 2 * dim > budget:
-            # Not enough budget for another gradient; just accept the step
             cur_x = new_x
             cur_f = new_f
             break
@@ -570,28 +512,24 @@ def fd_bfgs_polish(
         if not torch.isfinite(grad_new).all():
             cur_x = new_x
             cur_f = new_f
-            H = torch.eye(dim, device=device, dtype=dtype)
-            continue
+            break
 
-        assert s is not None  # guaranteed by accepted=True path
+        assert s is not None
         y = grad_new - grad
         ys = torch.dot(y, s)
 
         if ys > 1e-10:
             rho = 1.0 / ys
             I_mat = torch.eye(dim, device=device, dtype=dtype)
-            # H = (I - rho * s outer y) @ H @ (I - rho * y outer s) + rho * s outer s
-            sy = s.unsqueeze(1) @ y.unsqueeze(0)  # (dim, dim)
-            ys_mat = y.unsqueeze(1) @ s.unsqueeze(0)  # (dim, dim)
-            ss = s.unsqueeze(1) @ s.unsqueeze(0)  # (dim, dim)
+            sy = s.unsqueeze(1) @ y.unsqueeze(0)
+            ys_mat = y.unsqueeze(1) @ s.unsqueeze(0)
+            ss = s.unsqueeze(1) @ s.unsqueeze(0)
             left = I_mat - rho * sy
             right = I_mat - rho * ys_mat
             H = left @ H @ right + rho * ss
         else:
-            # Curvature condition not met; reset
             H = torch.eye(dim, device=device, dtype=dtype)
 
-        # Advance
         cur_x = new_x
         cur_f = new_f
         grad = grad_new
@@ -625,84 +563,44 @@ def _central_diff_gradient(
     device = x.device
     dtype = x.dtype
 
-    # Step sizes: h = max(fd_step * span, fd_step * |x|, 1e-8)
     h = torch.max(
         torch.max(fd_step * span, fd_step * x.abs()),
         torch.full((dim,), 1e-8, device=device, dtype=dtype),
     )
 
-    # Cap FD step at GRADIENT_FD_TRUST_RATIO * trust_radius
     if trust_radius is not None and trust_radius > 0:
         h = torch.clamp(h, max=GRADIENT_FD_TRUST_RATIO * trust_radius)
 
-    # Build probe matrix: (2*dim, dim)
     probes = x.unsqueeze(0).expand(2 * dim, -1).clone()
     idx = torch.arange(dim, device=device)
-    # Forward perturbations: rows 0, 2, 4, ...
     probes[2 * idx, idx] = x[idx] + h
-    # Backward perturbations: rows 1, 3, 5, ...
     probes[2 * idx + 1, idx] = x[idx] - h
 
-    # Clamp to bounds
     probes = clamp_to_bounds(probes, lb, ub)
 
-    # Evaluate all probes
-    f_vals = fitness_fn(probes)  # (2*dim,)
+    f_vals = fitness_fn(probes)
 
-    # Compute gradient using actual (clamped) differences
-    f_fwd = f_vals[2 * idx]  # (dim,)
-    f_bwd = f_vals[2 * idx + 1]  # (dim,)
-    actual_fwd = probes[2 * idx, idx]  # (dim,)
-    actual_bwd = probes[2 * idx + 1, idx]  # (dim,)
+    f_fwd = f_vals[2 * idx]
+    f_bwd = f_vals[2 * idx + 1]
+    actual_fwd = probes[2 * idx, idx]
+    actual_bwd = probes[2 * idx + 1, idx]
     denom = actual_fwd - actual_bwd
 
-    # Avoid division by zero where clamping collapsed both probes to the same value
     safe_denom = torch.where(denom.abs() > 1e-30, denom, torch.ones_like(denom))
     grad = (f_fwd - f_bwd) / safe_denom
-    # Zero out gradient where denominator was degenerate
     grad = torch.where(denom.abs() > 1e-30, grad, torch.zeros_like(grad))
 
     return grad, 2 * dim
 
-
-# ---------------------------------------------------------------------------
-# smoothed_envelope_search
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
-# Smoothed envelope constants
-# ---------------------------------------------------------------------------
-# Universal constants: these control the Gaussian smoothing kernel and the
-# antithetic probe strategy.  They do not depend on (dim, budget) because:
-#
-# - TRIGGER: fitness threshold below which multimodal escape is attempted.
-#   This is a landscape-structure gate (Rastrigin-scale values), not a
-#   problem-scale parameter.
-# - SIGMA_SCALE/MIN/MAX: the smoothing kernel width targets one period of
-#   the Rastrigin cosine (2*pi ≈ 6.28, so sigma ~ 1).  This is function-
-#   structure specific, independent of dim/budget.
-# - PAIRS/PAIR_MULTIPLIER: minimum antithetic pairs for the least-squares
-#   offset estimation.  24 pairs is a statistical minimum for stable
-#   estimation; dim*2 ensures overdetermined systems.  Both already
-#   adapt to dim through the max(dim*multiplier, pairs) formula.
-# - CENTER_RATE: step fraction toward the smoothed minimum.  A smoothing-
-#   geometry constant (0.5 = half step).
-# - BLEND_WEIGHTS: structural schedule of 3 blend levels (partial + full).
-#   A design choice, not a tuning target.
-#
-# Budget-dependent constants (MIN_REMAINING, PROPOSAL_BUDGET, MIN_DIM)
-# are passed as parameters to smoothed_envelope_search() so the caller
-# can compute them from (dim, budget); defaults (1600, 1800, 20) keep
-# the call sensible when the caller does not override them.
 
 SMOOTHED_ENVELOPE_TRIGGER = 12.0
 SMOOTHED_ENVELOPE_SIGMA_SCALE = 0.10
 SMOOTHED_ENVELOPE_SIGMA_MIN = 0.8
 SMOOTHED_ENVELOPE_SIGMA_MAX = 1.2
 SMOOTHED_ENVELOPE_PAIRS = 24
-SMOOTHED_ENVELOPE_PAIR_MULTIPLIER = 2  # target pair_count = max(dim*this, PAIRS)
+SMOOTHED_ENVELOPE_PAIR_MULTIPLIER = 2
 SMOOTHED_ENVELOPE_CENTER_RATE = 0.5
-SMOOTHED_ENVELOPE_BLEND_WEIGHTS = (0.5, 0.8, 1.0)  # partial + full steps
+SMOOTHED_ENVELOPE_BLEND_WEIGHTS = (0.5, 0.8, 1.0)
 
 
 def _estimate_envelope_offset(
@@ -715,6 +613,7 @@ def _estimate_envelope_offset(
     budget: int,
     device: torch.device,
     dtype: torch.dtype,
+    generator: torch.Generator | None = None,
 ) -> tuple[torch.Tensor | None, int]:
     """Estimate the offset to the smoothed-envelope center via least-squares.
 
@@ -731,7 +630,13 @@ def _estimate_envelope_offset(
     if pair_count < dim:
         return None, fe_used
 
-    directions = torch.randn(pair_count, dim, device=device, dtype=dtype)
+    gen_device = generator.device if generator is not None else device
+
+    def _draw_dirs(count: int) -> torch.Tensor:
+        d = torch.randn(count, dim, device=gen_device, dtype=dtype, generator=generator)
+        return d.to(device) if gen_device != device else d
+
+    directions = _draw_dirs(pair_count)
     responses: list[float] = []
     used_dirs: list[torch.Tensor] = []
     dir_idx = 0
@@ -739,45 +644,51 @@ def _estimate_envelope_offset(
     attempts = 0
 
     while len(used_dirs) < pair_count and attempts < max_attempts:
-        if fe_used + 2 > budget:
+        max_affordable_pairs = (budget - fe_used) // 2
+        if max_affordable_pairs <= 0:
             break
-        # Generate more directions if we've exhausted the initial batch
-        if dir_idx >= directions.shape[0]:
-            extra = torch.randn(
-                max(1, pair_count - len(used_dirs)),
-                dim,
-                device=device,
-                dtype=dtype,
-            )
-            directions = torch.cat([directions, extra], dim=0)
+        need = min(pair_count - len(used_dirs), max_affordable_pairs)
 
-        d_vec = directions[dir_idx]
-        dir_idx += 1
-        attempts += 1
+        batch_dirs: list[torch.Tensor] = []
+        batch_probes: list[torch.Tensor] = []
+        while len(batch_dirs) < need and attempts < max_attempts:
+            if dir_idx >= directions.shape[0]:
+                extra = _draw_dirs(max(1, pair_count - len(used_dirs) - len(batch_dirs)))
+                directions = torch.cat([directions, extra], dim=0)
 
-        # Skip probes that would be clipped by bounds (biased estimate)
-        plus = point + sigma * d_vec
-        minus = point - sigma * d_vec
-        if (plus < lb).any() or (plus > ub).any() or (minus < lb).any() or (minus > ub).any():
-            continue
+            d_vec = directions[dir_idx]
+            dir_idx += 1
+            attempts += 1
 
-        f_plus = fitness_fn(plus.unsqueeze(0)).squeeze().item()
-        f_minus = fitness_fn(minus.unsqueeze(0)).squeeze().item()
-        fe_used += 2
-        if math.isfinite(f_plus) and math.isfinite(f_minus):
-            responses.append((f_plus - f_minus) / (4.0 * sigma))
-            used_dirs.append(d_vec)
+            plus = point + sigma * d_vec
+            minus = point - sigma * d_vec
+            if (plus < lb).any() or (plus > ub).any() or (minus < lb).any() or (minus > ub).any():
+                continue
+
+            batch_dirs.append(d_vec)
+            batch_probes.append(plus)
+            batch_probes.append(minus)
+
+        if not batch_dirs:
+            break
+
+        f_batch = fitness_fn(torch.stack(batch_probes))
+        fe_used += 2 * len(batch_dirs)
+        for j, d_vec in enumerate(batch_dirs):
+            f_plus = float(f_batch[2 * j].item())
+            f_minus = float(f_batch[2 * j + 1].item())
+            if math.isfinite(f_plus) and math.isfinite(f_minus):
+                responses.append((f_plus - f_minus) / (4.0 * sigma))
+                used_dirs.append(d_vec)
 
     if len(used_dirs) < dim:
         return None, fe_used
 
-    # Solve least-squares: design @ offset ≈ responses
-    design = torch.stack(used_dirs)  # (K, dim)
-    targets = torch.tensor(responses, device=device, dtype=dtype).unsqueeze(1)  # (K, 1)
+    design = torch.stack(used_dirs)
+    targets = torch.tensor(responses, device=device, dtype=dtype).unsqueeze(1)
     try:
         offset = torch.linalg.lstsq(design, targets).solution.squeeze(1)
     except RuntimeError:
-        # Fallback: ridge regression
         gram = design.T @ design
         gram_scale = float(torch.trace(gram).item() / max(dim, 1))
         ridge = max(1e-6, 1e-4 * gram_scale)
@@ -806,6 +717,7 @@ def smoothed_envelope_search(
     min_remaining: int = 1600,
     proposal_budget_cap: int = 1800,
     min_dim: int = 20,
+    generator: torch.Generator | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, int]:
     """Jump toward the center of a Gaussian-smoothed objective, then polish.
 
@@ -841,7 +753,6 @@ def smoothed_envelope_search(
     fe_used = 0
     value = float(f_x)
 
-    # Gate: only for high-dim, sufficient budget, and below trigger
     if (
         dim < min_dim
         or budget < min_remaining
@@ -858,7 +769,6 @@ def smoothed_envelope_search(
         max(SMOOTHED_ENVELOPE_SIGMA_MIN, SMOOTHED_ENVELOPE_SIGMA_SCALE * span),
     )
 
-    # Determine how many antithetic pairs we can afford
     n_blend = len(SMOOTHED_ENVELOPE_BLEND_WEIGHTS)
     target_pairs = max(dim * SMOOTHED_ENVELOPE_PAIR_MULTIPLIER, SMOOTHED_ENVELOPE_PAIRS)
     max_pairs = max(0, (budget - n_blend) // 2)
@@ -866,8 +776,6 @@ def smoothed_envelope_search(
     if pair_count < dim:
         return best_x, best_f, fe_used
 
-    # Estimate smoothed-envelope offset via least-squares on paired probes.
-    # Skip probes that would be clipped by bounds (biased gradient estimate).
     offset, offset_fe = _estimate_envelope_offset(
         best_x,
         fitness_fn,
@@ -878,6 +786,7 @@ def smoothed_envelope_search(
         budget,
         device,
         dtype,
+        generator=generator,
     )
     fe_used += offset_fe
     if offset is None:
@@ -887,7 +796,6 @@ def smoothed_envelope_search(
     if not torch.isfinite(offset_norm) or float(offset_norm) <= 1e-9:
         return best_x, best_f, fe_used
 
-    # Step toward the smoothed minimum (2x offset for center rate scaling)
     center = clamp_to_bounds(
         (best_x - SMOOTHED_ENVELOPE_CENTER_RATE * 2.0 * offset).unsqueeze(0),
         lb,
@@ -896,7 +804,6 @@ def smoothed_envelope_search(
     if float(torch.linalg.vector_norm(center - best_x)) <= 1e-9:
         return best_x, best_f, fe_used
 
-    # Try blended proposals toward the smoothed center, with BFGS polish
     anchor = best_x.clone()
     for blend in SMOOTHED_ENVELOPE_BLEND_WEIGHTS:
         if fe_used >= budget:
@@ -913,8 +820,10 @@ def smoothed_envelope_search(
         fe_used += 1
         if not torch.isfinite(f_cand):
             continue
+        if f_cand < best_f:
+            best_x = candidate.clone()
+            best_f = f_cand.clone()
 
-        # Polish the candidate with FD-BFGS
         proposal_budget = min(budget - fe_used, proposal_budget_cap)
         if proposal_budget > 2 * dim:
             cand_polished, f_polished, bfgs_fe = fd_bfgs_polish(
@@ -936,16 +845,11 @@ def smoothed_envelope_search(
     return best_x, best_f, fe_used
 
 
-# ---------------------------------------------------------------------------
-# nm_polish
-# ---------------------------------------------------------------------------
-
-
 def nm_polish(
     x: torch.Tensor,
     fitness_fn: Callable[[torch.Tensor], torch.Tensor],
     budget: int,
-    bounds: tuple[float, float] | None = None,
+    bounds: tuple[float, float] | tuple[torch.Tensor, torch.Tensor] | None = None,
     simplex_scale: float = 0.05,
 ) -> tuple[torch.Tensor, torch.Tensor, int]:
     """Polish via NelderMead simplex. Returns (best_x, best_f, evals_used).
@@ -957,7 +861,8 @@ def nm_polish(
         x: ``(dim,)`` incumbent solution.
         fitness_fn: Callable ``(N, dim) -> (N,)`` for batched evaluation.
         budget: Maximum function evaluations.
-        bounds: ``(lo, hi)`` scalar bounds or ``None`` for unbounded.
+        bounds: ``(lo, hi)`` scalar bounds, ``(lb, ub)`` per-dim tensors,
+            or ``None`` for unbounded.
         simplex_scale: Fraction of the search span used for the initial
             simplex perturbation.
 
@@ -967,33 +872,68 @@ def nm_polish(
     """
     from torch_dfo.nelder_mead import NelderMead
 
+    if budget <= 0:
+        return x.clone(), torch.tensor(float("inf"), device=x.device, dtype=x.dtype), 0
+
     dim = x.shape[0]
+    if bounds is not None:
+        nm_bounds = bounds
+    else:
+        finfo = torch.finfo(x.dtype)
+        max_abs = float(x.abs().max().item()) if x.numel() > 0 else 0.0
+        half_width = min(max(1e12, max_abs * 10.0 + 1e6), finfo.max * 0.25)
+        nm_bounds = (x - half_width, x + half_width)
     nm = NelderMead(
         dim=dim,
-        bounds=bounds if bounds is not None else (-1e12, 1e12),
+        bounds=nm_bounds,
         device=x.device,
         dtype=x.dtype,
     )
+    if bounds is None:
+        nm._clamp_candidates = False
 
-    # Warm-start simplex around x
-    span = (bounds[1] - bounds[0]) if bounds else 1.0
+    x_clamped = (
+        clamp_to_bounds(x.unsqueeze(0), nm.lb, nm.ub).squeeze(0)
+        if bounds is not None
+        else x.clone()
+    )
+    span = (
+        (nm.ub - nm.lb) if bounds is not None else torch.ones(dim, device=x.device, dtype=x.dtype)
+    )
     delta = simplex_scale * span
-    simplex = x.unsqueeze(0).repeat(dim + 1, 1)
+    simplex = x_clamped.unsqueeze(0).repeat(dim + 1, 1)
     for i in range(dim):
-        simplex[i + 1, i] += delta
-    nm.population = simplex
-    nm._needs_full_eval = True  # force initial simplex evaluation
+        step = delta[i]
+        cand = x_clamped[i] + step
+        if bounds is not None:
+            if cand > nm.ub[i]:
+                cand = x_clamped[i] - step
+            cand = torch.clamp(cand, min=nm.lb[i], max=nm.ub[i])
+        simplex[i + 1, i] = cand
+    nm.population.copy_(simplex)
+    nm._initialized = True
+    nm._needs_full_eval = True
 
-    best_x, best_f = x.clone(), fitness_fn(x.unsqueeze(0)).squeeze()
+    raw_f0 = fitness_fn(x_clamped.unsqueeze(0)).squeeze()
+    best_x = x_clamped.clone()
+    best_f = (
+        torch.where(
+            torch.isnan(raw_f0),
+            torch.tensor(float("inf"), device=x.device, dtype=x.dtype),
+            raw_f0,
+        )
+        if raw_f0.is_floating_point()
+        else raw_f0.to(dtype=x.dtype)
+    )
     evals = 1
     while evals < budget:
-        candidates = nm.ask()
-        batch_size = candidates.shape[0]
+        batch_size = nm.next_batch_size()
         if evals + batch_size > budget:
             break
+        candidates = nm.ask()
         fitness = fitness_fn(candidates)
         nm.tell(candidates, fitness)
-        evals += batch_size
+        evals += candidates.shape[0]
         if nm.best_fitness < best_f:
             best_f = nm.best_fitness.clone()
             best_x = nm.best_solution.clone()

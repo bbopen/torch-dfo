@@ -55,13 +55,10 @@ def test_nelder_mead_roundtrip():
 
 
 def test_dlr_roundtrip():
-    lb = torch.full((10,), -5.0, dtype=torch.float64)
-    ub = torch.full((10,), 5.0, dtype=torch.float64)
     gen1 = torch.Generator(device="cpu").manual_seed(42)
     dlr1 = DLRPortfolio(
         dim=10,
-        lb=lb,
-        ub=ub,
+        bounds=(-5.0, 5.0),
         lambdas=(12, 12),
         sigma_fracs=(0.3, 0.1),
         device=torch.device("cpu"),
@@ -75,8 +72,7 @@ def test_dlr_roundtrip():
     gen2 = torch.Generator(device="cpu").manual_seed(99)
     dlr2 = DLRPortfolio(
         dim=10,
-        lb=lb,
-        ub=ub,
+        bounds=(-5.0, 5.0),
         lambdas=(12, 12),
         sigma_fracs=(0.3, 0.1),
         device=torch.device("cpu"),

@@ -57,7 +57,6 @@ class Categorical:
             raise ValueError(f"Categorical '{self.name}': choices must not be empty")
 
 
-# Type alias for any parameter type
 Param = Float | Int | Categorical
 
 
@@ -76,10 +75,6 @@ class SearchSpace:
             raise ValueError("Duplicate parameter names in SearchSpace")
         self._params: list[Float | Int | Categorical] = list(params)
 
-    # ------------------------------------------------------------------
-    # Properties
-    # ------------------------------------------------------------------
-
     @property
     def dim(self) -> int:
         """Number of encoded dimensions (one per parameter)."""
@@ -89,10 +84,6 @@ class SearchSpace:
     def params(self) -> list[Float | Int | Categorical]:
         """Copy of the parameter list (mutating the copy is safe)."""
         return list(self._params)
-
-    # ------------------------------------------------------------------
-    # Encode
-    # ------------------------------------------------------------------
 
     def encode(
         self,
@@ -120,10 +111,6 @@ class SearchSpace:
         t = torch.tensor(rows, dtype=dtype, device=device)
         return t.clamp(0.0, 1.0)
 
-    # ------------------------------------------------------------------
-    # Decode
-    # ------------------------------------------------------------------
-
     def decode(self, x: torch.Tensor) -> list[dict[str, Any]]:
         """Decode a ``(N, dim)`` tensor into a list of config dicts.
 
@@ -142,10 +129,6 @@ class SearchSpace:
             results.append(cfg)
         return results
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _encode_one(p: Float | Int | Categorical, v: Any) -> float:
         """Encode a single value for parameter *p* to ``[0, 1]``."""
@@ -160,15 +143,9 @@ class SearchSpace:
                     )
                 return (math.log(val) - math.log(lo)) / (math.log(hi) - math.log(lo))
             return (val - lo) / (hi - lo)
-        # Categorical
         choices = p.choices
-        # .index() raises ValueError for unknown values — desired behaviour
         idx = choices.index(v)
-        # Categorical encodes to [0, (n-1)/n], never reaching 1.0.
-        # This is intentional: u=1.0 is decoded to the last choice via clamp,
-        # so there is no gap, but encoding avoids emitting 1.0 to prevent
-        # the decode floor() from indexing out of bounds.
-        return idx / len(choices)
+        return (idx + 0.5) / len(choices)
 
     @staticmethod
     def _decode_one(p: Float | Int | Categorical, u: float) -> Any:
@@ -183,7 +160,6 @@ class SearchSpace:
             if isinstance(p, Int):
                 return round(val)
             return val
-        # Categorical
         choices = p.choices
         idx = min(math.floor(u * len(choices)), len(choices) - 1)
         return choices[idx]

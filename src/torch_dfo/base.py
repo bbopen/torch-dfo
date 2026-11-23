@@ -19,7 +19,7 @@ class BaseOptimizer:
     def __init__(
         self,
         dim: int,
-        bounds: float | tuple[float, float],
+        bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor],
         pop_size: int,
         device: str | torch.device | None = None,
         dtype: torch.dtype = torch.float64,
@@ -32,16 +32,19 @@ class BaseOptimizer:
             self.device = torch.device("cpu")
         self.dtype = dtype
         self.lb, self.ub = normalize_bounds(bounds, dim, self.device, self.dtype)
-        self._rng_seed = seed  # stored for cross-device serialization
         self._gen = make_generator(seed, self.device)
-        self._gen_device = self._gen.device  # Cache for random tensor generation
+        self._rng_seed: int | None = seed if seed is not None else int(self._gen.initial_seed())
+        self._gen_device = self._gen.device
         self._generation = 0
 
-        # Pre-allocated workspace
         self.population = torch.empty(pop_size, dim, device=self.device, dtype=self.dtype)
         self.fitness = torch.full((pop_size,), float("inf"), device=self.device, dtype=self.dtype)
-        self.best_solution = torch.zeros(dim, device=self.device, dtype=self.dtype)
+        self.best_solution = 0.5 * self.lb + 0.5 * self.ub
         self.best_fitness = torch.tensor(float("inf"), device=self.device, dtype=self.dtype)
+
+    def next_batch_size(self) -> int:
+        """Return the exact number of candidates the next ``ask()`` call will produce."""
+        return self.pop_size
 
     def ask(self) -> torch.Tensor:
         """Generate candidate solutions. Returns (pop_size, dim) tensor."""
@@ -66,20 +69,29 @@ class BaseOptimizer:
 
         Uses torch.where for torch.compile compatibility -- no Python if/else on tensors.
         """
-        # Find best in this batch
-        batch_best_idx = fitness.argmin()
-        batch_best_f = fitness[batch_best_idx]
+        if fitness.is_floating_point():
+            safe_fitness = torch.where(
+                torch.isnan(fitness),
+                torch.full_like(fitness, float("inf")),
+                fitness,
+            )
+        else:
+            safe_fitness = fitness
+        batch_best_idx = safe_fitness.argmin()
+        raw_best = safe_fitness[batch_best_idx]
+        target_dtype = (
+            torch.promote_types(self.best_fitness.dtype, raw_best.dtype)
+            if raw_best.is_floating_point()
+            else self.best_fitness.dtype
+        )
+        batch_best_f = raw_best.to(dtype=target_dtype)
         batch_best_x = candidates[batch_best_idx]
 
-        # Update global best using torch.where (compile-safe)
-        improved = batch_best_f < self.best_fitness
-        self.best_fitness = torch.where(improved, batch_best_f, self.best_fitness)
-        # For the solution vector, expand improved to match dim
+        cur_best_f = self.best_fitness.to(dtype=target_dtype)
+        improved = batch_best_f < cur_best_f
+        self.best_fitness = torch.where(improved, batch_best_f, cur_best_f)
         self.best_solution = torch.where(improved, batch_best_x, self.best_solution)
 
-    # ------------------------------------------------------------------
-    # Serialization
-    # ------------------------------------------------------------------
     def state_dict(self) -> dict[str, Any]:
         """Return optimizer state as a serializable dict.
 
@@ -115,21 +127,36 @@ class BaseOptimizer:
         re-seeded from ``_rng_seed`` rather than restoring the binary state.
         Continuation is non-bit-exact in that case.
         """
-        self.population.copy_(state["population"])
-        self.fitness.copy_(state["fitness"])
+        saved_pop = state["population"]
+        if (
+            saved_pop.ndim == 2
+            and saved_pop.shape[1] == self.dim
+            and saved_pop.shape[0] != self.pop_size
+        ):
+            self.pop_size = int(saved_pop.shape[0])
+            self.population = saved_pop.to(device=self.device, dtype=self.dtype).clone()
+            self.fitness = state["fitness"].to(device=self.device, dtype=self.dtype).clone()
+        else:
+            self.population.copy_(saved_pop)
+            self.fitness.copy_(state["fitness"])
         self.best_solution.copy_(state["best_solution"])
-        self.best_fitness.copy_(state["best_fitness"])
+        saved_best = state["best_fitness"]
+        if saved_best.is_floating_point():
+            target_dtype = torch.promote_types(self.best_fitness.dtype, saved_best.dtype)
+            self.best_fitness = saved_best.to(device=self.device, dtype=target_dtype).clone()
+        else:
+            self.best_fitness.copy_(saved_best)
         self._generation = state["_generation"]
 
         saved_device_type = state.get("_saved_device_type", self._gen.device.type)
+        if "_rng_seed" in state:
+            self._rng_seed = state["_rng_seed"]
         if saved_device_type == self._gen.device.type:
             self._gen.set_state(state["_gen_state"])
         else:
-            # Cross-device: binary RNG state is not portable; re-seed instead.
             seed = state.get("_rng_seed")
             if seed is not None:
                 self._gen.manual_seed(seed)
-            # If no seed was stored we leave the generator in its current state.
 
     def _rand(self, *shape: int) -> torch.Tensor:
         """Generate uniform random tensor on the correct device.

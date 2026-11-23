@@ -14,16 +14,6 @@ from __future__ import annotations
 import os
 from typing import Final
 
-# ---------------------------------------------------------------------------
-# Debug-only mechanism toggle (contributor tool; not a public API).
-#
-# Set TORCH_DFO_DEBUG_DISABLE to a comma-separated list of tags to disable
-# individual dim>=40 scheduling branches during regression testing.
-# Recognised tags: dim40_valley_branch, dim40_line_sampling,
-# dim40_budget_transfer, dim40_focus_cycle, dim40_adaptive_burst,
-# dim40_parity_bounds, dim40_terminal_focus, or `all`.
-# Tag names and semantics may change across minor versions.
-# ---------------------------------------------------------------------------
 TAG_DIM40_VALLEY_BRANCH: Final[str] = "dim40_valley_branch"
 TAG_DIM40_LINE_SAMPLING: Final[str] = "dim40_line_sampling"
 TAG_DIM40_BUDGET_TRANSFER: Final[str] = "dim40_budget_transfer"

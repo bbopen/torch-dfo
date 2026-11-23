@@ -20,7 +20,7 @@ import torch
 
 from torch_dfo._cmaes_state import CMAAdaptationRates, CMAPathState
 from torch_dfo.base import BaseOptimizer
-from torch_dfo.utils import clamp_to_bounds
+from torch_dfo.utils import clamp_to_bounds, mean_span
 
 
 def _default_pop_size(dim: int) -> int:
@@ -45,7 +45,7 @@ def _compute_adaptation_rates(
     mu_eff = (1.0 / (weights**2).sum()).item()
     c_sigma = (mu_eff + 2) / (dim + mu_eff + 5)
     d_sigma = 1 + 2 * max(0.0, math.sqrt((mu_eff - 1) / (dim + 1)) - 1) + c_sigma
-    c_c = (mu_eff + 2) / (dim + 4 + 2 * mu_eff / dim)
+    c_c = (4.0 + mu_eff / dim) / (dim + 4.0 + 2.0 * mu_eff / dim)
     c_1 = 2.0 / ((dim + 1.3) ** 2 + mu_eff)
     c_mu = min(
         1 - c_1,
@@ -115,7 +115,7 @@ class CMAES(BaseOptimizer):
     def __init__(
         self,
         dim: int,
-        bounds: float | tuple[float, float],
+        bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor],
         pop_size: int | None = None,
         device: str | torch.device | None = None,
         dtype: torch.dtype = torch.float64,
@@ -150,13 +150,10 @@ class CMAES(BaseOptimizer):
         path_line_samples = max(0, int(path_line_samples))
         path_line_scale = max(0.0, float(path_line_scale))
 
-        # ---------- strategy parameters (Hansen 2016, Table 1) ----------
         self._configure_strategy(pop_size)
 
-        # Expected norm of N(0, I)
         self.chi_n = math.sqrt(dim) * (1 - 1 / (4 * dim) + 1 / (21 * dim**2))
 
-        # ---------- dynamic state ----------
         self._init_state(
             self._sigma0,
             path_memory=path_memory,
@@ -192,7 +189,7 @@ class CMAES(BaseOptimizer):
             self._neg_weights = neg_raw / neg_raw.sum()
             self._c_mu_neg = min(
                 0.25 * self._rates.c_mu,
-                max(0.0, 1 - self._rates.c_1 - self._rates.c_mu),
+                max(0.0, 1.0 - self._rates.c_1 - self._rates.c_mu) / self.dim,
             )
         else:
             self._mu_neg = 0
@@ -211,30 +208,22 @@ class CMAES(BaseOptimizer):
         """Initialise or reset all mutable CMA-ES state tensors."""
         dim = self.dim
 
-        # Distribution mean: center of the search space
-        self.mean = ((self.lb + self.ub) / 2).clone()
+        self.mean = (0.5 * self.lb + 0.5 * self.ub).clone()
 
-        # Step size: sigma0 * average span
-        span = (self.ub - self.lb).mean().item()
+        span = mean_span(self.lb, self.ub)
         self.sigma = sigma0 * span
+        self._initial_sigma = self.sigma
 
-        # Sigma bounds (set by PhasedDFO, defaults to no-op range)
-        self.sigma_min = 1e-30  # effectively no lower bound
-        self.sigma_max = float("inf")  # effectively no upper bound
+        self.sigma_min = 1e-30
+        self.sigma_max = float("inf")
 
-        # Covariance normalization: when True, _update_eigensystem divides
-        # eigenvalues by their mean. Standalone CMA-ES normalizes every decomp.
-        # PhasedDFO sets this to False and normalizes C externally at phase
-        # boundaries only.
-        self._normalize_on_decomp = True
+        self._normalize_on_decomp = False
 
-        # Covariance matrix and its decomposition
         self.C = torch.eye(dim, device=self.device, dtype=self.dtype)
         self.B = torch.eye(dim, device=self.device, dtype=self.dtype)
         self.D_diag = torch.ones(dim, device=self.device, dtype=self.dtype)
         self.C_invsqrt = torch.eye(dim, device=self.device, dtype=self.dtype)
 
-        # Evolution paths
         p_sigma = torch.zeros(dim, device=self.device, dtype=self.dtype)
         p_c = torch.zeros(dim, device=self.device, dtype=self.dtype)
         if path_memory > 0:
@@ -258,7 +247,6 @@ class CMAES(BaseOptimizer):
             _path_pos=0,
         )
 
-        # Generation of last eigendecomposition
         self._decomp_gen = 0
 
     @property
@@ -365,9 +353,6 @@ class CMAES(BaseOptimizer):
     def _path_pos(self, value: int) -> None:
         self._path._path_pos = int(value)
 
-    # ------------------------------------------------------------------
-    # Serialization
-    # ------------------------------------------------------------------
     def state_dict(self) -> dict[str, Any]:
         """Return CMA-ES state as a serializable dict."""
         state = super().state_dict()
@@ -380,6 +365,7 @@ class CMAES(BaseOptimizer):
                 "mean": self.mean.clone(),
                 "sigma": self.sigma,
                 "_sigma0": self._sigma0,
+                "_initial_sigma": self._initial_sigma,
                 "sigma_min": self.sigma_min,
                 "sigma_max": self.sigma_max,
                 "active": self.active,
@@ -404,6 +390,9 @@ class CMAES(BaseOptimizer):
         self.mean.copy_(state["mean"])
         self.sigma = state["sigma"]
         self._sigma0 = float(state.get("_sigma0", self._sigma0))
+        self._initial_sigma = float(
+            state.get("_initial_sigma", self._sigma0 * mean_span(self.lb, self.ub))
+        )
         self.sigma_min = state["sigma_min"]
         self.sigma_max = state["sigma_max"]
         self._path = CMAPathState.from_dict(
@@ -414,9 +403,6 @@ class CMAES(BaseOptimizer):
         self._decomp_gen = state["_decomp_gen"]
         self._normalize_on_decomp = state["_normalize_on_decomp"]
 
-    # ------------------------------------------------------------------
-    # ask
-    # ------------------------------------------------------------------
     def ask(self) -> torch.Tensor:
         """Sample a new population from the current search distribution.
 
@@ -435,16 +421,13 @@ class CMAES(BaseOptimizer):
             z = torch.cat([base_z, -base_z], dim=0)
             if pop_size % 2 == 1:
                 z = torch.cat([z, self._randn(1, dim)], dim=0)
-            # Shuffle to break pairing structure
             perm = self._randperm(z.shape[0])
             z = z[perm]
         else:
             z = self._randn(pop_size, dim)
 
-        # Transform: y = B @ diag(D) @ z^T  =>  candidates = mean + sigma * y^T
-        # BD = B * D_diag (broadcasting column-wise)
-        BD = self.B * self.D_diag.unsqueeze(0)  # (dim, dim)
-        y = z @ BD.T  # (pop_size, dim)
+        BD = self.B * self.D_diag.unsqueeze(0)
+        y = z @ BD.T
         if (
             self._path.path_memory > 0
             and self._path.path_scale > 0.0
@@ -476,16 +459,11 @@ class CMAES(BaseOptimizer):
             y[:line_count] = torch.where(valid_path, line_steps, y[:line_count])
         candidates = self.mean.unsqueeze(0) + self.sigma * y
 
-        # Clamp to bounds
         candidates = clamp_to_bounds(candidates, self.lb, self.ub)
 
-        # Store into pre-allocated workspace
         self.population.copy_(candidates)
         return candidates
 
-    # ------------------------------------------------------------------
-    # tell
-    # ------------------------------------------------------------------
     def tell(self, candidates: torch.Tensor, fitness: torch.Tensor) -> None:
         """Update the search distribution from evaluated candidates.
 
@@ -502,64 +480,58 @@ class CMAES(BaseOptimizer):
         mu = self.mu
         dim = self.dim
 
-        # 1. Sort by fitness and select mu-best
         sorted_indices = fitness.argsort()
         best_indices = sorted_indices[:mu]
 
-        # 2. Update mean
         old_mean = self.mean.clone()
-        selected = candidates[best_indices]  # (mu, dim)
+        selected = candidates[best_indices]
         self.mean = (self._rates.weights.unsqueeze(1) * selected).sum(dim=0)
 
-        # Mean displacement (unscaled)
-        mean_diff = self.mean - old_mean  # (dim,)
+        mean_diff = self.mean - old_mean
 
-        # 3. Update evolution paths
-        #    p_sigma update (conjugate evolution path)
-        invsqrt_diff = self.C_invsqrt @ mean_diff / self.sigma  # (dim,)
+        invsqrt_diff = self.C_invsqrt @ mean_diff / self.sigma
         self._path.p_sigma = (1 - self._rates.c_sigma) * self._path.p_sigma + math.sqrt(
             max(self._rates.c_sigma * (2 - self._rates.c_sigma) * self._rates.mu_eff, 0.0),
         ) * invsqrt_diff
 
-        #    Heaviside function for stalling detection
-        gen = self._generation + 1  # 1-based for this formula
+        gen = self._generation + 1
         lhs = torch.linalg.norm(self._path.p_sigma).item() / math.sqrt(
             1 - (1 - self._rates.c_sigma) ** (2 * gen),
         )
         rhs = (1.4 + 2.0 / (dim + 1)) * self.chi_n
         h_sigma = 1.0 if lhs < rhs else 0.0
 
-        #    p_c update (evolution path for rank-one update)
         self._path.p_c = (1 - self._rates.c_c) * self._path.p_c + h_sigma * math.sqrt(
             max(self._rates.c_c * (2 - self._rates.c_c) * self._rates.mu_eff, 0.0),
         ) * mean_diff / self.sigma
         self._record_path_vector(self._path.p_c)
 
-        # 4. Update covariance matrix
-        y_selected = (selected - old_mean.unsqueeze(0)) / self.sigma  # (mu, dim)
+        y_selected = (selected - old_mean.unsqueeze(0)) / self.sigma
 
-        # Rank-mu update: weighted outer products of selected steps
-        # rank_mu = y^T @ diag(w) @ y
-        rank_mu = (y_selected * self._rates.weights.unsqueeze(1)).T @ y_selected  # (dim, dim)
+        rank_mu = (y_selected * self._rates.weights.unsqueeze(1)).T @ y_selected
 
-        # Rank-one update: outer product of p_c
         rank_one = torch.outer(self._path.p_c, self._path.p_c)
 
-        # Correction for h_sigma == 0 (stalled step-size)
         delta_h = (1 - h_sigma) * self._rates.c_c * (2 - self._rates.c_c)
 
-        # Active CMA: compute negative rank update and balancing term
         if self.active:
             mu_neg = self._mu_neg
             worst_indices = sorted_indices[pop_size - mu_neg :].flip(0)
             y_worst = (candidates[worst_indices] - old_mean.unsqueeze(0)) / self.sigma
-            rank_mu_neg = (y_worst * self._neg_weights.unsqueeze(1)).T @ y_worst
+            z_worst = y_worst @ self.C_invsqrt.T
+            mahal_sq = (z_worst**2).sum(dim=1)
+            mahal_scale = torch.where(
+                mahal_sq > 1e-30,
+                float(dim) / mahal_sq.clamp(min=1e-30),
+                torch.zeros_like(mahal_sq),
+            )
+            scaled_neg_weights = self._neg_weights * mahal_scale
+            rank_mu_neg = (y_worst * scaled_neg_weights.unsqueeze(1)).T @ y_worst
             c_mu_neg = self._c_mu_neg
         else:
             rank_mu_neg = torch.zeros_like(self.C)
             c_mu_neg = 0.0
 
-        # Covariance update with active CMA trace-balancing term (c_mu_neg in old_C coeff)
         old_C = self.C
         self.C = (
             (1 - self._rates.c_1 - self._rates.c_mu + c_mu_neg) * old_C
@@ -568,20 +540,17 @@ class CMAES(BaseOptimizer):
             - c_mu_neg * rank_mu_neg
         )
 
-        # 5. Update sigma (cumulative step-size adaptation)
         ps_norm = torch.linalg.norm(self._path.p_sigma).item()
         self.sigma = self.sigma * math.exp(
             (self._rates.c_sigma / self._rates.d_sigma) * (ps_norm / self.chi_n - 1),
         )
         self.sigma = min(max(self.sigma, self.sigma_min), self.sigma_max)
 
-        # 6. Eigendecomposition (periodic, for efficiency)
         self._generation += 1
         if self._generation - self._decomp_gen >= self._decomp_frequency:
             self._update_eigensystem()
             self._decomp_gen = self._generation
 
-        # 7. Track global best
         self._update_best(candidates, fitness)
 
     def _record_path_vector(self, path: torch.Tensor) -> None:
@@ -595,20 +564,14 @@ class CMAES(BaseOptimizer):
         self._path._path_pos = (self._path._path_pos + 1) % self._path.path_memory
         self._path._path_count = min(self._path.path_memory, self._path._path_count + 1)
 
-    # ------------------------------------------------------------------
-    # eigensystem
-    # ------------------------------------------------------------------
     def _update_eigensystem(self) -> None:
         """Recompute the eigendecomposition of the covariance matrix C.
 
         Enforces symmetry and numerical stability before decomposition.
         Falls back to CPU for eigh when the device lacks native support (e.g. MPS).
         """
-        # Enforce symmetry
         self.C = (self.C + self.C.T) / 2
 
-        # Eigendecomposition (eigh returns ascending eigenvalues).
-        # MPS does not support eigh natively; fall back to CPU.
         if self.device.type not in ("cpu", "cuda"):
             C_cpu = self.C.to("cpu")
             eigenvalues_cpu, B_cpu = torch.linalg.eigh(C_cpu)
@@ -617,28 +580,36 @@ class CMAES(BaseOptimizer):
         else:
             eigenvalues, self.B = torch.linalg.eigh(self.C)
 
-        # Numerical safety: clamp small/negative eigenvalues
-        eigenvalues = torch.clamp(eigenvalues, min=1e-8)
+        finfo = torch.finfo(self.dtype)
+        sigma_ref = getattr(self, "_initial_sigma", 1.0)
+        if self.sigma > sigma_ref and math.isfinite(self.sigma):
+            sigma_ratio = sigma_ref / self.sigma
+            eig_floor = max(finfo.tiny * 1e6, 1e-8 * sigma_ratio * sigma_ratio)
+        else:
+            eig_floor = 1e-8
+        eigenvalues = torch.clamp(eigenvalues, min=eig_floor)
 
-        # Normalize covariance shape when requested. Normalize
-        # only at phase boundaries (not every decomp) to avoid double-normalizing
-        # during CMA-ES iterations, which would warp the learned orientation.
-        if self._normalize_on_decomp:
-            mean_eig = eigenvalues.mean()
-            if mean_eig > 1e-12:
-                eigenvalues = eigenvalues / mean_eig
+        mean_eig = float(eigenvalues.mean().item())
+        need_normalize = self._normalize_on_decomp or (
+            math.isfinite(mean_eig) and (mean_eig < 1e-6 or mean_eig > 1e6)
+        )
+        if need_normalize and math.isfinite(mean_eig) and mean_eig > 1e-12 and self.sigma > 0.0:
+            scale_sqrt = math.sqrt(mean_eig)
+            new_sigma = min(max(self.sigma * scale_sqrt, self.sigma_min), self.sigma_max)
+            actual_scale_sqrt = new_sigma / self.sigma
+            actual_scale = actual_scale_sqrt * actual_scale_sqrt
+            if actual_scale > 0.0 and math.isfinite(actual_scale):
+                post_floor = max(finfo.tiny * 1e6, eig_floor / actual_scale)
+                eigenvalues = torch.clamp(eigenvalues / actual_scale, min=post_floor)
+                self.sigma = new_sigma
+                self._path.p_c = self._path.p_c / actual_scale_sqrt
 
         self.D_diag = torch.sqrt(eigenvalues)
 
-        # C^{-1/2} = B @ diag(1/D) @ B^T
         self.C_invsqrt = self.B @ torch.diag(1.0 / self.D_diag) @ self.B.T
 
-        # Reconstruct C from the clamped decomposition for consistency
         self.C = self.B @ torch.diag(eigenvalues) @ self.B.T
 
-    # ------------------------------------------------------------------
-    # restart (IPOP support)
-    # ------------------------------------------------------------------
     def restart(
         self,
         new_pop_size: int | None = None,
@@ -662,59 +633,52 @@ class CMAES(BaseOptimizer):
             New covariance matrix. If ``None``, reset to identity.
 
         """
-        if new_pop_size is not None and new_pop_size != self.pop_size:
-            self._configure_strategy(new_pop_size)
+        if new_pop_size is not None:
+            if new_pop_size < 2:
+                raise ValueError("CMAES requires pop_size >= 2")
+            if new_pop_size != self.pop_size:
+                self._configure_strategy(new_pop_size)
 
-            # Re-allocate workspace tensors for the new population size
-            self.population = torch.empty(
-                self.pop_size,
-                self.dim,
-                device=self.device,
-                dtype=self.dtype,
-            )
-            self.fitness = torch.full(
-                (self.pop_size,),
-                float("inf"),
-                device=self.device,
-                dtype=self.dtype,
-            )
+                self.population = torch.empty(
+                    self.pop_size,
+                    self.dim,
+                    device=self.device,
+                    dtype=self.dtype,
+                )
+                self.fitness = torch.full(
+                    (self.pop_size,),
+                    float("inf"),
+                    device=self.device,
+                    dtype=self.dtype,
+                )
 
-        # Widen sigma_max for restart phases (CMA_ES_RESTART_SIGMA_MAX * span).
-        # Only applies when sigma bounds were explicitly set (e.g. by PhasedDFO);
-        # the default no-op bounds (inf) are left untouched.
         if math.isfinite(self.sigma_max):
-            span = (self.ub - self.lb).mean().item()
+            span = mean_span(self.lb, self.ub)
             self.sigma_max = 0.30 * span
 
-        # Reset evolution paths
         self._path.p_sigma.zero_()
         self._path.p_c.zero_()
         self._path._path_vectors.zero_()
         self._path._path_count = 0
         self._path._path_pos = 0
 
-        # Set mean
         if mean is not None:
             self.mean = mean.to(device=self.device, dtype=self.dtype).clone()
         else:
-            self.mean = ((self.lb + self.ub) / 2).clone()
+            self.mean = (0.5 * self.lb + 0.5 * self.ub).clone()
 
-        # Set sigma
         if sigma is not None:
             self.sigma = sigma
         else:
-            span = (self.ub - self.lb).mean().item()
+            span = mean_span(self.lb, self.ub)
             self.sigma = self._sigma0 * span
 
-        # Set covariance
         if C_init is not None:
             self.C = C_init.to(device=self.device, dtype=self.dtype).clone()
         else:
             self.C = torch.eye(self.dim, device=self.device, dtype=self.dtype)
 
-        # Reset generation tracking
         self._generation = 0
         self._decomp_gen = 0
 
-        # Recompute eigensystem from the (possibly new) covariance
         self._update_eigensystem()

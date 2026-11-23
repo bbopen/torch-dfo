@@ -76,7 +76,7 @@ class SHADE(BaseOptimizer):
     def __init__(
         self,
         dim: int,
-        bounds: float | tuple[float, float],
+        bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor],
         pop_size: int = 80,
         memory_size: int = 6,
         p_min: float = 0.1,
@@ -92,25 +92,20 @@ class SHADE(BaseOptimizer):
             raise ValueError("SHADE requires pop_size >= 3")
         super().__init__(dim, bounds, pop_size, device, dtype, seed)
 
-        # SHADE memory (circular buffer for F and CR)
         self.memory_size = memory_size
         memory_F = torch.full((memory_size,), 0.7, device=self.device, dtype=self.dtype)
         memory_CR = torch.full((memory_size,), 0.7, device=self.device, dtype=self.dtype)
 
-        # p-best parameters (adaptive from p_max to p_min over generations)
         self.p_min = p_min
         self.p_max = p_max
 
-        # Archive (JADE-style: stores replaced parents)
         self.archive_ratio = archive_ratio
         self._archive_max = int(pop_size * archive_ratio)
         archive = torch.empty(0, dim, device=self.device, dtype=self.dtype)
 
-        # Per-offspring trial parameters (pre-allocated)
         trial_F = torch.empty(pop_size, device=self.device, dtype=self.dtype)
         trial_CR = torch.empty(pop_size, device=self.device, dtype=self.dtype)
 
-        # Trial vectors storage
         trials = torch.empty(pop_size, dim, device=self.device, dtype=self.dtype)
         self._memory = SHADEMemory(
             memory_F=memory_F,
@@ -123,7 +118,6 @@ class SHADE(BaseOptimizer):
             _initialized=False,
         )
 
-        # Warm-start: optional initial population to seed first n rows
         self._initial_population: torch.Tensor | None = (
             initial_population.to(device=self.device, dtype=self.dtype).clone()
             if initial_population is not None
@@ -196,9 +190,6 @@ class SHADE(BaseOptimizer):
     def _initialized(self, value: bool) -> None:
         self._memory._initialized = bool(value)
 
-    # ------------------------------------------------------------------
-    # Serialization
-    # ------------------------------------------------------------------
     def state_dict(self) -> dict[str, Any]:
         """Return SHADE state as a serializable dict."""
         state = super().state_dict()
@@ -221,9 +212,6 @@ class SHADE(BaseOptimizer):
                 dtype=self.dtype,
             )
 
-    # ------------------------------------------------------------------
-    # ask
-    # ------------------------------------------------------------------
     def ask(self) -> torch.Tensor:
         """Generate candidate solutions.
 
@@ -245,37 +233,28 @@ class SHADE(BaseOptimizer):
             if self._initial_population is not None:
                 n = min(self._initial_population.shape[0], self.pop_size)
                 self.population[:n].copy_(self._initial_population[:n].clamp(self.lb, self.ub))
-                self._initial_population = None  # free memory after use
+                self._initial_population = None
             self._memory._initialized = True
             return self.population.clone()
 
-        # --- Sample F and CR from memory ---
-        # Pick random memory index for each individual
         mem_idx = self._randint(0, self.memory_size, (self.pop_size,))
 
-        # F_i ~ Normal(memory_F[k], 0.1), clamped to [0.05, 1.0]
         loc_F = self._memory.memory_F[mem_idx]
         trial_F = loc_F + 0.1 * self._randn(self.pop_size)
         trial_F = trial_F.clamp(0.05, 1.0)
 
-        # CR_i ~ Normal(memory_CR[k], 0.1), clamped to [0.0, 1.0]
         loc_CR = self._memory.memory_CR[mem_idx]
         trial_CR = loc_CR + 0.1 * self._randn(self.pop_size)
         trial_CR = trial_CR.clamp(0.0, 1.0)
 
-        # Store for tell() memory update
         self._memory._trial_F.copy_(trial_F)
         self._memory._trial_CR.copy_(trial_CR)
 
-        # --- Adaptive p_fraction: linear decay from p_max to p_min ---
-        # Use a logistic-like schedule; for simplicity, linear over 5000 gens
         max_gen = 5000.0
         progress = min(self._generation / max_gen, 1.0)
         p_fraction = self.p_max - (self.p_max - self.p_min) * progress
-        # Ensure at least 1 individual in pbest pool
         p_fraction = max(p_fraction, 1.0 / self.pop_size)
 
-        # --- Mutation: current-to-pbest/1 ---
         archive = self._memory._archive if self._memory._archive.shape[0] > 0 else None
         donor = de_current_to_pbest_mutation(
             self.population,
@@ -286,7 +265,6 @@ class SHADE(BaseOptimizer):
             generator=self._gen,
         )
 
-        # --- Crossover: binomial ---
         trials = de_binomial_crossover(
             donor,
             self.population,
@@ -294,15 +272,11 @@ class SHADE(BaseOptimizer):
             generator=self._gen,
         )
 
-        # --- Clamp to bounds ---
         trials = torch.clamp(trials, self.lb, self.ub)
 
         self._memory._trials.copy_(trials)
         return trials
 
-    # ------------------------------------------------------------------
-    # tell
-    # ------------------------------------------------------------------
     def tell(self, candidates: torch.Tensor, fitness: torch.Tensor) -> None:
         """Report fitness for the last ask() candidates and update state.
 
@@ -317,38 +291,45 @@ class SHADE(BaseOptimizer):
             (pop_size,) objective values (lower is better).
 
         """
-        # On the very first tell (initialization), just store fitness and update best
+        safe_fitness = (
+            torch.where(
+                torch.isnan(fitness),
+                torch.full_like(fitness, float("inf")),
+                fitness,
+            )
+            if fitness.is_floating_point()
+            else fitness.to(dtype=self.dtype)
+        )
+
         if self._generation == 0:
-            self.fitness.copy_(fitness)
+            self.fitness.copy_(safe_fitness)
             self.population.copy_(candidates)
             self._update_best(candidates, fitness)
             self._generation += 1
             return
 
-        # --- Greedy selection: vectorized ---
-        improved = fitness < self.fitness
+        improved = safe_fitness < self.fitness
         new_pop = torch.where(improved.unsqueeze(1), candidates, self.population)
-        new_fit = torch.where(improved, fitness, self.fitness)
+        new_fit = torch.where(improved, safe_fitness, self.fitness)
 
-        # --- Archive: add replaced parents for successful trials ---
         if improved.any():
             replaced_parents = self.population[improved]
             self._memory._archive = torch.cat([self._memory._archive, replaced_parents], dim=0)
-            # Truncate archive if over capacity by keeping random subset
             if self._memory._archive.shape[0] > self._archive_max:
                 perm = self._randperm(self._memory._archive.shape[0])
                 self._memory._archive = self._memory._archive[perm[: self._archive_max]]
 
-        # --- SHADE memory update for successful offspring ---
         if improved.any():
             succ_F = self._memory._trial_F[improved]
             succ_CR = self._memory._trial_CR[improved]
 
-            # Improvement weights: delta_f_j = f_parent_j - f_offspring_j
-            delta_f = self.fitness[improved] - fitness[improved]
-            weights = delta_f / delta_f.sum()
+            delta_f = self.fitness[improved] - safe_fitness[improved]
+            delta_sum = delta_f.sum()
+            if torch.isfinite(delta_f).all() and torch.isfinite(delta_sum) and delta_sum > 0:
+                weights = delta_f / delta_sum
+            else:
+                weights = torch.full_like(succ_F, 1.0 / succ_F.numel())
 
-            # Lehmer mean for F: sum(w * F^2) / sum(w * F)
             wF = weights * succ_F
             wF2 = weights * succ_F * succ_F
             denom = wF.sum()
@@ -356,18 +337,15 @@ class SHADE(BaseOptimizer):
                 wF2.sum() / denom if denom > 0 else self._memory.memory_F[self._memory._memory_pos]
             )
 
-            # Weighted arithmetic mean for CR
             mean_CR = (weights * succ_CR).sum()
 
             self._memory.memory_F[self._memory._memory_pos] = lehmer_F
             self._memory.memory_CR[self._memory._memory_pos] = mean_CR
             self._memory._memory_pos = (self._memory._memory_pos + 1) % self.memory_size
 
-        # --- Update population and fitness ---
         self.population.copy_(new_pop)
         self.fitness.copy_(new_fit)
 
-        # --- Update global best ---
         self._update_best(self.population, self.fitness)
 
         self._generation += 1

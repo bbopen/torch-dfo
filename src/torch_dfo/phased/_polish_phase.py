@@ -41,6 +41,7 @@ from torch_dfo._polish import (
     nm_polish,
     smoothed_envelope_search,
 )
+from torch_dfo.utils import clamp_to_bounds
 
 if TYPE_CHECKING:
     from torch_dfo.phased.orchestrator import PhasedDFO
@@ -75,7 +76,6 @@ def run_polish(
     budgets, L-BFGS-B gets up to 80% to concentrate effort on the
     strongest polisher.
     """
-    # Local import to avoid circular dependency at module load time.
     from torch_dfo.phased.orchestrator import (
         _compute_directional_coarse_points,
         _compute_directional_priority_hops,
@@ -88,9 +88,27 @@ def run_polish(
         return
 
     best_x, best_f = opt.best()
+    best_x = clamp_to_bounds(best_x.unsqueeze(0), opt.lb, opt.ub).squeeze(0)
+    if not torch.isfinite(best_f):
+        raw_f0 = fitness_fn(best_x.unsqueeze(0)).squeeze()
+        opt._fe_count += 1
+        f0 = (
+            torch.where(
+                torch.isnan(raw_f0),
+                torch.tensor(float("inf"), device=opt.device, dtype=opt.dtype),
+                raw_f0,
+            )
+            if raw_f0.is_floating_point()
+            else raw_f0.to(device=opt.device, dtype=opt.dtype)
+        )
+        best_f = f0.clone()
+        opt.best_solution = best_x.clone()
+        opt.best_fitness = best_f.clone()
+        remaining = opt._budget - opt._fe_count
+        if remaining <= 0:
+            opt._phase = 3
+            return
 
-    # Build elite data for polish.
-    # Prefer accumulated search pool from CMA-ES phases.
     elite_centroid = None
     elite_median = None
     elite_points = None
@@ -118,7 +136,6 @@ def run_polish(
         elite_median = top_elite.median(dim=0).values
         elite_points = top_elite
 
-    # 0. Smoothed envelope search (high-dim multimodal escape)
     if opt._high_dim:
         envelope_budget = min(opt._budget - opt._fe_count, remaining // 4)
         if envelope_budget > 100:
@@ -132,13 +149,13 @@ def run_polish(
                 min_remaining=opt._envelope_min_remaining,
                 proposal_budget_cap=opt._envelope_proposal_cap,
                 min_dim=opt._high_dim_threshold,
+                generator=opt._gen,
             )
             opt._fe_count += fe
             if best_f < opt.best_fitness:
                 opt.best_solution = best_x.clone()
                 opt.best_fitness = best_f.clone()
 
-    # 1. Directional basin search (high-dim only)
     if opt._high_dim:
         directional_budget = opt._budget - opt._fe_count
         if directional_budget > 0:
@@ -170,13 +187,13 @@ def run_polish(
                     elite_points=elite_points,
                     priority_hops=priority_hp,
                     priority_hop_scale=opt._config.directional_priority_hop_scale,
+                    generator=opt._gen,
                 )
                 opt._fe_count += fe
                 if best_f < opt.best_fitness:
                     opt.best_solution = best_x.clone()
                     opt.best_fitness = best_f.clone()
 
-    # 2. Coordinate basin search
     remaining_coord = opt._budget - opt._fe_count
     if remaining_coord > 0:
         best_x, best_f, fe = coordinate_basin_search(
@@ -193,14 +210,13 @@ def run_polish(
             refinement_points=opt._config.coordinate_refinement_points,
             window_shrink=opt._config.coordinate_window_shrink,
             budget=remaining_coord,
+            generator=opt._gen,
         )
         opt._fe_count += fe
         if best_f < opt.best_fitness:
             opt.best_solution = best_x.clone()
             opt.best_fitness = best_f.clone()
 
-    # 3. Scipy precision polisher chain (both low-dim and high-dim)
-    # For high-dim, the first FD-BFGS runs before the scipy chain.
     if opt._high_dim:
         remaining_bfgs = opt._budget - opt._fe_count
         if remaining_bfgs > 2 * opt.dim:
@@ -217,16 +233,11 @@ def run_polish(
                 opt.best_solution = best_x.clone()
                 opt.best_fitness = best_f.clone()
 
-    # 4-6. Scipy polisher chain with adaptive budget fractions.
-    # At generous budgets (remaining >> 300), fractions match the old
-    # constants (0.40/0.50/0.50).  At tight budgets, L-BFGS-B gets a
-    # larger share since it's the strongest gradient-based polisher.
     remaining_after_coord = opt._budget - opt._fe_count
     lbfgsb_frac, powell_frac, fdbfgs_frac = _compute_polish_fractions(
         remaining_after_coord,
     )
 
-    # 4. FD-BFGS (adaptive fraction of remaining, replaces scipy L-BFGS-B)
     if remaining_after_coord > 2 * opt.dim:
         lbfgsb_budget = int(remaining_after_coord * lbfgsb_frac)
         best_x, best_f, fe = fd_bfgs_polish(
@@ -242,7 +253,6 @@ def run_polish(
             opt.best_solution = best_x.clone()
             opt.best_fitness = best_f.clone()
 
-    # 5. Coordinate basin search (adaptive fraction, replaces scipy Powell)
     remaining_after_lbfgsb = opt._budget - opt._fe_count
     if remaining_after_lbfgsb > 20:
         powell_budget = int(remaining_after_lbfgsb * powell_frac)
@@ -253,13 +263,13 @@ def run_polish(
             opt.lb,
             opt.ub,
             budget=powell_budget,
+            generator=opt._gen,
         )
         opt._fe_count += fe
         if best_f < opt.best_fitness:
             opt.best_solution = best_x.clone()
             opt.best_fitness = best_f.clone()
 
-    # 6. FD-BFGS (adaptive fraction of remaining-after-powell)
     remaining_after_powell = opt._budget - opt._fe_count
     if remaining_after_powell > 2 * opt.dim:
         bfgs_budget = int(remaining_after_powell * fdbfgs_frac)
@@ -276,14 +286,13 @@ def run_polish(
             opt.best_solution = best_x.clone()
             opt.best_fitness = best_f.clone()
 
-    # 7. Nelder-Mead polish (all remaining, replaces scipy Nelder-Mead)
     remaining_final = opt._budget - opt._fe_count
     if remaining_final > 20:
         best_x, best_f, fe = nm_polish(
             best_x,
             fitness_fn,
             budget=remaining_final,
-            bounds=(float(opt.lb[0]), float(opt.ub[0])),
+            bounds=(opt.lb, opt.ub),
         )
         opt._fe_count += fe
         if best_f < opt.best_fitness:
@@ -304,7 +313,6 @@ def build_polish_directions(
     Returns (directions_tensor, priority_count) where priority directions
     are CMA eigenvectors + basis pairs.
     """
-    # Local import to avoid circular dependency at module load time.
     from torch_dfo.phased.orchestrator import (
         _compute_directional_basis_pair_basis_count,
     )
@@ -312,14 +320,12 @@ def build_polish_directions(
     priority_directions: list[torch.Tensor] = []
     secondary_directions: list[torch.Tensor] = []
 
-    # CMA-ES basis vectors (eigenvectors of covariance)
     cma_basis_subset: list[torch.Tensor] = []
     if opt._cmaes is not None:
         B = opt._cmaes.B
-        # Take top eigenvectors (those with largest eigenvalues)
         n_cma = min(opt._pca_directions, opt.dim)
         for i in range(n_cma):
-            col_idx = opt.dim - 1 - i  # descending eigenvalue order
+            col_idx = opt.dim - 1 - i
             d = B[:, col_idx].clone()
             norm = d.norm()
             if norm > 1e-30:
@@ -327,7 +333,6 @@ def build_polish_directions(
                 priority_directions.append(d_normalized)
                 cma_basis_subset.append(d_normalized)
 
-        # Basis pair combinations (sum/diff of top CMA vectors).
         combo_limit = opt._basis_pair_limit
         basis_pair_bc = _compute_directional_basis_pair_basis_count(
             directional_budget,
@@ -355,7 +360,6 @@ def build_polish_directions(
 
     priority_count = len(priority_directions)
 
-    # PCA of elite solutions (secondary)
     if len(opt._elite_solutions) > opt.dim:
         elite_stack = torch.stack(opt._elite_solutions[-100:])
         elite_f_stack = torch.stack(opt._elite_fitness[-100:])
@@ -366,7 +370,7 @@ def build_polish_directions(
         centered = top_elite - top_elite.mean(dim=0, keepdim=True)
         if centered.shape[0] > 1:
             cov = (centered.T @ centered) / (centered.shape[0] - 1)
-            cov = (cov + cov.T) / 2  # symmetry
+            cov = (cov + cov.T) / 2
             try:
                 if opt.device.type not in ("cpu", "cuda"):
                     _eigvals, eigvecs = torch.linalg.eigh(cov.to("cpu"))
@@ -384,7 +388,6 @@ def build_polish_directions(
             except RuntimeError:
                 pass
 
-        # Elite-to-point directions.
         elite_dir_count = min(opt._elite_directions, top_elite.shape[0])
         for member in top_elite[:elite_dir_count]:
             d = member - best_x
@@ -392,7 +395,6 @@ def build_polish_directions(
             if norm > 1e-30:
                 secondary_directions.append(d / norm)
 
-    # Random directions
     n_random = opt._random_directions
     for _ in range(n_random):
         d = opt._randn(opt.dim)

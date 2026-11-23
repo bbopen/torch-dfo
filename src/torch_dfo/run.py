@@ -120,6 +120,13 @@ class SearchRun:
         evaluator_id: str = "tensor",
         repeats: int = 1,
     ):
+        from torch_dfo.phased import PhasedDFO
+
+        if isinstance(optimizer, PhasedDFO):
+            raise TypeError(
+                "PhasedDFO manages its own multi-phase budget and polish loop; "
+                "call PhasedDFO.optimize() instead of SearchRun"
+            )
         if not isinstance(optimizer, BaseOptimizer):
             raise TypeError("optimizer must be a torch_dfo BaseOptimizer")
         if isinstance(max_evals, bool) or not isinstance(max_evals, int) or max_evals < 0:
@@ -371,8 +378,30 @@ class SearchRun:
             self._failure(observed, charge)
             return
 
+        if observed.values.shape[1] == 1:
+            aggregate = observed.values[:, 0]
+        else:
+            work_dtype = (
+                torch.float64 if observed.values.device.type != "mps" else observed.values.dtype
+            )
+            vals = observed.values.to(dtype=work_dtype)
+            order = vals.abs().argsort(dim=1, descending=True)
+            ordered = vals.gather(1, order)
+            acc = torch.zeros(vals.shape[0], device=vals.device, dtype=work_dtype)
+            for col in range(ordered.shape[1]):
+                acc = acc + ordered[:, col]
+            mean_val = acc / ordered.shape[1]
+            if not torch.isfinite(mean_val).all():
+                scale = vals.abs().amax(dim=1, keepdim=True).clamp(min=1.0)
+                fallback = (vals / scale).mean(dim=1) * scale.squeeze(1)
+                mean_val = torch.where(torch.isfinite(mean_val), mean_val, fallback)
+            aggregate = mean_val.to(dtype=observed.values.dtype)
+        if not torch.isfinite(aggregate).all():
+            observed.error = "evaluation aggregate is non-finite"
+            self._failure(observed, charge)
+            return
+
         self._settle(observed, charge)
-        aggregate = observed.values.mean(dim=1)
         self._update_best(pending.private_x, pending.public.ids, aggregate)
         try:
             self.optimizer.tell(pending.private_x.clone(), aggregate)
@@ -526,8 +555,9 @@ class SearchRun:
     def _next_batch_size(self) -> int:
         if isinstance(self.optimizer, RandomSearch):
             return min(self.optimizer.pop_size, self.remaining_evals // self.repeats)
-        required = self.optimizer.pop_size * self.repeats
-        return self.optimizer.pop_size if required <= self.remaining_evals else 0
+        batch_size = self.optimizer.next_batch_size()
+        required = batch_size * self.repeats
+        return batch_size if required <= self.remaining_evals else 0
 
     def _objective_values(self, output: torch.Tensor, count: int) -> torch.Tensor:
         if not isinstance(output, torch.Tensor):

@@ -52,10 +52,9 @@ def multistart_basin_explore(
     Designed for low-dim multi-modal landscapes (e.g. Lunacek bi-Rastrigin f24)
     where a single CMA run converges to whichever basin it starts nearest to.
     Multiple random restarts give high probability of finding the global basin.
-
-    The caller must save and restore the global torch RNG state around this
-    method (the separate generator protects the CMAES-internal RNG, but
-    fitness_fn evaluations may touch global state).
+    Because all optimizer-internal sampling uses ``basin_gen``, this helper
+    does not consume or rewind the global torch RNG (a stochastic
+    ``fitness_fn`` may still advance it normally).
     """
     remaining = budget_limit - opt._fe_count
     if remaining < 50:
@@ -64,7 +63,8 @@ def multistart_basin_explore(
     dim = opt.dim
     device = opt.device
     dtype = opt.dtype
-    search_span = float((opt.ub[0] - opt.lb[0]).item())
+    span_vec = opt.ub - opt.lb
+    search_span = float(span_vec.mean().item())
 
     n_restarts = opt._basin_explore_restarts
     pop_size = min(
@@ -73,22 +73,18 @@ def multistart_basin_explore(
     )
     if pop_size < 4:
         return
-    # Ensure even pop size for mirrored sampling
     pop_size = pop_size + (pop_size % 2)
 
     sigma_init = 0.25 * search_span
     sigma_min = opt._cma_sigma_min * search_span
     sigma_max = opt._cma_restart_sigma_max * search_span
 
-    # Create a separate RNG for basin exploration (deterministic but independent)
     basin_seed = int(opt._gen.initial_seed() ^ 999_983) & 0x7FFF_FFFF
     basin_gen = torch.Generator(device=opt._gen_device).manual_seed(basin_seed)
 
     best_fitness_val = float(opt.best_fitness.item())
 
-    # Build a CMAES instance with the isolated RNG.  We pass sigma0 as a
-    # fraction of span (CMAES multiplies sigma0 * span internally).
-    bounds = (float(opt.lb[0].item()), float(opt.ub[0].item()))
+    bounds = (opt.lb, opt.ub)
     cma = CMAES(
         dim=dim,
         bounds=bounds,
@@ -113,13 +109,10 @@ def multistart_basin_explore(
         restarts_left = n_restarts - _restart_idx
         restart_budget = min(budget_limit, opt._fe_count + restart_remaining // restarts_left)
 
-        # Random starting point via the isolated generator
-        mean_t = (
-            torch.rand(dim, device=opt._gen_device, dtype=dtype, generator=basin_gen) * search_span
-            + opt.lb[0].item()
-        )
+        rand_unit = torch.rand(dim, device=opt._gen_device, dtype=dtype, generator=basin_gen)
         if opt._gen_device != device:
-            mean_t = mean_t.to(device)
+            rand_unit = rand_unit.to(device)
+        mean_t = rand_unit * span_vec + opt.lb
 
         cma.restart(new_pop_size=pop_size, mean=mean_t, sigma=sigma_init)
         cma.sigma_min = sigma_min
@@ -132,8 +125,6 @@ def multistart_basin_explore(
         while opt._fe_count + pop_size <= restart_budget:
             candidates = cma.ask()
 
-            # Evaluate each candidate individually (respecting budget). Objective
-            # errors propagate; callers should return inf/nan for invalid points.
             fit = torch.full((pop_size,), float("inf"), device=device, dtype=dtype)
             for i in range(pop_size):
                 if opt._fe_count >= restart_budget:
@@ -149,14 +140,17 @@ def multistart_basin_explore(
             cma.tell(candidates, fit)
             generation += 1
 
-            best_candidate = float(fit.min().item())
+            safe_fit = (
+                torch.where(torch.isnan(fit), float("inf"), fit) if fit.is_floating_point() else fit
+            )
+            best_candidate = float(safe_fit.min().item())
             if best_candidate + _EPS < restart_best:
                 restart_best = best_candidate
                 restart_best_gen = generation
             if best_candidate < best_fitness_val:
                 best_fitness_val = best_candidate
-                best_idx = fit.argmin()
-                opt.best_fitness = fit[best_idx].clone()
+                best_idx = safe_fit.argmin()
+                opt.best_fitness = safe_fit[best_idx].clone()
                 opt.best_solution = candidates[best_idx].clone()
 
             if generation - restart_best_gen >= opt._basin_explore_stagnation:

@@ -41,46 +41,25 @@ from torch_dfo.shade import SHADE
 from torch_dfo.space import SearchSpace
 from torch_dfo.utils import clamp_to_bounds
 
-# ---------------------------------------------------------------------------
-# Hyperparameter constants
-# ---------------------------------------------------------------------------
-# Population sizing, budget allocation, and polish sub-allocation are all
-# computed as functions of (dim, budget) via the _compute_* helpers below.
-# User-tunable knobs now live on :class:`PhasedConfig` in ``_config.py``;
-# the module-level names below are aliases derived from the dataclass field
-# defaults and are kept for backward-compatible imports.  The rationale for
-# why each knob is "universal" (does not need to scale with dim/budget) is
-# preserved alongside the field declarations in ``_config.py``.
-# ---------------------------------------------------------------------------
-
 _CONFIG_DEFAULTS = PhasedConfig()
 
-# DE phase — progress tracking (relative measures, not absolute counts)
 HIGH_DIM_DE_PROGRESS_RATIO = _CONFIG_DEFAULTS.high_dim_de_progress_ratio
 HIGH_DIM_DE_PROGRESS_FLOOR = _CONFIG_DEFAULTS.high_dim_de_progress_floor
 
-# Adaptive Levy step size (fractions of span)
 STEP_SIZE_MIN = _CONFIG_DEFAULTS.step_size_min
 STEP_SIZE_MAX = _CONFIG_DEFAULTS.step_size_max
 
-# Low-dim population restart
 ELITE_FRACTION = _CONFIG_DEFAULTS.elite_fraction
 
-# IPOP doubling factor (Hansen, IPOP-CMA-ES).  Standard algorithm constant.
 CMA_ES_POP_GROWTH = _CONFIG_DEFAULTS.cma_es_pop_growth
 
-# Restart covariance blend: 80% inherited covariance + 20% identity.
 CMA_ES_RESTART_COV_BLEND = _CONFIG_DEFAULTS.cma_es_restart_cov_blend
 
-# CMA-ES restart modes: 4 center modes (random, elite anchor, differential,
-# mirrored-best).
 CMA_ES_RESTART_MODES = _CONFIG_DEFAULTS.cma_es_restart_modes
 
-# K=4 parallel portfolio for high-dim CMA-ES phase.
 _K_PORTFOLIO_LAMBDAS: tuple[int, ...] = _CONFIG_DEFAULTS.k_portfolio_lambdas
 _K_PORTFOLIO_SIGMA_FRACS: tuple[float, ...] = _CONFIG_DEFAULTS.k_portfolio_sigma_fracs
 
-# Dim>=40 valley-entry branch.
 HIGH_DIM_VALLEY_ENTRY_DIM = _CONFIG_DEFAULTS.high_dim_valley_entry_dim
 HIGH_DIM_VALLEY_ENTRY_BRANCH = _CONFIG_DEFAULTS.high_dim_valley_entry_branch
 HIGH_DIM_VALLEY_ENTRY_PATH_MEMORY = _CONFIG_DEFAULTS.high_dim_valley_entry_path_memory
@@ -88,52 +67,35 @@ HIGH_DIM_VALLEY_ENTRY_PATH_SCALE = _CONFIG_DEFAULTS.high_dim_valley_entry_path_s
 HIGH_DIM_VALLEY_ENTRY_LINE_SAMPLES = _CONFIG_DEFAULTS.high_dim_valley_entry_line_samples
 HIGH_DIM_VALLEY_ENTRY_LINE_SCALE = _CONFIG_DEFAULTS.high_dim_valley_entry_line_scale
 HIGH_DIM_VALLEY_ENTRY_RESTART_JITTER = _CONFIG_DEFAULTS.high_dim_valley_entry_restart_jitter
-# Dim>=40 CMA portfolio population schedule.
 HIGH_DIM_VALLEY_ENTRY_PORTFOLIO_LAMBDAS: tuple[int, ...] = (
     _CONFIG_DEFAULTS.high_dim_valley_entry_portfolio_lambdas
 )
-# Dim>=40 focus-burst scheduling.
 HIGH_DIM_VALLEY_ENTRY_FOCUS_CYCLE = _CONFIG_DEFAULTS.high_dim_valley_entry_focus_cycle
 HIGH_DIM_VALLEY_ENTRY_MAX_FOCUS_CYCLE = _CONFIG_DEFAULTS.high_dim_valley_entry_max_focus_cycle
 HIGH_DIM_VALLEY_ENTRY_FOCUS_EVAL_RATIO = _CONFIG_DEFAULTS.high_dim_valley_entry_focus_eval_ratio
 HIGH_DIM_VALLEY_ENTRY_MAX_FOCUS_EVAL_RATIO = (
     _CONFIG_DEFAULTS.high_dim_valley_entry_max_focus_eval_ratio
 )
-# Dim>=40 terminal focus window.
 HIGH_DIM_VALLEY_ENTRY_TERMINAL_FOCUS_FRACTION = (
     _CONFIG_DEFAULTS.high_dim_valley_entry_terminal_focus_fraction
 )
 
-# Jitter scales as fractions of span.  These control exploration radius
-# around each restart center mode.
 CMA_ES_ELITE_RESTART_JITTER = _CONFIG_DEFAULTS.cma_es_elite_restart_jitter
 CMA_ES_DIFFERENTIAL_RESTART_SCALE = _CONFIG_DEFAULTS.cma_es_differential_restart_scale
 CMA_ES_DIFFERENTIAL_RESTART_JITTER = _CONFIG_DEFAULTS.cma_es_differential_restart_jitter
 CMA_ES_MIRROR_RESTART_JITTER = _CONFIG_DEFAULTS.cma_es_mirror_restart_jitter
 
-# Search pool expansion factor.
 CMA_ES_SEARCH_POOL_FACTOR = _CONFIG_DEFAULTS.cma_es_search_pool_factor
 
-# Directional line-search grid resolution.
 DIRECTIONAL_REFINEMENT_STAGES = _CONFIG_DEFAULTS.directional_refinement_stages
 DIRECTIONAL_REFINEMENT_POINTS = _CONFIG_DEFAULTS.directional_refinement_points
 DIRECTIONAL_WINDOW_SHRINK = _CONFIG_DEFAULTS.directional_window_shrink
 
-# Priority hop scale.
 DIRECTIONAL_PRIORITY_HOP_SCALE = _CONFIG_DEFAULTS.directional_priority_hop_scale
 
-# Coordinate line-search grid resolution.
 COORDINATE_REFINEMENT_STAGES = _CONFIG_DEFAULTS.coordinate_refinement_stages
 COORDINATE_REFINEMENT_POINTS = _CONFIG_DEFAULTS.coordinate_refinement_points
 COORDINATE_WINDOW_SHRINK = _CONFIG_DEFAULTS.coordinate_window_shrink
-
-
-# ---------------------------------------------------------------------------
-# Adaptive population-sizing formulas
-# ---------------------------------------------------------------------------
-# Each function takes (dim, budget) and returns a value that approximates the
-# old hardcoded constant at the BBOB reference point (dim=10, budget=50000)
-# while scaling sensibly elsewhere.
 
 
 def _compute_pop_size(dim: int, budget: int) -> int:
@@ -245,16 +207,6 @@ def _compute_search_pool_max(dim: int, pop_size: int) -> int:
     return max(32, min(256, 2 * pop_size))
 
 
-# ---------------------------------------------------------------------------
-# Budget-allocation formulas (Experiment A2)
-# ---------------------------------------------------------------------------
-# These replace the hardcoded budget-fraction constants with functions of
-# (dim, budget, pop_size).  The key insight: the "generosity ratio"
-# R = budget / (100 * dim) characterises how much budget is available
-# relative to the problem size.  R >> 10 means generous (can afford lots
-# of polish), R < 1 means tight (minimise overhead, maximise exploration).
-
-
 def _compute_polish_reserve(dim: int, budget: int, high_dim: bool) -> int:
     """Compute evaluation budget reserved for the polish phase.
 
@@ -307,10 +259,6 @@ def _compute_polish_reserve(dim: int, budget: int, high_dim: bool) -> int:
         sigmoid = 1.0 / (1.0 + math.exp(-(R - 3)))
         frac = 0.15 + 0.10 * sigmoid
         frac = max(0.15, min(0.30, frac))
-    # Cap the 10*dim floor at budget//4 for tight budgets (R < 0.4).
-    # When budget < 40*dim, the 10*dim floor consumes >25% of the budget,
-    # starving DE and CMA-ES phases.  At exactly budget=40*dim (R=0.4),
-    # 10*dim == budget//4, so the formula is continuous at the boundary.
     dim_floor = 10 * dim if budget >= 40 * dim else budget // 4
     return max(dim_floor, int(budget * frac))
 
@@ -335,8 +283,6 @@ def _compute_de_headroom(dim: int, budget: int, high_dim: bool) -> int:
     sigmoid = 1.0 / (1.0 + math.exp(-(R - 5)))
     frac = 0.03 + 0.03 * sigmoid
     frac = max(0.03, min(0.10, frac))
-    # Same tight-budget cap as _compute_polish_reserve: limit 10*dim floor to
-    # budget//4 when R < 0.4 so DE gets a meaningful allocation.
     dim_floor = 10 * dim if budget >= 40 * dim else budget // 4
     return max(dim_floor, int(budget * frac))
 
@@ -402,10 +348,6 @@ def _compute_de_budget_cap(
         gens_per_member = 200 + 100 * sigmoid
         gens_per_member = max(200, min(400, gens_per_member))
         step_cap = int(pop_size * gens_per_member)
-        # At tight budgets (small R) the pop floor (4*dim+10) means each DE
-        # generation is expensive; allow a higher fraction cap so DE can complete
-        # enough generations to warm-start CMA-ES.  Smoothly relaxes back to 0.45
-        # as budgets grow (large R).
         tight_sigmoid = 1.0 / (1.0 + math.exp(R - 1))
         frac_cap_val = 0.45 + 0.20 * tight_sigmoid
         frac_cap_val = max(0.45, min(0.65, frac_cap_val))
@@ -448,25 +390,6 @@ def _compute_basin_explore_budget_frac(dim: int, budget: int) -> float:
     sigmoid = 1.0 / (1.0 + math.exp(-(R - 3)))
     frac = 0.02 + 0.03 * sigmoid
     return max(0.02, min(0.08, frac))
-
-
-# ---------------------------------------------------------------------------
-# Stagnation-threshold formulas (Experiment A3, Part 1)
-# ---------------------------------------------------------------------------
-# Stagnation thresholds determine how many consecutive non-improving
-# generations a phase tolerates before triggering a restart or phase
-# transition.  Rather than fixed constants, each threshold is now a
-# fraction of the *available generations* in its phase:
-#
-#   phase_generations = phase_budget / pop_size
-#   stagnation = clamp(frac * phase_generations, floor, ceiling)
-#
-# This ensures stagnation detection adapts naturally to the problem size:
-# with a tight budget the optimizer exits stale phases quickly, while a
-# generous budget allows more patience before declaring stagnation.
-#
-# The fractions were calibrated to reproduce the original hardcoded values
-# at the BBOB reference point (dim=10, budget=50000, pop=166).
 
 
 def _compute_de_stagnation_thresholds(
@@ -591,22 +514,6 @@ def _compute_basin_explore_stagnation(
     return max(3, min(50, round(0.48 * basin_gens)))
 
 
-# ---------------------------------------------------------------------------
-# CMA-ES parameter formulas (Experiment A3, Part 2)
-# ---------------------------------------------------------------------------
-# These replace hardcoded CMA-ES sigma bounds, phase counts, and Levy step
-# size with functions of (dim, budget, pop_size).  The key insight for sigma
-# bounds: higher dimensions need wider initial sigma (as fraction of span) to
-# maintain effective exploration -- the "useful volume" of a search hypersphere
-# shrinks exponentially with dim, so the per-axis step must grow to compensate.
-# The log(dim) scaling provides a gentle expansion that avoids over-exploration.
-#
-# For the number of CMA-ES restart phases, the constraint is that each phase
-# must have enough budget for at least a few productive generations.  The
-# formula derives the phase count from the available CMA budget and the
-# base population size, ensuring every phase gets meaningful work.
-
-
 def _compute_cma_sigma_bounds(dim: int) -> tuple[float, float, float, float]:
     """Compute CMA-ES sigma bounds (as fractions of span) from dimension.
 
@@ -644,13 +551,11 @@ def _compute_cma_sigma_bounds(dim: int) -> tuple[float, float, float, float]:
     """
     log_ratio = math.log(max(dim, 2) / 10.0)
 
-    # Initial phase sigma bounds (conservative: narrow band for warm-started CMA)
     sigma_min = 0.01 * (1.0 + 0.20 * log_ratio)
     sigma_min = max(0.005, min(0.03, sigma_min))
     sigma_max = 0.10 * (1.0 + 0.15 * log_ratio)
     sigma_max = max(0.05, min(0.20, sigma_max))
 
-    # Restart phase sigma bounds (wider: restart phases need more exploration)
     restart_sigma_min = 0.08 * (1.0 + 0.15 * log_ratio)
     restart_sigma_min = max(0.04, min(0.15, restart_sigma_min))
     restart_sigma_max = 0.30 * (1.0 + 0.12 * log_ratio)
@@ -701,12 +606,11 @@ def _compute_cma_phases(
       cma_budget ~ 1000000 - 80000 = 920000, base_pop = max(15, 128) = 128
       gens = 920000 / 128 = 7187.5, phases = floor(7187.5/15) = 479 -> clamped 8.
     """
-    # Estimate base CMA-ES population (mirrors _enter_cmaes_phase logic)
     base_pop = max(
         4 + math.floor(3 * math.log(max(dim, 2))),
         pop_size // 2,
     )
-    base_pop = max(base_pop, dim + 8)  # high-dim floor
+    base_pop = max(base_pop, dim + 8)
 
     min_gens_per_phase = 15
     available_gens = cma_budget / max(base_pop, 1)
@@ -741,21 +645,6 @@ def _compute_step_size_init(dim: int) -> float:
     log_ratio = math.log(max(dim, 2) / 10.0)
     raw = 0.10 * (1.0 + 0.15 * log_ratio)
     return max(0.05, min(0.25, raw))
-
-
-# ---------------------------------------------------------------------------
-# Search-grid and direction-count formulas (Experiment A5)
-# ---------------------------------------------------------------------------
-# These replace the remaining hardcoded constants in the polish phase.
-# Constants fall into two categories:
-#
-# 1. **Needs formula** -- the value is an absolute count or a threshold that
-#    should scale with (dim, budget) to behave correctly at non-reference
-#    settings.  Replaced by a function below.
-#
-# 2. **Universal** -- the value is a grid resolution, shrink factor, or
-#    method-inherent fraction that does not depend on problem scale.
-#    Kept as a module-level constant (documented above).
 
 
 def _compute_high_dim_threshold(dim: int, budget: int) -> int:
@@ -1003,11 +892,6 @@ def _compute_directional_basis_pair_basis_count(directional_budget: int) -> int:
     return max(2, min(4, round(raw)))
 
 
-# ---------------------------------------------------------------------------
-# Polish sub-allocation formula (Experiment 7)
-# ---------------------------------------------------------------------------
-
-
 def _compute_polish_fractions(remaining_after_coord: int) -> tuple[float, float, float]:
     """Compute polish budget fractions for L-BFGS-B, Powell, and FD-BFGS.
 
@@ -1112,7 +996,7 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
     def __init__(
         self,
         dim: int | None = None,
-        bounds: float | tuple[float, float] = 5.0,
+        bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor] = 5.0,
         budget: int | None = None,
         budget_mult: int = 5000,
         pop_size: int | None = None,
@@ -1125,7 +1009,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         config: PhasedConfig | None = None,
     ) -> None:
         self._config: PhasedConfig = config if config is not None else PhasedConfig()
-        # Resolve dim and bounds from space if provided
         if space is not None:
             if dim is not None and dim != space.dim:
                 raise ValueError(
@@ -1133,7 +1016,10 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                     "omit dim when space is provided",
                 )
             actual_dim: int = space.dim
-            actual_bounds: float | tuple[float, float] = (0.0, 1.0)
+            actual_bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor] = (
+                0.0,
+                1.0,
+            )
         else:
             if dim is None:
                 raise ValueError("Either dim or space must be provided")
@@ -1141,7 +1027,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             actual_bounds = bounds
         self._space: SearchSpace | None = space
 
-        # Resolve initial_points to a Tensor
         _resolved_initial: torch.Tensor | None = None
         if initial_points is not None:
             if isinstance(initial_points, list):
@@ -1163,20 +1048,16 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                     f"got {tuple(_resolved_initial.shape)}",
                 )
 
-        # Alias so the rest of __init__ continues to use dim and bounds unchanged
         dim = actual_dim
         bounds = actual_bounds
 
         actual_budget = budget if budget is not None else dim * budget_mult
-        # Adaptive population sizing from (dim, budget).
-        # Old formula: max(80, min(256, budget // 300)).
         if pop_size is None:
             pop_size = _compute_pop_size(dim, actual_budget)
 
         super().__init__(dim, bounds, pop_size, device, dtype, seed)
 
-        # Store raw bounds so reset() can re-create SHADE without re-running __init__
-        self._raw_bounds: float | tuple[float, float] = bounds
+        self._raw_bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor] = bounds
         self._polish = PhasedPolishState(
             elite_solutions=[],
             elite_fitness=[],
@@ -1243,23 +1124,15 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
 
         self._budget = actual_budget
         self._fe_count = 0
-        self._phase = 0  # 0=DE, 1=CMA-ES, 2=Polish, 3=Done
+        self._phase = 0
 
-        # Dimension threshold: adaptive from (dim, budget) via
-        # _compute_high_dim_threshold.  At generous budgets this is 20
-        # (matching the old constant); at tight budgets it rises to ~25
-        # so moderate-dim problems skip expensive directional search.
         self._high_dim_threshold = _compute_high_dim_threshold(dim, actual_budget)
         self._high_dim = dim >= self._high_dim_threshold
 
-        # Adaptive constants computed from (dim, budget, pop_size)
         self._high_dim_de_min_pop = _compute_high_dim_de_min_pop(dim)
         self._basin_explore_restarts = _compute_basin_explore_restarts(dim, actual_budget)
         self._search_pool_max = _compute_search_pool_max(dim, pop_size)
 
-        # Polish direction counts: adaptive from dim.
-        # Old values: PCA=6, random=8, elite=6, basis_pair_limit=6.
-        # Grows logarithmically for dim > 20 to capture more variance.
         (
             self._pca_directions,
             self._random_directions,
@@ -1267,21 +1140,13 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             self._basis_pair_limit,
         ) = _compute_directional_counts(dim)
 
-        # Coordinate coarse points: adaptive from dim.
-        # Unifies old COORDINATE_COARSE_HIGH_DIM=11 and LOW_DIM=17 into
-        # a smooth formula: 21 - dim//2, clamped to [11, 21].
         self._coordinate_coarse_points = _compute_coordinate_coarse_points(dim)
 
-        # Smoothed envelope budget thresholds: adaptive from budget.
-        # Old values: MIN_REMAINING=1600, PROPOSAL_BUDGET=1800 (absolute counts).
-        # Now scaled as fixed fractions of total budget.
         (
             self._envelope_min_remaining,
             self._envelope_proposal_cap,
         ) = _compute_envelope_budgets(actual_budget)
 
-        # Budget allocation — all fractions computed from (dim, budget, pop_size)
-        # via formulas that adapt to the generosity ratio R = budget / (100 * dim).
         self._polish_reserve = _compute_polish_reserve(
             dim,
             actual_budget,
@@ -1304,9 +1169,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             actual_budget,
         )
 
-        # Stagnation thresholds — all computed from phase budgets and pop sizes.
-        # See _compute_de_stagnation_thresholds, _compute_cma_stagnation_thresholds,
-        # and _compute_basin_explore_stagnation for derivation and verification.
         (
             self._restart_stagnation,
             self._de_baseline_steps,
@@ -1331,7 +1193,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             self._basin_explore_restarts,
         )
 
-        # Initialize SHADE sub-optimizer
         self._shade = SHADE(
             dim,
             bounds,
@@ -1342,29 +1203,20 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             initial_population=_resolved_initial,
         )
 
-        # Store initial population size for population reduction.
         self._initial_pop_size = pop_size
 
-        # CMA-ES (created when entering Phase 1)
         self._cmaes: CMAES | None = None
         self._cmaes_phase_idx = 0
-        # K=4 parallel portfolio (high-dim only; None for low-dim)
         self._cmaes_portfolio: list[CMAES] | None = None
         self._portfolio_stag: list[int] = []
         self._portfolio_best_f: list[float] = []
-        self._portfolio_branch_stag_limit: int = 40  # overwritten in _enter_cmaes_phase_portfolio
-        self._portfolio_sigma0: list[float] = []  # initial sigma per branch for stop criterion
+        self._portfolio_branch_stag_limit: int = 40
+        self._portfolio_sigma0: list[float] = []
         self._portfolio_generation: int = 0
         self._portfolio_active_indices: tuple[int, ...] = ()
         self._valley_focus_remaining: int = 0
         self._valley_focus_streak: int = 0
-        # fe_count at the moment CMA phase is entered; set by _enter_cmaes_phase.
-        # Used to compute fe_in_cmaes relative to the actual CMA start, not the
-        # theoretical (budget - cmaes_budget) offset which may differ when DE
-        # exits early via stagnation.
         self._cmaes_fe_start = 0
-        # CMA-ES phase count: adaptive from (cma_budget, dim, pop_size).
-        # Old value: CMA_ES_PHASES_HIGH_DIM=6 for high-dim, 1 for low-dim.
         if self._high_dim:
             self._cmaes_phase_count = _compute_cma_phases(
                 self._cmaes_budget,
@@ -1376,30 +1228,25 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         self._cmaes_stagnation_counter = 0
         self._cmaes_phase_best_f = float("inf")
 
-        # Stagnation detection for DE
         self._stagnation_counter = 0
         self._de_progress_ema = 0.0
         self._de_progress_baseline = 0.0
         self._de_step_count = 0
         self._de_best_f_prev = float("inf")
 
-        # Trajectory signal tracking — start values for improvement deltas
         self._de_phase_start_f: float = float("inf")
         self._cmaes_overall_start_f: float = float("inf")
         self._cmaes_entered: bool = False
 
-        # Richer stagnation signal tracking.
         self._trial_gain = 0.0
         self._levy_gain = 0.0
         self._accepted_ratio = 0.0
         self._levy_ratio = 0.0
 
-        # Adaptive Levy step_size — initial scale from _compute_step_size_init().
         span = (self.ub - self.lb).mean().item()
         self._step_size = _compute_step_size_init(dim) * span
         self._search_span = span
 
-        # CMA-ES sigma bounds — computed from dim via _compute_cma_sigma_bounds()
         (
             self._cma_sigma_min,
             self._cma_sigma_max,
@@ -1407,27 +1254,18 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             self._cma_restart_sigma_max,
         ) = _compute_cma_sigma_bounds(dim)
 
-        # Collection of elite solutions across all phases
         self._elite_solutions: list[torch.Tensor] = []
         self._elite_fitness: list[torch.Tensor] = []
 
-        # Midpoint probing flag (probe once after first DE tell)
         self._midpoint_probed = False
 
-        # Alternating DE restart counter for low-dim
         self._de_restart_count = 0
 
-        # Accumulated search pool across CMA-ES phases
         self._search_population: torch.Tensor | None = None
         self._search_population_fitness: torch.Tensor | None = None
         self._search_pool_limit = self._search_pool_max
 
-        # Fitness function reference (set externally for polish)
         self._fitness_fn: Callable[[torch.Tensor], torch.Tensor] | None = None
-
-    # ------------------------------------------------------------------
-    # Serialization
-    # ------------------------------------------------------------------
 
     def state_dict(self) -> dict[str, Any]:
         """Return full PhasedDFO state as a serializable dict.
@@ -1477,13 +1315,15 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             device=self.device,
             dtype=self.dtype,
         )
+        if self._cma.cmaes is not None:
+            self._cma.cmaes._gen = self._gen
+            self._cma.cmaes._gen_device = self._gen_device
+        if self._cma.cmaes_portfolio is not None:
+            for branch in self._cma.cmaes_portfolio:
+                branch._gen = self._gen
+                branch._gen_device = self._gen_device
 
-        # Nested SHADE
         self._shade.load_state_dict(state["_shade_state"])
-
-    # ------------------------------------------------------------------
-    # Phase management
-    # ------------------------------------------------------------------
 
     @property
     def phase(self) -> int:
@@ -1551,9 +1391,28 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             return 0.0
         return max(0.0, self._cmaes_overall_start_f - float(self.best_fitness))
 
-    # ------------------------------------------------------------------
-    # ask
-    # ------------------------------------------------------------------
+    def next_batch_size(self) -> int:
+        """Return the exact number of candidates the next ``ask()`` call will produce."""
+        remaining = self._budget - self._fe_count
+        if remaining <= 0:
+            return 0
+        if self._phase == 0:
+            n = self._shade.next_batch_size()
+            return n if n <= remaining else 0
+        if self._phase == 1:
+            if self._high_dim:
+                if self._cmaes_portfolio is not None:
+                    active_indices = self._portfolio_active_indices_for_next_ask()
+                    n = sum(self._cmaes_portfolio[i].next_batch_size() for i in active_indices)
+                else:
+                    n = sum(_cma.portfolio_lambdas_for_dim(self))
+            else:
+                if self._cmaes is not None:
+                    n = self._cmaes.next_batch_size()
+                else:
+                    n = max(4 + math.floor(3 * math.log(self.dim)), self._shade.pop_size // 2)
+            return n if n <= remaining else 0
+        return 0
 
     def ask(self) -> torch.Tensor:
         """Generate candidate solutions from the active phase's sub-optimizer.
@@ -1597,12 +1456,7 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                 return candidates
             self._phase = 2
             return torch.empty(0, self.dim, device=self.device, dtype=self.dtype)
-        # Phase 2 (Polish) or 3 (Done): return empty tensor
         return torch.empty(0, self.dim, device=self.device, dtype=self.dtype)
-
-    # ------------------------------------------------------------------
-    # tell
-    # ------------------------------------------------------------------
 
     def tell(self, candidates: torch.Tensor, fitness: torch.Tensor) -> None:
         """Report fitness for candidates and update internal state.
@@ -1619,40 +1473,28 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             self._tell_de(candidates, fitness)
         elif self._phase == 1:
             self._tell_cmaes(candidates, fitness)
-        # Phase 2/3: no-op
-
-    # ------------------------------------------------------------------
-    # DE phase (Phase 0)
-    # ------------------------------------------------------------------
 
     def _tell_de(self, candidates: torch.Tensor, fitness: torch.Tensor) -> None:
         """Process DE phase tell: update SHADE, apply Levy flights, check stagnation."""
         n = candidates.shape[0]
 
-        # Record pre-tell best for stagnation tracking
         pre_best = self._shade.best_fitness.item()
         if math.isinf(pre_best):
             pre_best = fitness.min().item()
 
-        # Store pre-tell fitness for trial_gain computation.
         parent_fitness = self._shade.fitness.clone()
 
-        # Delegate to SHADE
         self._shade.tell(candidates, fitness)
         self._fe_count += n
 
-        # Update our global best from SHADE
         self._update_best(self._shade.population, self._shade.fitness)
 
-        # Capture best fitness at DE phase start (set-once on first tell)
         if self._de_step_count == 0:
             self._de_phase_start_f = float(self.best_fitness)
 
-        # High-dim CR override: force CR=1.0 for full crossover exploration
         if self._high_dim and self._shade._generation > 1:
             self._shade.memory_CR.fill_(1.0)
 
-        # Compute trial_gain and accepted_ratio from DE step.
         pop_size = self._shade.pop_size
         if self._shade._generation > 1:
             accepted = self._shade.fitness < parent_fitness[:pop_size]
@@ -1669,14 +1511,11 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             self._trial_gain = 0.0
             self._accepted_ratio = 0.5
 
-        # Apply Levy flight perturbation to worst half of population
-        # Also computes levy_gain and levy_ratio.
         self._levy_gain = 0.0
         self._levy_ratio = 0.0
         if self._shade._generation > 1 and self._fitness_fn is not None:
             self._apply_levy_flights()
 
-        # Population reduction for high-dim.
         current_pop = self._shade.population.shape[0]
         if self._high_dim and current_pop > self._high_dim_de_min_pop:
             reduction_progress = min(
@@ -1693,7 +1532,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                 self._shade.population = self._shade.population[keep].clone()
                 self._shade.fitness = self._shade.fitness[keep].clone()
                 self._shade.pop_size = target_pop
-                # Resize SHADE internal buffers to match new pop_size
                 self._shade._trial_F = torch.empty(
                     target_pop,
                     device=self.device,
@@ -1710,41 +1548,33 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                     device=self.device,
                     dtype=self.dtype,
                 )
-                # Trim archive if it exceeds new pop_size
                 if self._shade._archive is not None and self._shade._archive.shape[0] > target_pop:
                     perm = self._randperm(self._shade._archive.shape[0])
                     self._shade._archive = self._shade._archive[perm[:target_pop]].clone()
 
-        # Track elite solutions from DE
         top_k = min(10, self._shade.pop_size)
         top_idx = self._shade.fitness.argsort()[:top_k]
         for idx in top_idx:
             self._elite_solutions.append(self._shade.population[idx].clone())
             self._elite_fitness.append(self._shade.fitness[idx].clone())
 
-        # Stagnation detection
         post_best = self.best_fitness.item()
         self._de_step_count += 1
         self._update_de_stagnation(pre_best, post_best)
 
-        # Check phase transition
         stag_threshold = self._get_de_stagnation_threshold()
         if self._stagnation_counter >= stag_threshold:
             if self._high_dim:
-                # High-dim: break out of DE to CMA-ES
                 self._phase = 1
                 self._generation += 1
                 return
-            # Low-dim population restart on stagnation.
             self._low_dim_pop_restart()
-            # After restart, continue DE (do not transition)
 
         if self._fe_count >= self._de_budget:
             self._phase = 1
             self._generation += 1
             return
 
-        # Adaptive Levy step_size.
         if self._stagnation_counter == 0:
             self._step_size = min(
                 self._config.step_size_max * self._search_span, self._step_size * 1.05
@@ -1758,19 +1588,23 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
 
     def _apply_levy_flights(self) -> None:
         """Perturb worst half of SHADE population with Levy flights."""
+        remaining = self._budget - self._fe_count
+        if remaining <= 0:
+            return
         pop = self._shade.population
         fit = self._shade.fitness
         n = pop.shape[0]
         half = n // 2
 
-        # Sort by fitness (ascending = best first)
         sorted_idx = fit.argsort()
         worst_idx = sorted_idx[half:]
+        if worst_idx.numel() > remaining:
+            worst_idx = worst_idx[-remaining:]
+        if worst_idx.numel() == 0:
+            return
 
-        # Compute search progress
         progress = min(1.0, self._fe_count / max(1, self._de_budget))
 
-        # Use adaptive step_size instead of fixed 0.1.
         worst = pop[worst_idx]
         perturbed = levy_flight_perturbation(
             worst,
@@ -1781,18 +1615,14 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         )
         perturbed = clamp_to_bounds(perturbed, self.lb, self.ub)
 
-        # Evaluate perturbations
         if self._fitness_fn is not None:
-            # Store pre-perturbation fitness for levy_gain.
             worst_fitness_before = fit[worst_idx].clone()
 
             perturbed_fit = self._fitness_fn(perturbed)
             self._fe_count += perturbed.shape[0]
 
-            # Keep improvements via greedy selection
             improved = perturbed_fit < fit[worst_idx]
             if improved.any():
-                # Compute levy_gain and levy_ratio.
                 levy_delta = (worst_fitness_before[improved] - perturbed_fit[improved]).clamp_min(
                     0.0,
                 )
@@ -1804,7 +1634,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                 self._shade.population[global_idx] = perturbed[imp_local]
                 self._shade.fitness[global_idx] = perturbed_fit[imp_local]
                 self._update_best(perturbed[imp_local], perturbed_fit[imp_local])
-                # Direct stagnation reset on Levy improvement.
                 self._stagnation_counter = 0
 
     def _low_dim_pop_restart(self) -> None:
@@ -1818,10 +1647,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
 
     def _get_de_stagnation_threshold(self) -> int:
         return _de.get_de_stagnation_threshold(self)
-
-    # ------------------------------------------------------------------
-    # CMA-ES phase (Phase 1)
-    # ------------------------------------------------------------------
 
     def _enter_cmaes_phase(self) -> None:
         """Create CMA-ES with warm-started covariance from DE elite."""
@@ -1863,8 +1688,8 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         """Restart one CMA-ES portfolio branch from a new random x0."""
         return _cma.restart_portfolio_branch(self, idx)
 
-    def _get_bounds_tuple(self) -> tuple[float, float]:
-        """Return scalar bounds as a tuple for sub-optimizer construction."""
+    def _get_bounds_tuple(self) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return per-dimension tensor bounds for sub-optimizer construction."""
         return _cma.get_bounds_tuple(self)
 
     def _compute_cmaes_phase_budgets(self, total: int) -> list[int]:
@@ -1873,7 +1698,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
 
     def _tell_cmaes(self, candidates: torch.Tensor, fitness: torch.Tensor) -> None:
         """Process CMA-ES phase tell: delegate, check stagnation, handle restarts."""
-        # K-portfolio path (high-dim only)
         if self._high_dim:
             if self._cmaes_portfolio is None:
                 self._enter_cmaes_phase_portfolio()
@@ -1894,7 +1718,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                         f"size {candidates.shape[0]} for active branches {active_indices}"
                     )
                     raise ValueError(msg)
-            # Split candidates back to per-branch chunks and tell each branch
             offset = 0
             valley_branch_improved = False
             for i in active_indices:
@@ -1907,7 +1730,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                     cma.tell(branch_candidates, branch_fitness)
                     if self._is_valley_entry_branch(i):
                         self._update_best(branch_candidates, branch_fitness)
-                    # Track per-branch stagnation
                     branch_best = branch_fitness.min().item()
                     previous_branch_best = self._portfolio_best_f[i]
                     branch_improved = branch_best < previous_branch_best
@@ -1922,18 +1744,12 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                         and math.isfinite(previous_branch_best)
                     ):
                         valley_branch_improved = True
-                    # Restart on stagnation OR sigma collapse.  Sigma collapse
-                    # is critical for small-sigma branches (e.g. branch 3,
-                    # sigma0=0.020) that slowly descend into a local basin
-                    # without triggering the stagnation counter — their sigma
-                    # shrinks to near-zero while still improving fractionally.
                     sigma_stop = 1e-3 * self._portfolio_sigma0[i]
                     if (
                         self._portfolio_stag[i] >= self._portfolio_branch_stag_limit
                         or cma.sigma < sigma_stop
                     ):
                         self._restart_portfolio_branch(i)
-            # Sync global best
             self._update_best(candidates, fitness)
             self._fe_count += candidates.shape[0]
             self._update_valley_focus_schedule(active_indices, valley_branch_improved)
@@ -1950,21 +1766,17 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
 
         n = candidates.shape[0]
 
-        # Delegate to CMA-ES
         self._cmaes.tell(candidates, fitness)
         self._fe_count += n
 
-        # Update our global best from CMA-ES
         self._update_best(candidates, fitness)
 
-        # Track elite solutions from CMA-ES
         top_k = min(5, n)
         top_idx = fitness.argsort()[:top_k]
         for idx in top_idx:
             self._elite_solutions.append(candidates[idx].clone())
             self._elite_fitness.append(fitness[idx].clone())
 
-        # Check stagnation
         current_best = self.best_fitness.item()
         if abs(current_best - self._cmaes_phase_best_f) < 1e-12:
             self._cmaes_stagnation_counter += 1
@@ -1972,10 +1784,8 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             self._cmaes_phase_best_f = min(self._cmaes_phase_best_f, current_best)
             self._cmaes_stagnation_counter = 0
 
-        # Check sigma collapse
         sigma_collapsed = self._cmaes.sigma < 1e-15
 
-        # Stagnation threshold depends on phase
         if self._cmaes_phase_idx == 0 and self._high_dim:
             stag_limit = self._high_dim_cma_warm_stagnation
         elif self._high_dim:
@@ -1983,13 +1793,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         else:
             stag_limit = self._cma_stagnation
 
-        # Check per-phase budget.
-        # Use the recorded CMA entry point (_cmaes_fe_start) as the offset so
-        # that fe_in_cmaes is accurate even when DE exited early (before its
-        # theoretical budget was exhausted).  Using the theoretical offset
-        # (budget - cmaes_budget) would give a false phase_budget_exhausted
-        # signal on the very first CMA iteration whenever DE terminates via
-        # stagnation before consuming its full budget cap.
         phase_budget_idx = min(self._cmaes_phase_idx, len(self._cmaes_phase_budgets) - 1)
         phase_fe_limit = sum(self._cmaes_phase_budgets[: phase_budget_idx + 1])
         fe_in_cmaes = self._fe_count - self._cmaes_fe_start
@@ -2002,7 +1805,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         )
 
         if need_restart:
-            # Merge current phase population into search pool
             if self._cmaes is not None:
                 phase_pop = self._cmaes.population
                 phase_fit = self._cmaes.fitness
@@ -2020,12 +1822,10 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                 self._cmaes_phase_idx >= self._cmaes_phase_count
                 or self._fe_count >= self._cmaes_budget
             ):
-                # Transition to polish
                 self._phase = 2
             else:
                 self._restart_cmaes()
 
-        # Also transition if overall CMA-ES budget is exhausted
         if self._fe_count >= self._cmaes_budget:
             self._phase = 2
 
@@ -2039,10 +1839,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         """Sample restart center using 4-mode cycling."""
         return _cma.sample_restart_mean(self, phase_idx, span)
 
-    # ------------------------------------------------------------------
-    # Multistart basin exploration (low-dim only)
-    # ------------------------------------------------------------------
-
     def _multistart_basin_explore(
         self,
         fitness_fn: Callable[[torch.Tensor], torch.Tensor],
@@ -2050,10 +1846,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
     ) -> None:
         """Run short CMA-ES restarts from random starting points to escape local basins."""
         return _be.multistart_basin_explore(self, fitness_fn, budget_limit)
-
-    # ------------------------------------------------------------------
-    # Polish phase (Phase 2)
-    # ------------------------------------------------------------------
 
     def _run_polish(self, fitness_fn: Callable[[torch.Tensor], torch.Tensor]) -> None:
         """Execute polish phase: directional + coordinate + scipy precision chain.
@@ -2075,10 +1867,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         """
         return _pp.build_polish_directions(self, best_x, directional_budget)
 
-    # ------------------------------------------------------------------
-    # reset()
-    # ------------------------------------------------------------------
-
     def reset(self) -> None:
         """Reset the optimizer to its initial state.
 
@@ -2089,12 +1877,10 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         After ``reset()``, the optimizer can be re-run with ``optimize()`` or
         a fresh ask/tell loop.
         """
-        # Phase and budget counters
         self._phase = 0
         self._fe_count = 0
         self._generation = 0
 
-        # Re-create SHADE sub-optimizer (no initial_population on reset)
         self._shade = SHADE(
             self.dim,
             self._raw_bounds,
@@ -2103,7 +1889,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             dtype=self.dtype,
         )
 
-        # CMA-ES state
         self._cmaes = None
         self._cmaes_portfolio = None
         self._portfolio_stag = []
@@ -2118,15 +1903,12 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         self._cmaes_stagnation_counter = 0
         self._cmaes_phase_best_f = float("inf")
 
-        # Best tracking (mirrors BaseOptimizer.__init__)
-        self.best_solution = torch.zeros(self.dim, device=self.device, dtype=self.dtype)
+        self.best_solution = 0.5 * self.lb + 0.5 * self.ub
         self.best_fitness = torch.tensor(float("inf"), device=self.device, dtype=self.dtype)
 
-        # Elite archive
         self._elite_solutions = []
         self._elite_fitness = []
 
-        # DE stagnation counters
         self._stagnation_counter = 0
         self._de_progress_ema = 0.0
         self._de_progress_baseline = 0.0
@@ -2137,31 +1919,22 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         self._cmaes_overall_start_f = float("inf")
         self._cmaes_entered = False
 
-        # Richer stagnation signal tracking
         self._trial_gain = 0.0
         self._levy_gain = 0.0
         self._accepted_ratio = 0.0
         self._levy_ratio = 0.0
 
-        # Adaptive step size
         span = (self.ub - self.lb).mean().item()
         self._step_size = _compute_step_size_init(self.dim) * span
 
-        # Flags and counters
         self._midpoint_probed = False
         self._de_restart_count = 0
 
-        # Accumulated CMA-ES search pool
         self._search_population = None
         self._search_population_fitness = None
         self._search_pool_limit = self._search_pool_max
 
-        # Fitness function reference (cleared; will be re-set by optimize())
         self._fitness_fn = None
-
-    # ------------------------------------------------------------------
-    # optimize() convenience method
-    # ------------------------------------------------------------------
 
     @overload
     def optimize(
@@ -2200,9 +1973,6 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             (best_solution, best_fitness)
 
         """
-        # Decode bridge: when a SearchSpace is attached, wrap fitness_fn so
-        # that the optimizer always receives a (N, dim) tensor internally but
-        # the user's function receives a list[dict] of decoded configs.
         if self._space is not None:
             _space = self._space
             _raw_fn = fitness_fn
@@ -2223,23 +1993,17 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             self._fe_count_before_tell = self._fe_count
             self.tell(candidates, fitness)
 
-            # Probe midpoint once after the first DE tell
             if not self._midpoint_probed and self._phase == 0 and self._fe_count > 0:
                 self._probe_midpoint()
             if callback:
                 callback(self._phase, self._generation, self.best_fitness)
 
-        # Low-dim multistart basin exploration before polish.
-        # Uses a separate torch.Generator; global RNG state is saved/restored.
         if self._phase >= 2 and self._fe_count < self._budget and not self._high_dim:
             explore_budget = int(self._budget * self._basin_explore_budget_frac)
             if explore_budget > 50:
-                torch_rng_state = torch.random.get_rng_state()
                 explore_end = min(self._budget, self._fe_count + explore_budget)
                 self._multistart_basin_explore(actual_fn, explore_end)
-                torch.random.set_rng_state(torch_rng_state)
 
-        # Phase 2: Polish (self-contained, calls actual_fn directly)
         if self._phase >= 2 and self._fe_count < self._budget:
             self._run_polish(actual_fn)
 

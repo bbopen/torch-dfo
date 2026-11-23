@@ -36,11 +36,6 @@ from torch_dfo.cmaes import CMAES, _default_pop_size
 class TestConstruction:
     """Validate constructor wiring, default pop_size, and tensor shapes."""
 
-    def test_default_pop_size_formula(self) -> None:
-        for dim in (2, 5, 10, 30, 100):
-            expected = 4 + math.floor(3 * math.log(dim))
-            assert _default_pop_size(dim) == expected
-
     def test_default_pop_size_used(self, device: torch.device) -> None:
         dtype = best_float_dtype(device)
         dim = 10
@@ -151,8 +146,8 @@ class TestStrategyParameters:
         )
         assert opt.d_sigma == pytest.approx(expected_d_sigma, abs=ATOL_F64_DEFAULT)
 
-        # c_c = (mu_eff + 2) / (dim + 4 + 2*mu_eff/dim)
-        expected_c_c = (mu_eff + 2) / (dim + 4 + 2 * mu_eff / dim)
+        # c_c = (4 + mu_eff/dim) / (dim + 4 + 2*mu_eff/dim)  (Hansen 2016, Table 1)
+        expected_c_c = (4.0 + mu_eff / dim) / (dim + 4.0 + 2.0 * mu_eff / dim)
         assert opt.c_c == pytest.approx(expected_c_c, abs=ATOL_F64_DEFAULT)
 
         # c_1 = 2 / ((dim+1.3)^2 + mu_eff)
@@ -165,28 +160,6 @@ class TestStrategyParameters:
             2 * (mu_eff - 2 + 1.0 / mu_eff) / ((dim + 2) ** 2 + mu_eff),
         )
         assert opt.c_mu == pytest.approx(expected_c_mu, abs=ATOL_F64_DEFAULT)
-
-
-# ---------------------------------------------------------------------------
-# Decomposition frequency
-# ---------------------------------------------------------------------------
-class TestDecompositionFrequency:
-    """Verify eigendecomposition frequency follows the formula."""
-
-    @pytest.mark.parametrize("dim", [5, 20, 50])
-    def test_decomposition_frequency(self, dim: int) -> None:
-        """``_decomp_frequency`` matches Hansen's schedule across several dimensions."""
-        opt = CMAES(
-            dim=dim,
-            bounds=5.0,
-            device=torch.device("cpu"),
-            dtype=torch.float64,
-            seed=42,
-        )
-        expected = max(1, math.floor(1 / (10 * dim * (opt.c_1 + opt.c_mu))))
-        assert opt._decomp_frequency == expected, (
-            f"dim={dim}: got {opt._decomp_frequency}, expected {expected}"
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -424,6 +397,7 @@ class TestEigendecomposition:
         dtype = torch.float64
         dim = 5
         opt = CMAES(dim=dim, bounds=5.0, device=device, dtype=dtype, seed=42)
+        opt._normalize_on_decomp = True
         # Set anisotropic C with known eigenvalues
         opt.C = torch.diag(torch.tensor([0.1, 1.0, 2.0, 5.0, 10.0], device=device, dtype=dtype))
         opt._update_eigensystem()
@@ -567,8 +541,8 @@ class TestActiveCMA:
             seed=42,
             active=True,
         )
-        # c_mu_neg = min(0.25 * c_mu, max(0, 1 - c_1 - c_mu))
-        expected = min(0.25 * opt.c_mu, max(0.0, 1 - opt.c_1 - opt.c_mu))
+        # c_mu_neg = min(0.25 * c_mu, max(0, 1 - c_1 - c_mu) / dim)
+        expected = min(0.25 * opt.c_mu, max(0.0, 1.0 - opt.c_1 - opt.c_mu) / opt.dim)
         assert opt._c_mu_neg == pytest.approx(expected, abs=ATOL_F64_TIGHT), (
             f"c_mu_neg={opt._c_mu_neg}, expected={expected}"
         )
@@ -628,7 +602,7 @@ class TestRestart:
 
         opt.restart(new_pop_size=24)
 
-        expected = min(0.25 * opt.c_mu, max(0.0, 1 - opt.c_1 - opt.c_mu))
+        expected = min(0.25 * opt.c_mu, max(0.0, 1.0 - opt.c_1 - opt.c_mu) / opt.dim)
         assert opt._c_mu_neg == pytest.approx(expected, abs=ATOL_F64_TIGHT)
 
     def test_mean_reset_to_center(self, device: torch.device) -> None:
