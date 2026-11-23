@@ -30,7 +30,7 @@ on:
       warmup:
         description: "Warmup generations (untimed)."
         required: false
-        default: "2"
+        default: "3"
       timed:
         description: "Timed generations."
         required: false
