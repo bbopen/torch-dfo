@@ -147,14 +147,15 @@ def multistart_basin_explore(
             cma.tell(candidates, fit)
             generation += 1
 
-            best_candidate = float(fit.min().item())
+            safe_fit = torch.where(torch.isnan(fit), float("inf"), fit)
+            best_candidate = float(safe_fit.min().item())
             if best_candidate + _EPS < restart_best:
                 restart_best = best_candidate
                 restart_best_gen = generation
             if best_candidate < best_fitness_val:
                 best_fitness_val = best_candidate
-                best_idx = fit.argmin()
-                opt.best_fitness = fit[best_idx].clone()
+                best_idx = safe_fit.argmin()
+                opt.best_fitness = safe_fit[best_idx].clone()
                 opt.best_solution = candidates[best_idx].clone()
 
             if generation - restart_best_gen >= opt._basin_explore_stagnation:

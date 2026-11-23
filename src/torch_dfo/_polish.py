@@ -577,9 +577,7 @@ def fd_bfgs_polish(
         if not torch.isfinite(grad_new).all():
             cur_x = new_x
             cur_f = new_f
-            H = torch.eye(dim, device=device, dtype=dtype)
-            grad = None
-            continue
+            break
 
         assert s is not None  # guaranteed by accepted=True path
         y = grad_new - grad
@@ -1025,7 +1023,13 @@ def nm_polish(
     nm._initialized = True
     nm._needs_full_eval = True  # force initial warm-start simplex evaluation
 
-    best_x, best_f = x_clamped.clone(), fitness_fn(x_clamped.unsqueeze(0)).squeeze()
+    raw_f0 = fitness_fn(x_clamped.unsqueeze(0)).squeeze()
+    best_x = x_clamped.clone()
+    best_f = torch.where(
+        torch.isnan(raw_f0),
+        torch.tensor(float("inf"), device=x.device, dtype=x.dtype),
+        raw_f0,
+    )
     evals = 1
     while evals < budget:
         batch_size = nm.next_batch_size()

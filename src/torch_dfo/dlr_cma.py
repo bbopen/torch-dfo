@@ -75,7 +75,7 @@ class DLRPortfolio:
 
         C = D + VVᵀ,   D = diag(exp(log_d)),  V ∈ ℝⁿˣᵏ
 
-    Sampling is :math:`x = μ + σ(√d ⊙ ε + Vw)` with :math:`ε ∼ 𝒩(0,Iₙ)` and
+    Sampling is :math:`x = μ + σ(√d ⊙ ε + (rms(√d)/√k) Vw)` with :math:`ε ∼ 𝒩(0,Iₙ)` and
     :math:`w ∼ 𝒩(0,Iₖ)`.  All K branches are evaluated in a single fused
     ``ask()`` / ``tell()`` pass with no Python loop.  No eigendecomposition
     is performed anywhere — all operations stay on the target device.
@@ -97,7 +97,8 @@ class DLRPortfolio:
         Low-rank dimension k (columns of V).  Defaults to ``min(dim//2, 16)``.
     sigma_factors : Sequence[float], optional
         Per-branch σ multipliers applied at NIPOP restarts.
-        Defaults to ``[1.4, 1.6, 2.0, 1.2][:K]``.
+        Defaults to ``[1.4, 1.6, 2.0, 1.2][:K]`` for ``K <= 4``, and a geometric
+        spread across ``[1.2, 2.0]`` for ``K > 4``.
     cma_budget : int, optional
         Total CMA budget used to cap ``lam_max``.
     device : torch.device
@@ -508,10 +509,11 @@ class DLRPortfolio:
                 self._rank_mu_col[ki] = (mu_col + 1) % k_mu
 
             # ---- global best tracking ----
-            best_fit_k = fit_k.min().item()
+            safe_fit_k = torch.where(torch.isnan(fit_k), float("inf"), fit_k)
+            best_fit_k = safe_fit_k.min().item()
             if best_fit_k < self.best_fitness.item():
-                bi = fit_k.argmin()
-                self.best_fitness = fit_k[bi].clone()
+                bi = safe_fit_k.argmin()
+                self.best_fitness = safe_fit_k[bi].clone()
                 self.best_solution = cands_k[bi].clone()
 
             # ---- per-branch stagnation ----

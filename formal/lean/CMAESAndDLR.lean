@@ -562,13 +562,6 @@ theorem dlr_fixed_delta_h_preserves_stationary_variance (c1 cmu cc d_old : F) :
         add_assoc one (neg cmu) cmu, add_comm (neg cmu) cmu, add_neg, add_zero]
   rw [hcoeff, one_mul]
 
-/-- Fixed `DLRPortfolio` pre-update `sigma_old`: `y_sel` uses `sigma_old`, matching `y_true`
-    with exact factor `1` regardless of step-size jump `alpha`. -/
-theorem dlr_fixed_sigma_order_exact (delta sigma_old : F) :
-    let y_true := mul delta (inv sigma_old)
-    let y_fixed := mul delta (inv sigma_old)
-    mul y_fixed y_fixed = mul y_true y_true := rfl
-
 end LinearAlgebra
 
 

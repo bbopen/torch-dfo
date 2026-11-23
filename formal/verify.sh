@@ -5,25 +5,30 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LEAN_BIN="${LEAN_BIN:-lean}"
 Z3_PYTHON="${Z3_PYTHON:-python3}"
 
+LOG_FILE="$(mktemp)"
+trap 'rm -f "$LOG_FILE"' EXIT
+
+now_ms() {
+    python3 -c 'import time; print(int(time.monotonic() * 1000))'
+}
+
 run_check() {
     local label="$1"
     shift
     local t0 t1
-    t0=$(date +%s%3N)
-    if "$@" >/tmp/torch-dfo-formal.log 2>&1; then
-        t1=$(date +%s%3N)
-        if grep -qE "uses 'sorry'|warning:" /tmp/torch-dfo-formal.log; then
+    t0=$(now_ms)
+    if "$@" >"$LOG_FILE" 2>&1; then
+        t1=$(now_ms)
+        if grep -qE "uses 'sorry'|warning:" "$LOG_FILE"; then
             printf "[FAIL] %-42s (%d ms) — warning or sorry detected\n" "$label" "$((t1 - t0))"
-            cat /tmp/torch-dfo-formal.log
-            rm -f /tmp/torch-dfo-formal.log
+            cat "$LOG_FILE"
             exit 1
         fi
         printf "[PASS] %-42s (%d ms)\n" "$label" "$((t1 - t0))"
     else
-        t1=$(date +%s%3N)
+        t1=$(now_ms)
         printf "[FAIL] %-42s (%d ms)\n" "$label" "$((t1 - t0))"
-        cat /tmp/torch-dfo-formal.log
-        rm -f /tmp/torch-dfo-formal.log
+        cat "$LOG_FILE"
         exit 1
     fi
 }
@@ -44,5 +49,4 @@ done
 
 read -r -a Z3_CMD <<< "$Z3_PYTHON"
 run_check "z3 verify_torch_dfo.py" "${Z3_CMD[@]}" "$ROOT/formal/z3/verify_torch_dfo.py"
-rm -f /tmp/torch-dfo-formal.log
 echo "All formal verification checks passed."

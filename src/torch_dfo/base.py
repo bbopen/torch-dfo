@@ -125,8 +125,18 @@ class BaseOptimizer:
         re-seeded from ``_rng_seed`` rather than restoring the binary state.
         Continuation is non-bit-exact in that case.
         """
-        self.population.copy_(state["population"])
-        self.fitness.copy_(state["fitness"])
+        saved_pop = state["population"]
+        if (
+            saved_pop.ndim == 2
+            and saved_pop.shape[1] == self.dim
+            and saved_pop.shape[0] != self.pop_size
+        ):
+            self.pop_size = int(saved_pop.shape[0])
+            self.population = saved_pop.to(device=self.device, dtype=self.dtype).clone()
+            self.fitness = state["fitness"].to(device=self.device, dtype=self.dtype).clone()
+        else:
+            self.population.copy_(saved_pop)
+            self.fitness.copy_(state["fitness"])
         self.best_solution.copy_(state["best_solution"])
         self.best_fitness.copy_(state["best_fitness"])
         self._generation = state["_generation"]

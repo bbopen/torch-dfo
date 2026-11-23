@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 import torch
 
-import torch_dfo.dlr_cma as dlr_cma_mod
 from torch_dfo.cmaes import CMAES
 from torch_dfo.dlr_cma import DLRPortfolio
 
@@ -56,8 +55,9 @@ class TestCMAESFormalInvariants:
         opt.C_invsqrt = torch.eye(dim, dtype=torch.float64)
 
         # Best mu=5 near 0; worst mu_neg=5 are extreme outliers along e_0 (norm 100 * sigma).
+        gen = torch.Generator(device="cpu").manual_seed(7)
         candidates = torch.zeros(10, dim, dtype=torch.float64)
-        candidates[:5] = 0.01 * torch.randn(5, dim, dtype=torch.float64)
+        candidates[:5] = 0.01 * torch.randn(5, dim, dtype=torch.float64, generator=gen)
         candidates[5:, 0] = 100.0
         fitness = torch.arange(10, dtype=torch.float64)
 
@@ -107,6 +107,43 @@ class TestCMAESFormalInvariants:
         assert (opt32.D_diag**2).mean().item() == pytest.approx(1.0, rel=1e-5)
         assert torch.allclose((opt32.sigma**2) * opt32.C, cov32_before, rtol=1e-5, atol=1e-5)
         assert torch.allclose(opt32.sigma * opt32.p_c, pc32_before, rtol=1e-5, atol=1e-5)
+
+        # Lower extreme safeguard (mean_eig < 1e-6) and finite sigma_max clamp keep exact gauge.
+        opt_clamped = CMAES(
+            dim=dim,
+            bounds=5.0,
+            pop_size=10,
+            device="cpu",
+            dtype=torch.float64,
+            seed=1,
+        )
+        opt_clamped.sigma_max = 2.0
+        opt_clamped._normalize_on_decomp = True
+        opt_clamped.C = torch.diag(torch.tensor([10.0, 20.0, 30.0, 40.0], dtype=torch.float64))
+        opt_clamped.sigma = 1.0
+        opt_clamped.p_c = torch.tensor([0.5, -1.0, 0.25, 2.0], dtype=torch.float64)
+        cov_clamped_before = (opt_clamped.sigma**2) * opt_clamped.C.clone()
+        pc_clamped_before = opt_clamped.sigma * opt_clamped.p_c.clone()
+        opt_clamped._update_eigensystem()
+        assert opt_clamped.sigma == pytest.approx(2.0)
+        assert torch.allclose(
+            (opt_clamped.sigma**2) * opt_clamped.C, cov_clamped_before, rtol=1e-12, atol=1e-12
+        )
+        assert torch.allclose(
+            opt_clamped.sigma * opt_clamped.p_c, pc_clamped_before, rtol=1e-12, atol=1e-12
+        )
+
+        opt_tiny = CMAES(
+            dim=dim, bounds=5.0, pop_size=10, device="cpu", dtype=torch.float64, seed=1
+        )
+        opt_tiny.C = torch.diag(torch.tensor([1e-7, 2e-7, 3e-7, 4e-7], dtype=torch.float64))
+        opt_tiny.sigma = 10.0
+        cov_tiny_before = (opt_tiny.sigma**2) * opt_tiny.C.clone()
+        opt_tiny._update_eigensystem()
+        assert (opt_tiny.D_diag**2).mean().item() == pytest.approx(1.0, rel=1e-12)
+        assert torch.allclose(
+            (opt_tiny.sigma**2) * opt_tiny.C, cov_tiny_before, rtol=1e-12, atol=1e-12
+        )
 
     @pytest.mark.parametrize("bad_pop", [0, 1, -4])
     def test_cmaes_restart_rejects_pop_size_lt_2(self, bad_pop: int) -> None:
@@ -295,9 +332,31 @@ class TestDLRPortfolioFormalInvariants:
         dst.load_state_dict(fake_cross)
         assert dst._rng.initial_seed() == 42
 
-    def test_dlr_no_dead_woodbury_solve(self) -> None:
-        """Dead _woodbury_solve helper has been removed."""
-        assert not hasattr(dlr_cma_mod, "_woodbury_solve")
+    def test_dlr_rank1_v_columns_unit_norm_and_nan_masked(self) -> None:
+        """Rank-1 p_c columns in V are unit-normalized and NaN fitness does not mask finite best."""
+        dlr = DLRPortfolio(
+            dim=6, bounds=5.0, lambdas=(8, 8), k_rank=4, seed=5, device="cpu", dtype=torch.float64
+        )
+        for _ in range(3):
+            x = dlr.ask()
+            fit = (x**2).sum(dim=-1)
+            dlr.tell(x, fit)
+
+        k_half = dlr.k_rank // 2
+        for ki in range(dlr.K):
+            for col in range(k_half):
+                col_norm = dlr.V[ki, :, col].norm().item()
+                if col_norm > 0.0:
+                    assert col_norm == pytest.approx(1.0, rel=1e-12)
+
+        # Inject a NaN alongside an improving finite candidate; finite winner must be recorded.
+        x_nan = dlr.ask()
+        fit_nan = torch.full((x_nan.shape[0],), 100.0, dtype=torch.float64)
+        fit_nan[0] = float("nan")
+        fit_nan[1] = -5.0
+        dlr.tell(x_nan, fit_nan)
+        assert dlr.best_fitness.item() == pytest.approx(-5.0)
+        assert torch.allclose(dlr.best_solution, x_nan[1])
 
 
 # ===========================================================================
@@ -327,12 +386,14 @@ class TestIEEE754BoundarySafety:
         )
         assert torch.allclose(opt.best_solution, candidates[1])
 
-    def test_sanitize_fitness_uses_finite_max_and_preserves_dtype(self) -> None:
+    def test_sanitize_fitness_uses_finite_max_and_preserves_dtype(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """sanitize_fitness ignores +inf when computing worst_seen and preserves input dtype."""
         import torch_dfo.utils as _utils
         from torch_dfo.utils import sanitize_fitness
 
-        _utils._NAN_WARNED = False
+        monkeypatch.setattr(_utils, "_NAN_WARNED", False)
         # Mix of finite, +inf, and NaN in float64
         f_mix = torch.tensor([1.0, float("inf"), float("nan"), 3.0], dtype=torch.float64)
         with pytest.warns(UserWarning, match="NaN fitness"):
@@ -573,10 +634,13 @@ class TestPolishAndOrchestratorInvariants:
         assert torch.isfinite(best_f)
 
     def test_phased_load_state_dict_preserves_shared_gen_reference(self) -> None:
-        """PhasedDFO.load_state_dict keeps opt._cmaes._gen bound to opt._gen."""
+        """PhasedDFO.load_state_dict keeps _cmaes and _cmaes_portfolio RNG bound to opt._gen."""
         from torch_dfo import PhasedDFO
 
+        # Low-dim CMAES path (initialize population via ask/tell before entering CMA phase)
         opt1 = PhasedDFO(dim=4, bounds=5.0, budget=2000, device="cpu", dtype=torch.float64, seed=7)
+        x1 = opt1.ask()
+        opt1.tell(x1, (x1**2).sum(dim=-1))
         opt1._enter_cmaes_phase()
         assert opt1._cmaes is not None
         assert opt1._cmaes._gen is opt1._gen
@@ -586,6 +650,43 @@ class TestPolishAndOrchestratorInvariants:
         opt2.load_state_dict(state)
         assert opt2._cmaes is not None
         assert opt2._cmaes._gen is opt2._gen
+
+        # High-dim CMA-ES portfolio path
+        opt_hi1 = PhasedDFO(
+            dim=50, bounds=5.0, budget=4000, device="cpu", dtype=torch.float64, seed=11
+        )
+        xh = opt_hi1.ask()
+        opt_hi1.tell(xh, (xh**2).sum(dim=-1))
+        opt_hi1._enter_cmaes_phase_portfolio()
+        assert opt_hi1._cmaes_portfolio is not None
+        assert all(branch._gen is opt_hi1._gen for branch in opt_hi1._cmaes_portfolio)
+
+        state_hi = opt_hi1.state_dict()
+        opt_hi2 = PhasedDFO(
+            dim=50, bounds=5.0, budget=4000, device="cpu", dtype=torch.float64, seed=22
+        )
+        opt_hi2.load_state_dict(state_hi)
+        assert opt_hi2._cmaes_portfolio is not None
+        assert all(branch._gen is opt_hi2._gen for branch in opt_hi2._cmaes_portfolio)
+
+    def test_nm_polish_zero_budget_and_nan_initial_point(self) -> None:
+        """nm_polish handles budget <= 0 and recovers finite improvements when f(x0) is NaN."""
+        from torch_dfo._polish import nm_polish
+
+        x0 = torch.tensor([1.0, 1.0], dtype=torch.float64)
+        bx0, bf0, used0 = nm_polish(x0, lambda X: (X**2).sum(dim=-1), budget=0, bounds=(-5.0, 5.0))
+        assert used0 == 0
+        assert torch.allclose(bx0, x0)
+        assert bf0.item() == float("inf")
+
+        def nan_at_x0(X: torch.Tensor) -> torch.Tensor:
+            vals = (X**2).sum(dim=-1)
+            at_x0 = (X - x0).abs().max(dim=-1).values < 1e-12
+            return torch.where(at_x0, torch.tensor(float("nan"), dtype=X.dtype), vals)
+
+        _bx, bf, used = nm_polish(x0, nan_at_x0, budget=20, bounds=(-5.0, 5.0))
+        assert used <= 20
+        assert torch.isfinite(bf) and bf.item() < 5.0
 
     @pytest.mark.parametrize("dim", [1, 2, 3, 5])
     def test_search_run_and_minimize_support_nelder_mead_all_dims(self, dim: int) -> None:

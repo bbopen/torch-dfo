@@ -2254,8 +2254,10 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             if explore_budget > 50:
                 torch_rng_state = torch.random.get_rng_state()
                 explore_end = min(self._budget, self._fe_count + explore_budget)
-                self._multistart_basin_explore(actual_fn, explore_end)
-                torch.random.set_rng_state(torch_rng_state)
+                try:
+                    self._multistart_basin_explore(actual_fn, explore_end)
+                finally:
+                    torch.random.set_rng_state(torch_rng_state)
 
         # Phase 2: Polish (self-contained, calls actual_fn directly)
         if self._phase >= 2 and self._fe_count < self._budget:

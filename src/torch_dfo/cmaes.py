@@ -636,11 +636,15 @@ class CMAES(BaseOptimizer):
         need_normalize = self._normalize_on_decomp or (
             math.isfinite(mean_eig) and (mean_eig < 1e-6 or mean_eig > 1e6)
         )
-        if need_normalize and math.isfinite(mean_eig) and mean_eig > 1e-12:
+        if need_normalize and math.isfinite(mean_eig) and mean_eig > 1e-12 and self.sigma > 0.0:
             scale_sqrt = math.sqrt(mean_eig)
-            eigenvalues = eigenvalues / mean_eig
-            self.sigma = min(max(self.sigma * scale_sqrt, self.sigma_min), self.sigma_max)
-            self._path.p_c = self._path.p_c / scale_sqrt
+            new_sigma = min(max(self.sigma * scale_sqrt, self.sigma_min), self.sigma_max)
+            actual_scale_sqrt = new_sigma / self.sigma
+            actual_scale = actual_scale_sqrt * actual_scale_sqrt
+            if actual_scale > 0.0 and math.isfinite(actual_scale):
+                eigenvalues = torch.clamp(eigenvalues / actual_scale, min=1e-30)
+                self.sigma = new_sigma
+                self._path.p_c = self._path.p_c / actual_scale_sqrt
 
         self.D_diag = torch.sqrt(eigenvalues)
 
