@@ -74,20 +74,17 @@ def multistart_basin_explore(
     )
     if pop_size < 4:
         return
-    # Ensure even pop size for mirrored sampling
     pop_size = pop_size + (pop_size % 2)
 
     sigma_init = 0.25 * search_span
     sigma_min = opt._cma_sigma_min * search_span
     sigma_max = opt._cma_restart_sigma_max * search_span
 
-    # Create a separate RNG for basin exploration (deterministic but independent)
     basin_seed = int(opt._gen.initial_seed() ^ 999_983) & 0x7FFF_FFFF
     basin_gen = torch.Generator(device=opt._gen_device).manual_seed(basin_seed)
 
     best_fitness_val = float(opt.best_fitness.item())
 
-    # Build a CMAES instance with the isolated RNG preserving per-dim bounds.
     bounds = (opt.lb, opt.ub)
     cma = CMAES(
         dim=dim,
@@ -113,7 +110,6 @@ def multistart_basin_explore(
         restarts_left = n_restarts - _restart_idx
         restart_budget = min(budget_limit, opt._fe_count + restart_remaining // restarts_left)
 
-        # Random starting point via the isolated generator within per-dim [lb, ub]
         rand_unit = torch.rand(dim, device=opt._gen_device, dtype=dtype, generator=basin_gen)
         if opt._gen_device != device:
             rand_unit = rand_unit.to(device)
@@ -130,8 +126,6 @@ def multistart_basin_explore(
         while opt._fe_count + pop_size <= restart_budget:
             candidates = cma.ask()
 
-            # Evaluate each candidate individually (respecting budget). Objective
-            # errors propagate; callers should return inf/nan for invalid points.
             fit = torch.full((pop_size,), float("inf"), device=device, dtype=dtype)
             for i in range(pop_size):
                 if opt._fe_count >= restart_budget:

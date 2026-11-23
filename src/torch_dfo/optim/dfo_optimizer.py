@@ -58,7 +58,6 @@ class DFOOptimizer(torch.optim.Optimizer):
                 "Use bounds=(-1, 1) or similar based on your parameter scale."
             )
 
-        # Collect all parameter tensors ---------------------------------
         param_list: list[torch.Tensor] = list(params)
         if len(param_list) > 0 and isinstance(param_list[0], dict):
             flat_params: list[torch.Tensor] = []
@@ -76,7 +75,6 @@ class DFOOptimizer(torch.optim.Optimizer):
 
         device = param_list[0].device
         dtype = param_list[0].dtype
-        # Validate all params share the same device and dtype
         for i, p in enumerate(param_list[1:], 1):
             if p.device != device:
                 raise ValueError(
@@ -93,12 +91,8 @@ class DFOOptimizer(torch.optim.Optimizer):
             budget = self._dim * 5000
         self._budget = budget
         self._evals = 0
-        # Underlying optimizers update state atomically for a whole ask/tell
-        # generation.  A final residue smaller than that generation cannot be
-        # evaluated safely, so it becomes a terminal condition.
         self._stopped_early = False
 
-        # Build the underlying ask/tell optimizer -----------------------
         from torch_dfo import CMAES, SHADE, NelderMead
 
         algo_map = {
@@ -125,10 +119,6 @@ class DFOOptimizer(torch.optim.Optimizer):
         }
         super().__init__(param_list, defaults)
 
-    # ------------------------------------------------------------------
-    # Parameter <-> flat vector helpers
-    # ------------------------------------------------------------------
-
     def _flatten_params(self) -> torch.Tensor:
         """Flatten model parameters into a 1-D vector."""
         return torch.cat([p.data.reshape(-1) for p in self._params])
@@ -139,10 +129,6 @@ class DFOOptimizer(torch.optim.Optimizer):
         for p, shape, size in zip(self._params, self._param_shapes, self._param_sizes, strict=True):
             p.data.copy_(flat[offset : offset + size].reshape(shape))
             offset += size
-
-    # ------------------------------------------------------------------
-    # step()
-    # ------------------------------------------------------------------
 
     @torch.no_grad()
     def step(  # type: ignore[override]
@@ -180,12 +166,9 @@ class DFOOptimizer(torch.optim.Optimizer):
                 "Guard calls to step() with `if not opt.is_exhausted:` or raise the budget."
             )
 
-        # Query exact next batch size before advancing inner optimizer state.
         next_size = self._inner.next_batch_size()
         if next_size > self.budget_remaining:
             self._stopped_early = True
-            # Do not call either closure.  The underlying optimizer cannot
-            # accept a partial generation, so preserve the completed state.
             return self._inner.best_fitness.clone()
 
         candidates = self._inner.ask()
@@ -205,14 +188,12 @@ class DFOOptimizer(torch.optim.Optimizer):
                         loss = torch.tensor(loss, device=candidates.device, dtype=candidates.dtype)
                     losses.append(loss.detach())
             finally:
-                # Always restore original params before tell or if closure raises.
                 self._set_params(original_params)
             fitness = torch.stack(losses).to(device=candidates.device, dtype=candidates.dtype)
 
         self._inner.tell(candidates, fitness)
         self._evals += pop_size
 
-        # Set model parameters to the best solution found so far
         self._set_params(self._inner.best_solution)
         self._mark_terminal_residue()
         return fitness.min()
@@ -224,10 +205,6 @@ class DFOOptimizer(torch.optim.Optimizer):
         if self._inner.next_batch_size() > self.budget_remaining:
             self._stopped_early = True
 
-    # ------------------------------------------------------------------
-    # Budget helpers
-    # ------------------------------------------------------------------
-
     @property
     def budget_remaining(self) -> int:
         """Number of function evaluations remaining."""
@@ -237,10 +214,6 @@ class DFOOptimizer(torch.optim.Optimizer):
     def is_exhausted(self) -> bool:
         """True when no further whole generation fits the evaluation budget."""
         return self._evals >= self._budget or self._stopped_early
-
-    # ------------------------------------------------------------------
-    # Serialization
-    # ------------------------------------------------------------------
 
     def state_dict(self) -> dict[str, Any]:
         """Return optimizer state including the wrapped inner DFO optimizer.

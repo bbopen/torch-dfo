@@ -1,6 +1,6 @@
 """Z3 SMT Formal Verification Suite for torch-dfo (IEEE-754 FP + QF_NRA).
 
-Verifies all Wave-1 remediated floating-point and real-algebraic invariants:
+Verifies floating-point and real-algebraic invariants across the core optimizers:
   1. SearchSpace Categorical midpoint encoding (idx + 0.5) / n round-trips
      with 0 violations for all n = 1..50 in both f64 and f64 -> f32 -> f64.
   2. SHADE +inf parent replacement with uniform-weight fallback produces

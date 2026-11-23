@@ -581,9 +581,9 @@ theorem hansen_cc_strictly_between_0_and_1 {d m : Nat} (hd : d ≥ 1) (hm : m �
     rw [Nat.mul_add, Nat.mul_comm d 4]
   omega
 
-/-- Historical regression witness: the pre-Wave-1 buggy formula `(mu_eff + 2) / (d + 4 + 2*mu_eff/d)`
+/-- Regression witness: the unscaled formula `(mu_eff + 2) / (d + 4 + 2*mu_eff/d)`
     exceeded 2 at `(dim=16, mu_eff=1030)` (`c_c ≈ 6.94`), permanently zeroing `p_c`. -/
-theorem pre_wave1_cc_bug_witness :
+theorem unscaled_cc_bug_witness :
     let d := 16
     let m := 1030
     d * (m + 2) > 2 * (d * (d + 4) + 2 * m) := by

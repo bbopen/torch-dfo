@@ -83,16 +83,11 @@ class NelderMead(BaseOptimizer):
         self.rho = rho
         self.shrink_coeff = shrink
 
-        # State tracking
         self._initialized = False
-        self._needs_full_eval = True  # True => next ask() returns full simplex
+        self._needs_full_eval = True
 
-        # Pre-allocated candidate storage (4 trial points per iteration)
         self._candidates = torch.zeros(4, dim, device=self.device, dtype=self.dtype)
 
-    # ------------------------------------------------------------------
-    # Serialization
-    # ------------------------------------------------------------------
     def state_dict(self) -> dict[str, Any]:
         """Return Nelder-Mead state as a serializable dict."""
         state = super().state_dict()
@@ -112,9 +107,6 @@ class NelderMead(BaseOptimizer):
         self._needs_full_eval = state["_needs_full_eval"]
         self._candidates.copy_(state["_candidates"])
 
-    # ------------------------------------------------------------------
-    # ask
-    # ------------------------------------------------------------------
     def next_batch_size(self) -> int:
         """Return exact size of next ``ask()``: ``dim + 1`` on init/post-shrink, else ``4``."""
         if not self._initialized or self._needs_full_eval:
@@ -132,17 +124,14 @@ class NelderMead(BaseOptimizer):
 
         """
         if not self._initialized:
-            # Random initial simplex within bounds
             self.population[:] = self._rand(self.pop_size, self.dim) * (self.ub - self.lb) + self.lb
             self._initialized = True
             self._needs_full_eval = True
             return self.population.clone()
 
         if self._needs_full_eval:
-            # After a shrink: re-evaluate the full simplex
             return self.population.clone()
 
-        # Sort simplex by fitness (best first)
         sorted_idx = self.fitness.argsort()
         self.population[:] = self.population[sorted_idx]
         self.fitness[:] = self.fitness[sorted_idx]
@@ -150,13 +139,9 @@ class NelderMead(BaseOptimizer):
         worst = self.population[-1]
         centroid = self.population[:-1].mean(dim=0)
 
-        # Reflected point
         reflected = centroid + self.alpha * (centroid - worst)
-        # Expanded point
         expanded = centroid + self.gamma * (reflected - centroid)
-        # Outside contraction
         contracted_out = centroid + self.rho * (reflected - centroid)
-        # Inside contraction
         contracted_in = centroid - self.rho * (centroid - worst)
 
         candidates = torch.stack([reflected, expanded, contracted_out, contracted_in])
@@ -165,9 +150,6 @@ class NelderMead(BaseOptimizer):
         self._candidates[:] = candidates
         return candidates
 
-    # ------------------------------------------------------------------
-    # tell
-    # ------------------------------------------------------------------
     def tell(self, candidates: torch.Tensor, fitness: torch.Tensor) -> None:
         """Report fitness values and update the simplex.
 
@@ -179,8 +161,6 @@ class NelderMead(BaseOptimizer):
             Objective values for each candidate (lower is better).
 
         """
-        # Treat NaN fitness as +inf (dominated) so NaN never falls through
-        # simplex order comparisons or corrupts self.fitness.
         fitness = torch.where(
             torch.isnan(fitness),
             torch.full_like(fitness, float("inf")),
@@ -188,7 +168,6 @@ class NelderMead(BaseOptimizer):
         )
 
         if self._needs_full_eval:
-            # Store initial (or post-shrink) simplex evaluation
             self.population[:] = candidates[: self.pop_size]
             self.fitness[:] = fitness[: self.pop_size]
             self._needs_full_eval = False
@@ -196,7 +175,6 @@ class NelderMead(BaseOptimizer):
             self._generation += 1
             return
 
-        # Unpack the 4 candidate fitness values
         f_r = fitness[0]
         f_e = fitness[1]
         f_co = fitness[2]
@@ -211,23 +189,17 @@ class NelderMead(BaseOptimizer):
         f_second_worst = self.fitness[-2]
         f_worst = self.fitness[-1]
 
-        # ----------------------------------------------------------
-        # Determine which NM operation applies
-        # ----------------------------------------------------------
         use_expansion = f_r < f_best
         accept_reflect = (f_best <= f_r) & (f_r < f_second_worst)
         try_outside = ~accept_reflect & ~use_expansion & (f_r < f_worst)
         try_inside = ~accept_reflect & ~use_expansion & ~try_outside
 
-        # Expansion: pick the better of expanded vs reflected
         expansion_choice = torch.where(f_e < f_r, x_e, x_r)
         expansion_f = torch.where(f_e < f_r, f_e, f_r)
 
-        # Contraction acceptance checks
         outside_ok = f_co <= f_r
         inside_ok = f_ci < f_worst
 
-        # Shrink required when the chosen contraction failed
         need_shrink = (try_outside & ~outside_ok) | (try_inside & ~inside_ok)
 
         if need_shrink.item():
@@ -238,7 +210,6 @@ class NelderMead(BaseOptimizer):
             self.population[:] = torch.clamp(self.population, self.lb, self.ub)
             self._needs_full_eval = True
         else:
-            # Select replacement for the worst vertex
             new_x = torch.where(
                 use_expansion,
                 expansion_choice,

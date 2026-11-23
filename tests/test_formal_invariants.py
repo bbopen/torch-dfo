@@ -8,10 +8,6 @@ import torch
 from torch_dfo.cmaes import CMAES
 from torch_dfo.dlr_cma import DLRPortfolio
 
-# ===========================================================================
-# Phase 1: CMAES & DLRPortfolio mathematical invariants
-# ===========================================================================
-
 
 class TestCMAESFormalInvariants:
     """Refinement tests for Hansen (2016) CMA-ES rates, active PSD, gauge, and restart."""
@@ -359,11 +355,6 @@ class TestDLRPortfolioFormalInvariants:
         assert torch.allclose(dlr.best_solution, x_nan[1])
 
 
-# ===========================================================================
-# Phase 2: IEEE-754 & Numerical Boundary Safety
-# ===========================================================================
-
-
 class TestIEEE754BoundarySafety:
     """Refinement tests for Z3-verified NaN, +inf, dtype, and Categorical round-trip invariants."""
 
@@ -470,11 +461,6 @@ class TestIEEE754BoundarySafety:
                     f"dtype={dtype}, n={n}, idx={idx}: encoded={encoded[idx, 0].item()} "
                     f"decoded to {dec['cat']} instead of {orig['cat']}"
                 )
-
-
-# ===========================================================================
-# Phase 3: Polish, PhasedDFO, SearchRun, DFOOptimizer & Benchmarks
-# ===========================================================================
 
 
 class TestPolishAndOrchestratorInvariants:

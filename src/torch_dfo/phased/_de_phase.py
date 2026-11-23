@@ -71,7 +71,6 @@ def low_dim_pop_restart(opt: PhasedDFO) -> None:
     span = opt.ub - opt.lb
 
     if opt._de_restart_count % 2 == 0:
-        # Full restart: completely random population for basin diversity
         new_positions = opt._rand(pop_size, opt.dim) * span + opt.lb
         opt._shade.population = new_positions
         opt._shade.fitness = torch.full(
@@ -81,7 +80,6 @@ def low_dim_pop_restart(opt: PhasedDFO) -> None:
             dtype=opt.dtype,
         )
 
-        # Re-evaluate if fitness_fn is available within remaining budget
         if opt._fitness_fn is not None:
             remaining = opt._budget - opt._fe_count
             if remaining > 0:
@@ -92,7 +90,6 @@ def low_dim_pop_restart(opt: PhasedDFO) -> None:
                 opt._shade.fitness[:eval_count] = new_fit
                 opt._update_best(eval_pos, new_fit)
     else:
-        # Partial restart: keep elite, randomize the rest
         elite_count = max(2, int(pop_size * opt._config.elite_fraction))
         sorted_idx = opt._shade.fitness.argsort()
         restart_idx = sorted_idx[elite_count:]
@@ -105,7 +102,6 @@ def low_dim_pop_restart(opt: PhasedDFO) -> None:
         opt._shade.population[restart_idx] = new_positions
         opt._shade.fitness[restart_idx] = float("inf")
 
-        # Re-evaluate new positions if fitness_fn is available within remaining budget
         if opt._fitness_fn is not None:
             remaining = opt._budget - opt._fe_count
             if remaining > 0:
@@ -127,13 +123,11 @@ def update_de_stagnation(opt: PhasedDFO, pre_best: float, post_best: float) -> N
     no-improve → +1) while maintaining the EMA progress signal for the
     adaptive threshold computation.
     """
-    # Simple binary counter: improve -> reset, no-improve -> increment.
     if post_best < pre_best:
         opt._stagnation_counter = 0
     else:
         opt._stagnation_counter += 1
 
-    # Maintain EMA signal for adaptive threshold (high-dim only).
     if opt._high_dim:
         progress_scale = max(abs(pre_best), 1.0)
         step_signal = (
@@ -142,7 +136,6 @@ def update_de_stagnation(opt: PhasedDFO, pre_best: float, post_best: float) -> N
             + 4.0 * ((opt._trial_gain + 0.5 * opt._levy_gain) / progress_scale)
         )
         opt._de_progress_ema = 0.75 * opt._de_progress_ema + 0.25 * step_signal
-        # Baseline calibration
         if opt._de_step_count <= opt._de_baseline_steps or opt._de_progress_baseline <= _EPS:
             opt._de_progress_baseline = max(
                 opt._de_progress_baseline,
@@ -157,7 +150,6 @@ def get_de_stagnation_threshold(opt: PhasedDFO) -> int:
     Adaptive threshold with progress floor check.
     """
     if opt._high_dim:
-        # Adaptive stagnation threshold.
         if opt._de_step_count >= opt._de_baseline_steps and opt._de_progress_baseline > _EPS:
             progress_ratio = opt._de_progress_ema / max(opt._de_progress_baseline, _EPS)
             if (

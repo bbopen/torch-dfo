@@ -32,12 +32,11 @@ class BaseOptimizer:
             self.device = torch.device("cpu")
         self.dtype = dtype
         self.lb, self.ub = normalize_bounds(bounds, dim, self.device, self.dtype)
-        self._rng_seed = seed  # stored for cross-device serialization
+        self._rng_seed = seed
         self._gen = make_generator(seed, self.device)
-        self._gen_device = self._gen.device  # Cache for random tensor generation
+        self._gen_device = self._gen.device
         self._generation = 0
 
-        # Pre-allocated workspace
         self.population = torch.empty(pop_size, dim, device=self.device, dtype=self.dtype)
         self.fitness = torch.full((pop_size,), float("inf"), device=self.device, dtype=self.dtype)
         self.best_solution = torch.zeros(dim, device=self.device, dtype=self.dtype)
@@ -70,26 +69,19 @@ class BaseOptimizer:
 
         Uses torch.where for torch.compile compatibility -- no Python if/else on tensors.
         """
-        # Mask NaN to +inf so a single NaN never masks valid improving finite candidates.
         safe_fitness = torch.where(
             torch.isnan(fitness),
             torch.full_like(fitness, float("inf")),
             fitness,
         )
-        # Find best in this batch
         batch_best_idx = safe_fitness.argmin()
         batch_best_f = safe_fitness[batch_best_idx]
         batch_best_x = candidates[batch_best_idx]
 
-        # Update global best using torch.where (compile-safe)
         improved = batch_best_f < self.best_fitness
         self.best_fitness = torch.where(improved, batch_best_f, self.best_fitness)
-        # For the solution vector, expand improved to match dim
         self.best_solution = torch.where(improved, batch_best_x, self.best_solution)
 
-    # ------------------------------------------------------------------
-    # Serialization
-    # ------------------------------------------------------------------
     def state_dict(self) -> dict[str, Any]:
         """Return optimizer state as a serializable dict.
 
@@ -145,11 +137,9 @@ class BaseOptimizer:
         if saved_device_type == self._gen.device.type:
             self._gen.set_state(state["_gen_state"])
         else:
-            # Cross-device: binary RNG state is not portable; re-seed instead.
             seed = state.get("_rng_seed")
             if seed is not None:
                 self._gen.manual_seed(seed)
-            # If no seed was stored we leave the generator in its current state.
 
     def _rand(self, *shape: int) -> torch.Tensor:
         """Generate uniform random tensor on the correct device.
