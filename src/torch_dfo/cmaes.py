@@ -45,7 +45,7 @@ def _compute_adaptation_rates(
     mu_eff = (1.0 / (weights**2).sum()).item()
     c_sigma = (mu_eff + 2) / (dim + mu_eff + 5)
     d_sigma = 1 + 2 * max(0.0, math.sqrt((mu_eff - 1) / (dim + 1)) - 1) + c_sigma
-    c_c = (mu_eff + 2) / (dim + 4 + 2 * mu_eff / dim)
+    c_c = (4.0 + mu_eff / dim) / (dim + 4.0 + 2.0 * mu_eff / dim)
     c_1 = 2.0 / ((dim + 1.3) ** 2 + mu_eff)
     c_mu = min(
         1 - c_1,
@@ -192,7 +192,7 @@ class CMAES(BaseOptimizer):
             self._neg_weights = neg_raw / neg_raw.sum()
             self._c_mu_neg = min(
                 0.25 * self._rates.c_mu,
-                max(0.0, 1 - self._rates.c_1 - self._rates.c_mu),
+                max(0.0, 1.0 - self._rates.c_1 - self._rates.c_mu) / self.dim,
             )
         else:
             self._mu_neg = 0
@@ -222,11 +222,12 @@ class CMAES(BaseOptimizer):
         self.sigma_min = 1e-30  # effectively no lower bound
         self.sigma_max = float("inf")  # effectively no upper bound
 
-        # Covariance normalization: when True, _update_eigensystem divides
-        # eigenvalues by their mean. Standalone CMA-ES normalizes every decomp.
-        # PhasedDFO sets this to False and normalizes C externally at phase
-        # boundaries only.
-        self._normalize_on_decomp = True
+        # Covariance normalization: defaults to False (pure Hansen 2016).
+        # When enabled explicitly, or when float32/float64 eigenvalues drift
+        # outside [1e-6, 1e6], _update_eigensystem applies the exact 3-variable
+        # gauge transform (C / s, sigma * sqrt(s), p_c / sqrt(s)) preserving
+        # sampling covariance sigma^2 * C and evolution-path scale.
+        self._normalize_on_decomp = False
 
         # Covariance matrix and its decomposition
         self.C = torch.eye(dim, device=self.device, dtype=self.dtype)
@@ -548,12 +549,21 @@ class CMAES(BaseOptimizer):
         # Correction for h_sigma == 0 (stalled step-size)
         delta_h = (1 - h_sigma) * self._rates.c_c * (2 - self._rates.c_c)
 
-        # Active CMA: compute negative rank update and balancing term
+        # Active CMA: compute negative rank update with Hansen (2016) Mahalanobis
+        # weight scaling w_i^o = w_i * (n / ||C^{-1/2} y_i||^2) so rank_mu_neg <= n * C.
         if self.active:
             mu_neg = self._mu_neg
             worst_indices = sorted_indices[pop_size - mu_neg :].flip(0)
             y_worst = (candidates[worst_indices] - old_mean.unsqueeze(0)) / self.sigma
-            rank_mu_neg = (y_worst * self._neg_weights.unsqueeze(1)).T @ y_worst
+            z_worst = y_worst @ self.C_invsqrt.T
+            mahal_sq = (z_worst**2).sum(dim=1)
+            mahal_scale = torch.where(
+                mahal_sq > 1e-30,
+                float(dim) / mahal_sq.clamp(min=1e-30),
+                torch.zeros_like(mahal_sq),
+            )
+            scaled_neg_weights = self._neg_weights * mahal_scale
+            rank_mu_neg = (y_worst * scaled_neg_weights.unsqueeze(1)).T @ y_worst
             c_mu_neg = self._c_mu_neg
         else:
             rank_mu_neg = torch.zeros_like(self.C)
@@ -620,13 +630,17 @@ class CMAES(BaseOptimizer):
         # Numerical safety: clamp small/negative eigenvalues
         eigenvalues = torch.clamp(eigenvalues, min=1e-8)
 
-        # Normalize covariance shape when requested. Normalize
-        # only at phase boundaries (not every decomp) to avoid double-normalizing
-        # during CMA-ES iterations, which would warp the learned orientation.
-        if self._normalize_on_decomp:
-            mean_eig = eigenvalues.mean()
-            if mean_eig > 1e-12:
-                eigenvalues = eigenvalues / mean_eig
+        # Exact 3-variable gauge-preserving normalization when explicitly
+        # requested or when eigenvalue scale drifts to an extreme numerical regime.
+        mean_eig = float(eigenvalues.mean().item())
+        need_normalize = self._normalize_on_decomp or (
+            math.isfinite(mean_eig) and (mean_eig < 1e-6 or mean_eig > 1e6)
+        )
+        if need_normalize and math.isfinite(mean_eig) and mean_eig > 1e-12:
+            scale_sqrt = math.sqrt(mean_eig)
+            eigenvalues = eigenvalues / mean_eig
+            self.sigma = min(max(self.sigma * scale_sqrt, self.sigma_min), self.sigma_max)
+            self._path.p_c = self._path.p_c / scale_sqrt
 
         self.D_diag = torch.sqrt(eigenvalues)
 
@@ -662,22 +676,25 @@ class CMAES(BaseOptimizer):
             New covariance matrix. If ``None``, reset to identity.
 
         """
-        if new_pop_size is not None and new_pop_size != self.pop_size:
-            self._configure_strategy(new_pop_size)
+        if new_pop_size is not None:
+            if new_pop_size < 2:
+                raise ValueError("CMAES requires pop_size >= 2")
+            if new_pop_size != self.pop_size:
+                self._configure_strategy(new_pop_size)
 
-            # Re-allocate workspace tensors for the new population size
-            self.population = torch.empty(
-                self.pop_size,
-                self.dim,
-                device=self.device,
-                dtype=self.dtype,
-            )
-            self.fitness = torch.full(
-                (self.pop_size,),
-                float("inf"),
-                device=self.device,
-                dtype=self.dtype,
-            )
+                # Re-allocate workspace tensors for the new population size
+                self.population = torch.empty(
+                    self.pop_size,
+                    self.dim,
+                    device=self.device,
+                    dtype=self.dtype,
+                )
+                self.fitness = torch.full(
+                    (self.pop_size,),
+                    float("inf"),
+                    device=self.device,
+                    dtype=self.dtype,
+                )
 
         # Widen sigma_max for restart phases (CMA_ES_RESTART_SIGMA_MAX * span).
         # Only applies when sigma bounds were explicitly set (e.g. by PhasedDFO);

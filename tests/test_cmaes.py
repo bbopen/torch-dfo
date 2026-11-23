@@ -151,8 +151,8 @@ class TestStrategyParameters:
         )
         assert opt.d_sigma == pytest.approx(expected_d_sigma, abs=ATOL_F64_DEFAULT)
 
-        # c_c = (mu_eff + 2) / (dim + 4 + 2*mu_eff/dim)
-        expected_c_c = (mu_eff + 2) / (dim + 4 + 2 * mu_eff / dim)
+        # c_c = (4 + mu_eff/dim) / (dim + 4 + 2*mu_eff/dim)  (Hansen 2016, Table 1)
+        expected_c_c = (4.0 + mu_eff / dim) / (dim + 4.0 + 2.0 * mu_eff / dim)
         assert opt.c_c == pytest.approx(expected_c_c, abs=ATOL_F64_DEFAULT)
 
         # c_1 = 2 / ((dim+1.3)^2 + mu_eff)
@@ -424,6 +424,7 @@ class TestEigendecomposition:
         dtype = torch.float64
         dim = 5
         opt = CMAES(dim=dim, bounds=5.0, device=device, dtype=dtype, seed=42)
+        opt._normalize_on_decomp = True
         # Set anisotropic C with known eigenvalues
         opt.C = torch.diag(torch.tensor([0.1, 1.0, 2.0, 5.0, 10.0], device=device, dtype=dtype))
         opt._update_eigensystem()
@@ -567,8 +568,8 @@ class TestActiveCMA:
             seed=42,
             active=True,
         )
-        # c_mu_neg = min(0.25 * c_mu, max(0, 1 - c_1 - c_mu))
-        expected = min(0.25 * opt.c_mu, max(0.0, 1 - opt.c_1 - opt.c_mu))
+        # c_mu_neg = min(0.25 * c_mu, max(0, 1 - c_1 - c_mu) / dim)
+        expected = min(0.25 * opt.c_mu, max(0.0, 1.0 - opt.c_1 - opt.c_mu) / opt.dim)
         assert opt._c_mu_neg == pytest.approx(expected, abs=ATOL_F64_TIGHT), (
             f"c_mu_neg={opt._c_mu_neg}, expected={expected}"
         )
@@ -628,7 +629,7 @@ class TestRestart:
 
         opt.restart(new_pop_size=24)
 
-        expected = min(0.25 * opt.c_mu, max(0.0, 1 - opt.c_1 - opt.c_mu))
+        expected = min(0.25 * opt.c_mu, max(0.0, 1.0 - opt.c_1 - opt.c_mu) / opt.dim)
         assert opt._c_mu_neg == pytest.approx(expected, abs=ATOL_F64_TIGHT)
 
     def test_mean_reset_to_center(self, device: torch.device) -> None:

@@ -45,43 +45,24 @@ from torch_dfo.utils import clamp_to_bounds, make_generator, normalize_bounds, r
 # Sigma fracs: unchanged from program_stage_c.md (σ_base=2.0 for BBOB [-5,5]).
 _DLR_K_LAMBDAS: tuple[int, ...] = (24, 12, 12, 12)
 _DLR_K_SIGMA_FRACS: tuple[float, ...] = (0.200, 0.043, 0.0093, 0.002)
+_DEFAULT_SIGMA_FACTORS: tuple[float, ...] = (1.4, 1.6, 2.0, 1.2)
 
 
-# ------------------------------------------------------------------
-# Helper: Woodbury inverse application
-# ------------------------------------------------------------------
-def _woodbury_solve(
-    x: Tensor,  # (K, n)
-    log_d: Tensor,  # (K, n)
-    V: Tensor,  # (K, n, k)
-    eps: float = 1e-10,
-) -> Tensor:
-    """Compute C⁻¹ x via Woodbury identity.  O(nk²) per branch, fully batched.
+def _default_sigma_factors(k_branches: int) -> tuple[float, ...]:
+    """Return per-branch NIPOP sigma reduction factors for any K >= 1."""
+    if k_branches <= len(_DEFAULT_SIGMA_FACTORS):
+        return _DEFAULT_SIGMA_FACTORS[:k_branches]
+    return tuple(1.2 * ((2.0 / 1.2) ** (i / (k_branches - 1))) for i in range(k_branches))
 
-    C = D + VVᵀ  ⟹  C⁻¹ x = D⁻¹x - D⁻¹V (Iₖ + VᵀD⁻¹V)⁻¹ Vᵀ D⁻¹x
-    """
-    d = torch.exp(log_d)  # (K, n)
-    dinv = 1.0 / (d + eps)  # (K, n)
-    dinv_x = dinv * x  # (K, n)
-    dinv_V = dinv.unsqueeze(-1) * V  # (K, n, k)
 
-    # M = Iₖ + VᵀD⁻¹V  (K, k, k)
-    k = V.shape[-1]
-    M = torch.eye(k, device=V.device, dtype=V.dtype).unsqueeze(0) + torch.bmm(
-        V.transpose(-1, -2), dinv_V
-    )
-    # Cholesky solve: M⁻¹ (Vᵀ D⁻¹ x)
-    try:
-        L = torch.linalg.cholesky(M + eps * torch.eye(k, device=V.device, dtype=V.dtype))
-        rhs = torch.bmm(V.transpose(-1, -2), dinv_x.unsqueeze(-1))  # (K, k, 1)
-        sol = torch.cholesky_solve(rhs, L)  # (K, k, 1)
-    except RuntimeError:
-        # Fallback: direct solve (more stable)
-        rhs = torch.bmm(V.transpose(-1, -2), dinv_x.unsqueeze(-1))  # (K, k, 1)
-        sol = torch.linalg.solve(M, rhs)  # (K, k, 1)
-
-    correction = torch.bmm(dinv_V, sol).squeeze(-1)  # (K, n)
-    return dinv_x - correction  # (K, n)
+def _compute_branch_rates(n: int, mue: float) -> tuple[float, float, float, float, float]:
+    """Compute Hansen (2016, Table 1) strategy rates for one DLR branch."""
+    c_s = (mue + 2.0) / (n + mue + 5.0)
+    d_s = 1.0 + 2.0 * max(0.0, math.sqrt((mue - 1.0) / (n + 1.0)) - 1.0) + c_s
+    c_c = (4.0 + mue / n) / (n + 4.0 + 2.0 * mue / n)
+    c1 = 2.0 / ((n + 1.3) ** 2 + mue)
+    cmu = min(1.0 - c1, 2.0 * (mue - 2.0 + 1.0 / mue) / ((n + 2.0) ** 2 + mue))
+    return c_s, d_s, c_c, c1, cmu
 
 
 # ------------------------------------------------------------------
@@ -212,12 +193,23 @@ class DLRPortfolio:
         if rng is None:
             rng = make_generator(seed, device)
 
+        if len(lambdas) == 0:
+            raise ValueError("lambdas must be non-empty")
+        if any(lam < 2 for lam in lambdas):
+            raise ValueError("Each branch in lambdas must have population size >= 2")
+        if len(sigma_fracs) != len(lambdas):
+            raise ValueError(
+                f"sigma_fracs length ({len(sigma_fracs)}) must match "
+                f"lambdas length ({len(lambdas)})"
+            )
+
         self.dim = dim
         self.K = len(lambdas)
         self.lambdas = list(lambdas)
         self.sigma_fracs = list(sigma_fracs)
         self.device = device
         self.dtype = dtype
+        self._rng_seed = seed
         self._rng = rng
         self._rng_device = (
             torch.device(rng.device) if hasattr(rng, "device") else torch.device("cpu")
@@ -234,12 +226,20 @@ class DLRPortfolio:
         # ---- NIPOP restart scheduler state ----
         K = self.K
         self.lam_default = 4 + math.floor(3 * math.log(max(dim, 2)))
-        _cma_budget = cma_budget or 100000
-        self.lam_max = min(dim * 128, _cma_budget // (K * 4))
+        if cma_budget is not None and cma_budget < 2 * K:
+            raise ValueError(
+                f"cma_budget ({cma_budget}) must be at least 2 * K ({2 * K}) "
+                "to allocate at least 2 evaluations per branch"
+            )
+        _cma_budget = cma_budget if cma_budget is not None else 100000
+        self.lam_max = max(2, min(dim * 128, _cma_budget // (K * 4)))
         self.sigma_default = sigma_fracs[0] * span
-        self.sigma_factors: tuple[float, ...] = (
-            tuple(sigma_factors) if sigma_factors is not None else tuple([1.4, 1.6, 2.0, 1.2][:K])
-        )
+        if sigma_factors is not None:
+            if len(sigma_factors) != K:
+                raise ValueError(f"sigma_factors length ({len(sigma_factors)}) must match K ({K})")
+            self.sigma_factors: tuple[float, ...] = tuple(sigma_factors)
+        else:
+            self.sigma_factors = _default_sigma_factors(K)
         self._nipop_level: list[int] = [0] * K
 
         K, n = self.K, dim
@@ -275,12 +275,7 @@ class DLRPortfolio:
         self._c_mu = []
         self._chi_n = math.sqrt(n) * (1 - 1 / (4 * n) + 1 / (21 * n**2))
         for ki in range(K):
-            mue = mu_eff[ki]
-            c_s = (mue + 2) / (n + mue + 5)
-            d_s = 1 + 2 * max(0.0, math.sqrt((mue - 1) / (n + 1)) - 1) + c_s
-            c_c_ = (mue + 2) / (n + 4 + 2 * mue / n)
-            c1 = 2.0 / ((n + 1.3) ** 2 + mue)
-            cmu = min(1 - c1, 2 * (mue - 2 + 1.0 / mue) / ((n + 2) ** 2 + mue))
+            c_s, d_s, c_c_, c1, cmu = _compute_branch_rates(n, mu_eff[ki])
             self._c_sigma.append(c_s)
             self._d_sigma.append(d_s)
             self._c_c.append(c_c_)
@@ -363,9 +358,13 @@ class DLRPortfolio:
         eps = torch.cat([eps_base, -eps_base], dim=1)[:, :lam_max, :]
         w = torch.cat([w_base, -w_base], dim=1)[:, :lam_max, :]
 
-        # D+VVᵀ sampling: y = √d ⊙ ε + V @ w
-        sqrt_d = torch.exp(0.5 * self.log_d)  # (K, n)
-        Vw = torch.bmm(w, self.V.transpose(-1, -2))  # (K, lam_max, n)
+        # D+VVᵀ sampling: y = √d ⊙ ε + (rms(√d) / √k) * V @ w
+        # V columns are unit directions; scaling by rms(√d)/√k keeps the
+        # low-rank perturbation proportional to the diagonal scale D.
+        d_val = torch.exp(self.log_d)  # (K, n)
+        sqrt_d = torch.sqrt(d_val)  # (K, n)
+        v_scale = torch.sqrt(d_val.mean(dim=-1, keepdim=True)) / math.sqrt(max(k, 1))  # (K, 1)
+        Vw = torch.bmm(w, self.V.transpose(-1, -2)) * v_scale.unsqueeze(-1)  # (K, lam_max, n)
         y = sqrt_d.unsqueeze(1) * eps + Vw  # (K, lam_max, n)
         candidates_full = self.means.unsqueeze(1) + self.sigmas.view(K, 1, 1) * y  # (K, lam_max, n)
 
@@ -414,10 +413,10 @@ class DLRPortfolio:
             new_mean = (w_k.unsqueeze(1) * selected).sum(dim=0)  # (n,)
             self.means[ki] = new_mean
             mean_diff = new_mean - old_mean  # (n,)
-            sigma_k = self.sigmas[ki].item()
+            sigma_old = self.sigmas[ki].item()
 
-            # Step direction (normalised)
-            y_w = mean_diff / sigma_k  # (n,)
+            # Step direction (normalised by pre-update sigma_old)
+            y_w = mean_diff / sigma_old  # (n,)
 
             # ---- step-size adaptation (CSA, diagonal whitening) ----
             c_s = self._c_sigma[ki]
@@ -432,8 +431,7 @@ class DLRPortfolio:
             gen_k = self._generation[ki].item() + 1  # 1-based for h_sigma formula
             exp_arg = (c_s / d_s) * (ps_norm / self._chi_n - 1)
             exp_arg = max(-20.0, min(20.0, exp_arg))  # prevent overflow
-            self.sigmas[ki] = sigma_k * math.exp(exp_arg)
-            sigma_k = self.sigmas[ki].item()
+            self.sigmas[ki] = sigma_old * math.exp(exp_arg)
 
             # ---- h_sigma (Heaviside) ----
             denom = math.sqrt(1 - (1 - c_s) ** (2 * gen_k))
@@ -454,29 +452,33 @@ class DLRPortfolio:
             delta_h = (1 - h_sigma) * c_c_ * (2 - c_c_)
             d_old = torch.exp(self.log_d[ki])  # (n,)
 
-            # Weighted rank-μ diagonal contribution
-            y_sel = (selected - old_mean.unsqueeze(0)) / sigma_k  # (mu_k, n)
+            # Weighted rank-μ diagonal contribution (uses pre-update sigma_old)
+            y_sel = (selected - old_mean.unsqueeze(0)) / sigma_old  # (mu_k, n)
             diag_mu = (w_k.unsqueeze(1) * y_sel**2).sum(dim=0)  # (n,)
 
             # Rank-1 diagonal contribution from p_c
             diag_1 = self.p_c[ki] ** 2  # (n,)
 
-            # Combined D update (same structure as CMA-ES covariance but diagonal-only)
-            d_new = ((1 - c1 - cmu + delta_h) * d_old + c1 * diag_1 + cmu * diag_mu).clamp(
+            # Combined D update (Hansen 2016 diagonal structure: c1 * delta_h)
+            d_new = ((1 - c1 - cmu + c1 * delta_h) * d_old + c1 * diag_1 + cmu * diag_mu).clamp(
                 min=1e-30
             )
             self.log_d[ki] = torch.log(d_new)
 
-            # ---- V update: rank-1 (p_c FIFO) + rank-mu (Oja EMA) ----
-            # Columns 0..k_half-1: rank-1 pool (FIFO of evolution paths)
+            # ---- V update: rank-1 (unit p_c FIFO) + rank-mu (Oja EMA) ----
+            # Columns 0..k_half-1: rank-1 pool (FIFO of unit evolution paths)
             # Columns k_half..k-1: rank-mu pool (Oja-style EMA from weighted
             #   selected directions, cycling one column per generation)
             k_half = k // 2
 
-            # Rank-1 pool: FIFO of p_c
+            # Rank-1 pool: FIFO of unit-norm p_c matching rank-mu column scale
             if k_half > 0:
                 rank1 = torch.roll(self.V[ki, :, :k_half], -1, dims=-1)
-                rank1[:, -1] = self.p_c[ki]
+                pc_norm = self.p_c[ki].norm()
+                if pc_norm > 1e-30:
+                    rank1[:, -1] = self.p_c[ki] / pc_norm
+                else:
+                    rank1[:, -1] = 0.0
                 self.V[ki, :, :k_half] = rank1
 
             # Rank-mu pool: Oja-style EMA
@@ -563,12 +565,7 @@ class DLRPortfolio:
         self._lam_max = max(self.lambdas)
 
         # Recompute strategy rates for this branch
-        mue = mu_eff_k
-        c_s = (mue + 2) / (n + mue + 5)
-        d_s = 1 + 2 * max(0.0, math.sqrt((mue - 1) / (n + 1)) - 1) + c_s
-        c_c_ = (mue + 2) / (n + 4 + 2 * mue / n)
-        c1 = 2.0 / ((n + 1.3) ** 2 + mue)
-        cmu = min(1 - c1, 2 * (mue - 2 + 1.0 / mue) / ((n + 2) ** 2 + mue))
+        c_s, d_s, c_c_, c1, cmu = _compute_branch_rates(n, mu_eff_k)
         self._c_sigma[ki] = c_s
         self._d_sigma[ki] = d_s
         self._c_c[ki] = c_c_
@@ -615,6 +612,7 @@ class DLRPortfolio:
         self.best_f_per_branch[ki] = torch.tensor(
             float("inf"), device=self.device, dtype=self.dtype
         )
+        self._generation[ki] = 0
         self.stag_count[ki] = 0
         self._rank_mu_col[ki] = 0
 
@@ -643,6 +641,8 @@ class DLRPortfolio:
             "_rank_mu_col": list(self._rank_mu_col),
             "lambdas": list(self.lambdas),
             "_rng_state": self._rng.get_state(),
+            "_rng_seed": self._rng_seed,
+            "_saved_device_type": self._rng_device.type,
         }
 
     def load_state_dict(self, state: dict[str, Any]) -> None:
@@ -664,7 +664,13 @@ class DLRPortfolio:
         for ki, new_lam in enumerate(state["lambdas"]):
             if new_lam != self.lambdas[ki]:
                 self._resize_branch(ki, new_lam)
-        self._rng.set_state(state["_rng_state"])
+        saved_device_type = state.get("_saved_device_type", self._rng_device.type)
+        if saved_device_type == self._rng_device.type:
+            self._rng.set_state(state["_rng_state"])
+        else:
+            seed = state.get("_rng_seed")
+            if seed is not None:
+                self._rng.manual_seed(seed)
 
     def total_pop(self) -> int:
         return sum(self.lambdas)
