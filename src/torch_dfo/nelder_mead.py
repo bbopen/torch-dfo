@@ -161,17 +161,20 @@ class NelderMead(BaseOptimizer):
             Objective values for each candidate (lower is better).
 
         """
-        fitness = torch.where(
-            torch.isnan(fitness),
-            torch.full_like(fitness, float("inf")),
-            fitness,
-        )
+        raw_fitness = fitness
+        if fitness.is_floating_point():
+            fitness = torch.where(
+                torch.isnan(fitness),
+                torch.full_like(fitness, float("inf")),
+                fitness,
+            )
+        fitness = fitness.to(device=self.device, dtype=self.dtype)
 
         if self._needs_full_eval:
             self.population[:] = candidates[: self.pop_size]
             self.fitness[:] = fitness[: self.pop_size]
             self._needs_full_eval = False
-            self._update_best(candidates[: self.pop_size], fitness[: self.pop_size])
+            self._update_best(candidates[: self.pop_size], raw_fitness[: self.pop_size])
             self._generation += 1
             return
 

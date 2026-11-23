@@ -32,14 +32,14 @@ class BaseOptimizer:
             self.device = torch.device("cpu")
         self.dtype = dtype
         self.lb, self.ub = normalize_bounds(bounds, dim, self.device, self.dtype)
-        self._rng_seed = seed
         self._gen = make_generator(seed, self.device)
+        self._rng_seed: int | None = seed if seed is not None else int(self._gen.initial_seed())
         self._gen_device = self._gen.device
         self._generation = 0
 
         self.population = torch.empty(pop_size, dim, device=self.device, dtype=self.dtype)
         self.fitness = torch.full((pop_size,), float("inf"), device=self.device, dtype=self.dtype)
-        self.best_solution = torch.zeros(dim, device=self.device, dtype=self.dtype)
+        self.best_solution = 0.5 * self.lb + 0.5 * self.ub
         self.best_fitness = torch.tensor(float("inf"), device=self.device, dtype=self.dtype)
 
     def next_batch_size(self) -> int:
@@ -69,13 +69,16 @@ class BaseOptimizer:
 
         Uses torch.where for torch.compile compatibility -- no Python if/else on tensors.
         """
-        safe_fitness = torch.where(
-            torch.isnan(fitness),
-            torch.full_like(fitness, float("inf")),
-            fitness,
-        )
+        if fitness.is_floating_point():
+            safe_fitness = torch.where(
+                torch.isnan(fitness),
+                torch.full_like(fitness, float("inf")),
+                fitness,
+            )
+        else:
+            safe_fitness = fitness
         batch_best_idx = safe_fitness.argmin()
-        batch_best_f = safe_fitness[batch_best_idx]
+        batch_best_f = safe_fitness[batch_best_idx].to(dtype=self.best_fitness.dtype)
         batch_best_x = candidates[batch_best_idx]
 
         improved = batch_best_f < self.best_fitness
@@ -134,6 +137,8 @@ class BaseOptimizer:
         self._generation = state["_generation"]
 
         saved_device_type = state.get("_saved_device_type", self._gen.device.type)
+        if "_rng_seed" in state:
+            self._rng_seed = state["_rng_seed"]
         if saved_device_type == self._gen.device.type:
             self._gen.set_state(state["_gen_state"])
         else:

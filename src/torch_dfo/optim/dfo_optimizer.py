@@ -175,24 +175,31 @@ class DFOOptimizer(torch.optim.Optimizer):
         pop_size = candidates.shape[0]
 
         if closure_batched is not None:
-            fitness = closure_batched(candidates)
+            try:
+                fitness = closure_batched(candidates)
+            finally:
+                self._evals += pop_size
+                self._mark_terminal_residue()
         else:
             assert closure is not None
             losses: list[torch.Tensor] = []
             original_params = self._flatten_params().clone()
+            attempted = 0
             try:
                 for i in range(pop_size):
                     self._set_params(candidates[i])
+                    attempted += 1
                     loss = closure()
                     if not isinstance(loss, torch.Tensor):
                         loss = torch.tensor(loss, device=candidates.device, dtype=candidates.dtype)
-                    losses.append(loss.detach())
+                    losses.append(loss.detach().clone())
             finally:
                 self._set_params(original_params)
+                self._evals += attempted
+                self._mark_terminal_residue()
             fitness = torch.stack(losses).to(device=candidates.device, dtype=candidates.dtype)
 
         self._inner.tell(candidates, fitness)
-        self._evals += pop_size
 
         self._set_params(self._inner.best_solution)
         self._mark_terminal_residue()

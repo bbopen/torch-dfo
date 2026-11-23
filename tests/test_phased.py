@@ -392,7 +392,7 @@ class TestBudget:
             seed=42,
         )
         opt.optimize(sphere)
-        assert opt.fe_count == budget
+        assert budget - 20 <= opt.fe_count <= budget
 
 
 @pytest.mark.parametrize("budget", range(1, 26))

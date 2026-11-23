@@ -1391,6 +1391,29 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             return 0.0
         return max(0.0, self._cmaes_overall_start_f - float(self.best_fitness))
 
+    def next_batch_size(self) -> int:
+        """Return the exact number of candidates the next ``ask()`` call will produce."""
+        remaining = self._budget - self._fe_count
+        if remaining <= 0:
+            return 0
+        if self._phase == 0:
+            n = self._shade.next_batch_size()
+            return n if n <= remaining else 0
+        if self._phase == 1:
+            if self._high_dim:
+                if self._cmaes_portfolio is not None:
+                    active_indices = self._portfolio_active_indices_for_next_ask()
+                    n = sum(self._cmaes_portfolio[i].next_batch_size() for i in active_indices)
+                else:
+                    n = sum(_cma.portfolio_lambdas_for_dim(self))
+            else:
+                if self._cmaes is not None:
+                    n = self._cmaes.next_batch_size()
+                else:
+                    n = max(4 + math.floor(3 * math.log(self.dim)), self._shade.pop_size // 2)
+            return n if n <= remaining else 0
+        return 0
+
     def ask(self) -> torch.Tensor:
         """Generate candidate solutions from the active phase's sub-optimizer.
 
@@ -1880,7 +1903,7 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         self._cmaes_stagnation_counter = 0
         self._cmaes_phase_best_f = float("inf")
 
-        self.best_solution = torch.zeros(self.dim, device=self.device, dtype=self.dtype)
+        self.best_solution = 0.5 * self.lb + 0.5 * self.ub
         self.best_fitness = torch.tensor(float("inf"), device=self.device, dtype=self.dtype)
 
         self._elite_solutions = []
@@ -1978,12 +2001,8 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         if self._phase >= 2 and self._fe_count < self._budget and not self._high_dim:
             explore_budget = int(self._budget * self._basin_explore_budget_frac)
             if explore_budget > 50:
-                torch_rng_state = torch.random.get_rng_state()
                 explore_end = min(self._budget, self._fe_count + explore_budget)
-                try:
-                    self._multistart_basin_explore(actual_fn, explore_end)
-                finally:
-                    torch.random.set_rng_state(torch_rng_state)
+                self._multistart_basin_explore(actual_fn, explore_end)
 
         if self._phase >= 2 and self._fe_count < self._budget:
             self._run_polish(actual_fn)

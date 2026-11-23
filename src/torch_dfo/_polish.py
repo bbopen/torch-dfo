@@ -876,14 +876,25 @@ def nm_polish(
         return x.clone(), torch.tensor(float("inf"), device=x.device, dtype=x.dtype), 0
 
     dim = x.shape[0]
+    if bounds is not None:
+        nm_bounds = bounds
+    else:
+        finfo = torch.finfo(x.dtype)
+        max_abs = float(x.abs().max().item()) if x.numel() > 0 else 0.0
+        half_width = min(max(1e12, max_abs * 10.0 + 1e6), finfo.max * 0.25)
+        nm_bounds = (x - half_width, x + half_width)
     nm = NelderMead(
         dim=dim,
-        bounds=bounds if bounds is not None else (-1e12, 1e12),
+        bounds=nm_bounds,
         device=x.device,
         dtype=x.dtype,
     )
 
-    x_clamped = clamp_to_bounds(x.unsqueeze(0), nm.lb, nm.ub).squeeze(0)
+    x_clamped = (
+        clamp_to_bounds(x.unsqueeze(0), nm.lb, nm.ub).squeeze(0)
+        if bounds is not None
+        else x.clone()
+    )
     span = (
         (nm.ub - nm.lb) if bounds is not None else torch.ones(dim, device=x.device, dtype=x.dtype)
     )
@@ -892,19 +903,25 @@ def nm_polish(
     for i in range(dim):
         step = delta[i]
         cand = x_clamped[i] + step
-        if cand > nm.ub[i]:
-            cand = x_clamped[i] - step
-        simplex[i + 1, i] = torch.clamp(cand, min=nm.lb[i], max=nm.ub[i])
+        if bounds is not None:
+            if cand > nm.ub[i]:
+                cand = x_clamped[i] - step
+            cand = torch.clamp(cand, min=nm.lb[i], max=nm.ub[i])
+        simplex[i + 1, i] = cand
     nm.population.copy_(simplex)
     nm._initialized = True
     nm._needs_full_eval = True
 
     raw_f0 = fitness_fn(x_clamped.unsqueeze(0)).squeeze()
     best_x = x_clamped.clone()
-    best_f = torch.where(
-        torch.isnan(raw_f0),
-        torch.tensor(float("inf"), device=x.device, dtype=x.dtype),
-        raw_f0,
+    best_f = (
+        torch.where(
+            torch.isnan(raw_f0),
+            torch.tensor(float("inf"), device=x.device, dtype=x.dtype),
+            raw_f0,
+        )
+        if raw_f0.is_floating_point()
+        else raw_f0.to(dtype=x.dtype)
     )
     evals = 1
     while evals < budget:

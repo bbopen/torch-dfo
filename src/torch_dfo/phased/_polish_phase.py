@@ -41,6 +41,7 @@ from torch_dfo._polish import (
     nm_polish,
     smoothed_envelope_search,
 )
+from torch_dfo.utils import clamp_to_bounds
 
 if TYPE_CHECKING:
     from torch_dfo.phased.orchestrator import PhasedDFO
@@ -87,6 +88,26 @@ def run_polish(
         return
 
     best_x, best_f = opt.best()
+    best_x = clamp_to_bounds(best_x.unsqueeze(0), opt.lb, opt.ub).squeeze(0)
+    if not torch.isfinite(best_f):
+        raw_f0 = fitness_fn(best_x.unsqueeze(0)).squeeze()
+        opt._fe_count += 1
+        f0 = (
+            torch.where(
+                torch.isnan(raw_f0),
+                torch.tensor(float("inf"), device=opt.device, dtype=opt.dtype),
+                raw_f0,
+            )
+            if raw_f0.is_floating_point()
+            else raw_f0.to(device=opt.device, dtype=opt.dtype)
+        )
+        best_f = f0.clone()
+        opt.best_solution = best_x.clone()
+        opt.best_fitness = best_f.clone()
+        remaining = opt._budget - opt._fe_count
+        if remaining <= 0:
+            opt._phase = 3
+            return
 
     elite_centroid = None
     elite_median = None

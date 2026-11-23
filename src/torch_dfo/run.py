@@ -378,8 +378,17 @@ class SearchRun:
             self._failure(observed, charge)
             return
 
+        if observed.values.shape[1] == 1:
+            aggregate = observed.values[:, 0]
+        else:
+            scale = observed.values.abs().amax(dim=1, keepdim=True).clamp(min=1.0)
+            aggregate = (observed.values / scale).mean(dim=1) * scale.squeeze(1)
+        if not torch.isfinite(aggregate).all():
+            observed.error = "evaluation aggregate is non-finite"
+            self._failure(observed, charge)
+            return
+
         self._settle(observed, charge)
-        aggregate = observed.values.mean(dim=1)
         self._update_best(pending.private_x, pending.public.ids, aggregate)
         try:
             self.optimizer.tell(pending.private_x.clone(), aggregate)

@@ -9,8 +9,8 @@ Verifies floating-point and real-algebraic invariants across the core optimizers
      mask a finite candidate in both f32 and f64.
   4. NelderMead.tell NaN -> +inf sanitization makes all comparisons ordered
      and guarantees all-NaN trial batches always trigger shrink.
-  5. sanitize_fitness using isfinite() produces finite worst_finite + 1.0
-     when finite values coexist with +inf and NaN.
+  5. sanitize_fitness using isfinite() with nextafter fallback produces a
+     strictly greater replacement than any finite candidate (never ties).
   6. QF_NRA: Hansen (2016) CMA-ES & DLRPortfolio rates satisfy
      0 < c_sigma, c_c, c_1 < 1, c_mu >= 0, c_1 + c_mu <= 1, and active
      0 <= c_mu_neg <= (1 - c_1 - c_mu) / dim for ALL dim >= 1, mu_eff >= 1.
@@ -22,6 +22,12 @@ from __future__ import annotations
 import z3
 
 
+def _require(condition: bool, message: str) -> None:
+    """Enforce a verification invariant even when Python runs with -O / PYTHONOPTIMIZE=1."""
+    if not condition:
+        raise AssertionError(message)
+
+
 def main() -> None:
     print(f"Z3 version: {z3.get_version_string()}")
     rm = z3.RNE()
@@ -29,7 +35,6 @@ def main() -> None:
     f64 = z3.Float64()
 
     # 1. Fixed SearchSpace Categorical midpoint encoding (idx + 0.5) / n
-    #    src/torch_dfo/space.py:163-170
     for label, cast_f32 in [("f64", False), ("f64->f32->f64", True)]:
         bad = 0
         for n in range(1, 51):
@@ -45,13 +50,13 @@ def main() -> None:
                         z3.fpGEQ(prod, z3.FPVal(float(k + 1), f64)),
                     )
                 )
-                if s.check() == z3.sat:
+                res = s.check()
+                if res != z3.unsat:
                     bad += 1
-        assert bad == 0, f"Midpoint encoding failed for {bad} cases in {label}"
+        _require(bad == 0, f"Midpoint encoding failed for {bad} cases in {label}")
         print(f"[PASS] IEEE-754 {label} Categorical midpoint (idx+0.5)/n: 0 violations (n=1..50)")
 
     # 2. Fixed SHADE +inf parent -> uniform weight fallback keeps memory_F/CR finite & non-NaN
-    #    src/torch_dfo/shade.py:348-370
     for dt_name, fp in [("f32", f32), ("f64", f64)]:
         s = z3.Solver()
         f_parent = z3.fpPlusInfinity(fp)
@@ -80,14 +85,13 @@ def main() -> None:
                 z3.fpIsInf(mean_cr),
             )
         )
-        assert s.check() == z3.unsat
+        _require(s.check() == z3.unsat, f"SHADE +inf parent check failed in {dt_name}")
         print(
             f"[PASS] IEEE-754 {dt_name} SHADE +inf parent -> "
             "memory_F & memory_CR ALWAYS finite (unsat)"
         )
 
     # 3. Fixed BaseOptimizer._update_best NaN -> +inf masking
-    #    src/torch_dfo/base.py:70-85
     for dt_name, fp in [("f32", f32), ("f64", f64)]:
         s = z3.Solver()
         f_good = z3.FP("f_good", fp)
@@ -97,23 +101,20 @@ def main() -> None:
         f_nan = z3.fpNaN(fp)
         safe_nan = z3.If(z3.fpIsNaN(f_nan), z3.fpPlusInfinity(fp), f_nan)
         safe_good = z3.If(z3.fpIsNaN(f_good), z3.fpPlusInfinity(fp), f_good)
-        # Masking guarantees safe_good < safe_nan so argmin picks safe_good (< best_f).
         s.add(z3.Not(z3.And(z3.fpLT(safe_good, safe_nan), z3.fpLT(safe_good, best_f))))
-        assert s.check() == z3.unsat
+        _require(s.check() == z3.unsat, f"BaseOptimizer._update_best NaN check failed in {dt_name}")
         print(
             f"[PASS] IEEE-754 {dt_name} BaseOptimizer._update_best "
             "NaN masking selects finite winner (unsat)"
         )
 
     # 4. Fixed NelderMead.tell NaN -> +inf sanitization
-    #    src/torch_dfo/nelder_mead.py:170-230
     for dt_name, fp in [("f32", f32), ("f64", f64)]:
         s = z3.Solver()
         f_best, f_sec, f_worst = z3.FPs("f_best f_sec f_worst", fp)
         for v in (f_best, f_sec, f_worst):
             s.add(z3.Not(z3.fpIsNaN(v)), z3.Not(z3.fpIsInf(v)))
         s.add(z3.fpLEQ(f_best, f_sec), z3.fpLEQ(f_sec, f_worst))
-        # Sanitize all-NaN trial batch to +inf
         f_r = z3.fpPlusInfinity(fp)
         f_co = z3.fpPlusInfinity(fp)
         f_ci = z3.fpPlusInfinity(fp)
@@ -126,34 +127,37 @@ def main() -> None:
             z3.And(try_in, z3.Not(z3.fpLT(f_ci, f_worst))),
         )
         s.add(z3.Not(need_shrink))
-        assert s.check() == z3.unsat
+        _require(s.check() == z3.unsat, f"NelderMead.tell all-NaN check failed in {dt_name}")
         print(
             f"[PASS] IEEE-754 {dt_name} NelderMead.tell "
             "sanitized all-NaN batch ALWAYS triggers shrink (unsat)"
         )
 
-    # 5. Fixed sanitize_fitness with [finite, +inf, NaN] produces finite replacement
-    #    src/torch_dfo/utils.py:36-44
-    for dt_name, fp, cap in [("f32", f32, 1e30), ("f64", f64, 1e100)]:
+    # 5. Fixed sanitize_fitness with [finite, +inf, NaN] and nextafter fallback
+    for dt_name, fp, bv_bits in [("f32", f32, 32), ("f64", f64, 64)]:
         s = z3.Solver()
         f_fin = z3.FP("f_fin", fp)
         s.add(
             z3.Not(z3.fpIsNaN(f_fin)),
             z3.Not(z3.fpIsInf(f_fin)),
-            z3.fpGEQ(f_fin, z3.FPVal(-cap, fp)),
-            z3.fpLEQ(f_fin, z3.FPVal(cap, fp)),
         )
-        # Finite mask excludes +inf and NaN, so worst_finite == f_fin; replacement = f_fin + 1.0
-        replaced = z3.fpAdd(rm, f_fin, z3.FPVal(1.0, fp))
-        s.add(z3.Or(z3.fpIsNaN(replaced), z3.fpIsInf(replaced)))
-        assert s.check() == z3.unsat
+        added = z3.fpAdd(rm, f_fin, z3.FPVal(1.0, fp))
+        bv = z3.fpToIEEEBV(f_fin)
+        next_bv = z3.If(
+            z3.fpIsNegative(f_fin),
+            bv - z3.BitVecVal(1, bv_bits),
+            bv + z3.BitVecVal(1, bv_bits),
+        )
+        next_up = z3.fpBVToFP(next_bv, fp)
+        replaced = z3.If(z3.fpGT(added, f_fin), added, next_up)
+        s.add(z3.Or(z3.fpIsNaN(replaced), z3.Not(z3.fpGT(replaced, f_fin))))
+        _require(s.check() == z3.unsat, f"sanitize_fitness strict dominance failed in {dt_name}")
         print(
             f"[PASS] IEEE-754 {dt_name} sanitize_fitness "
-            "isfinite() replacement ALWAYS finite (unsat)"
+            "isfinite() + nextafter replacement STRICTLY > ALL finite max (unsat)"
         )
 
     # 6. QF_NRA: Hansen (2016) rates + Active CMA PSD bound hold for ALL dim >= 1, mu_eff >= 1
-    #    src/torch_dfo/cmaes.py:46-54, 193-196 & src/torch_dfo/dlr_cma.py:58-64
     s_fix = z3.Solver()
     d2, m2 = z3.Reals("d2 m2")
     s_fix.add(d2 >= 1, m2 >= 1)
@@ -179,7 +183,7 @@ def main() -> None:
             c_mu_neg * d2 > 1 - c_1 - c_mu,
         )
     )
-    assert s_fix.check() == z3.unsat
+    _require(s_fix.check() == z3.unsat, "QF_NRA Hansen rates / active PSD bound failed")
     print(
         "[PASS] QF_NRA Hansen (2016) rates + Active PSD bound "
         "hold for ALL dim>=1, mu_eff>=1 (unsat)"
@@ -193,7 +197,7 @@ def main() -> None:
     q_tie = z3.fpMul(rm, z3.fpRoundToIntegral(rm, z3.fpDiv(rm, x_tie, step)), step)
     q_up = z3.fpMul(rm, z3.fpRoundToIntegral(rm, z3.fpDiv(rm, x_up, step)), step)
     s.add(z3.Not(z3.And(z3.fpEQ(q_tie, z3.FPVal(0.0, f32)), z3.fpEQ(q_up, z3.FPVal(0.25, f32)))))
-    assert s.check() == z3.unsat
+    _require(s.check() == z3.unsat, "Thermal quantization 1-ULP boundary check failed")
     print("[PASS] IEEE-754 f32 Thermal quantization 1-ULP boundary documented (unsat)")
 
 

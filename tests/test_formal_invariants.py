@@ -761,3 +761,236 @@ class TestPolishAndOrchestratorInvariants:
         for pa, pb in zip(suite_a, suite_b, strict=True):
             if pa.dim == 6:
                 assert torch.allclose(pa.fn(x), pb.fn(x))
+
+
+class TestReviewRegressions:
+    """Regression tests covering edge cases from adversarial review."""
+
+    def test_phased_small_budget_with_nonzero_bounds_stays_feasible(self) -> None:
+        """PhasedDFO with budget smaller than first DE batch stays inside bounds excluding zero."""
+        from torch_dfo import PhasedDFO
+
+        seen: list[torch.Tensor] = []
+
+        def tracked_sum(x: torch.Tensor) -> torch.Tensor:
+            seen.append(x.clone())
+            return x.sum(dim=1)
+
+        opt = PhasedDFO(dim=3, bounds=(5.0, 6.0), budget=1, device="cpu", dtype=torch.float64)
+        best_x, best_f = opt.optimize(tracked_sum)
+        assert len(seen) >= 1
+        for batch in seen:
+            assert torch.all(batch >= 5.0) and torch.all(batch <= 6.0)
+        assert torch.all(best_x >= 5.0) and torch.all(best_x <= 6.0)
+        assert best_f.item() >= 15.0
+
+        opt.reset()
+        assert torch.all(opt.best_solution >= 5.0) and torch.all(opt.best_solution <= 6.0)
+
+    def test_dlr_float32_boundary_trajectory_stays_finite(self) -> None:
+        """DLRPortfolio in float32 against a boundary-pushing linear objective stays finite."""
+        opt = DLRPortfolio(dim=2, bounds=(1.0, 2.0), seed=3, device="cpu", dtype=torch.float32)
+        for step in range(250):
+            x = opt.ask()
+            assert torch.isfinite(x).all(), f"Non-finite candidates at step {step}"
+            opt.tell(x, x.sum(dim=1))
+            assert torch.isfinite(opt.V).all(), f"Non-finite V at step {step}"
+            assert torch.isfinite(opt.log_d).all(), f"Non-finite log_d at step {step}"
+            assert torch.isfinite(opt.sigmas).all(), f"Non-finite sigmas at step {step}"
+
+    def test_integer_fitness_accepted_by_public_optimizers(self) -> None:
+        """Integral fitness tensors work through tell() without NaN-mask overflow."""
+        from torch_dfo import SHADE, NelderMead, RandomSearch
+
+        for opt in (
+            CMAES(dim=3, bounds=5.0, pop_size=6, device="cpu", dtype=torch.float64, seed=0),
+            SHADE(dim=3, bounds=5.0, pop_size=6, device="cpu", dtype=torch.float64, seed=0),
+            RandomSearch(dim=3, bounds=5.0, pop_size=6, device="cpu", dtype=torch.float64, seed=0),
+            NelderMead(dim=3, bounds=5.0, device="cpu", dtype=torch.float64, seed=0),
+        ):
+            x = opt.ask()
+            fit = torch.arange(len(x), dtype=torch.int64)
+            opt.tell(x, fit)
+            assert opt.best_fitness.item() == pytest.approx(0.0)
+
+        dlr = DLRPortfolio(dim=3, bounds=5.0, lambdas=(4, 4), seed=0, device="cpu")
+        xd = dlr.ask()
+        dlr.tell(xd, torch.arange(len(xd), dtype=torch.int64))
+        assert dlr.best_fitness.item() == pytest.approx(0.0)
+
+    def test_cmaes_consecutive_eigendecomp_preserves_anisotropic_physical_variance(self) -> None:
+        """Two consecutive _update_eigensystem() calls preserve sigma^2 * C on extreme spectrum."""
+        opt = CMAES(dim=2, bounds=5.0, pop_size=6, device="cpu", dtype=torch.float64, seed=0)
+        opt.sigma = 1.0
+        opt.C = torch.diag(torch.tensor([1.0, 1e28], dtype=torch.float64))
+        cov_before = (opt.sigma**2) * opt.C.clone()
+
+        opt._update_eigensystem()
+        cov_after_1 = (opt.sigma**2) * opt.C.clone()
+        opt._update_eigensystem()
+        cov_after_2 = (opt.sigma**2) * opt.C.clone()
+
+        assert torch.allclose(cov_after_1, cov_before, rtol=1e-10, atol=1e-10)
+        assert torch.allclose(cov_after_2, cov_before, rtol=1e-10, atol=1e-10)
+
+    def test_shade_recovers_from_initial_nan_population(self) -> None:
+        """SHADE recovers when the initial generation fitness contains NaNs."""
+        from torch_dfo import SHADE
+
+        opt = SHADE(dim=3, bounds=5.0, pop_size=6, device="cpu", dtype=torch.float64, seed=0)
+        x0 = opt.ask()
+        opt.tell(x0, torch.full((len(x0),), float("nan"), dtype=torch.float64))
+        assert not torch.isnan(opt.fitness).any()
+
+        x1 = opt.ask()
+        opt.tell(x1, torch.zeros(len(x1), dtype=torch.float64))
+        assert opt.best_fitness.item() == pytest.approx(0.0)
+        assert torch.isfinite(opt.memory_F).all()
+        assert torch.isfinite(opt.memory_CR).all()
+
+    def test_dfo_optimizer_clones_parameter_view_loss_and_charges_failed_evals(self) -> None:
+        """DFOOptimizer clones parameter-view losses and charges attempted calls on exceptions."""
+        from torch_dfo import DFOOptimizer
+
+        p = torch.nn.Parameter(torch.tensor([0.1], dtype=torch.float64))
+        opt = DFOOptimizer(
+            [p],
+            algorithm="cmaes",
+            bounds=1.0,
+            pop_size=4,
+            budget=4,
+            seed=3,
+        )
+        seen_vals: list[float] = []
+
+        def view_closure() -> torch.Tensor:
+            seen_vals.append(float(p[0].item()))
+            return p[0]
+
+        best_loss = opt.step(closure=view_closure)
+        assert best_loss.item() == pytest.approx(min(seen_vals))
+        assert p[0].item() == pytest.approx(min(seen_vals))
+
+        p2 = torch.nn.Parameter(torch.tensor([0.1, 0.2], dtype=torch.float64))
+        opt2 = DFOOptimizer([p2], algorithm="cmaes", bounds=2.0, pop_size=4, budget=4, seed=0)
+        calls = 0
+
+        def fail_second() -> torch.Tensor:
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise RuntimeError("boom")
+            return (p2**2).sum()
+
+        with pytest.raises(RuntimeError, match="boom"):
+            opt2.step(closure=fail_second)
+        assert calls == 2
+        assert opt2.budget_remaining == 2
+        assert opt2.is_exhausted
+        with pytest.raises(RuntimeError, match="budget exhausted"):
+            opt2.step(closure=lambda: (p2**2).sum())
+
+    def test_search_run_overflow_resistant_repeat_mean(self) -> None:
+        """SearchRun computes overflow-resistant mean for large finite float32 repeats."""
+        from torch_dfo import RandomSearch, minimize
+
+        opt = RandomSearch(dim=2, bounds=1.0, pop_size=4, device="cpu", dtype=torch.float32, seed=0)
+        res = minimize(
+            lambda x: torch.full((x.shape[0],), 3e38, dtype=torch.float32),
+            opt,
+            max_evals=8,
+            repeats=2,
+        )
+        assert res.stop_reason == "budget exhausted"
+        assert res.best_value is not None and torch.isfinite(res.best_value)
+        assert res.best_value.item() == pytest.approx(3e38, rel=1e-6)
+
+    def test_opposition_and_midpoint_stay_finite_on_large_same_sign_bounds(self) -> None:
+        """Large same-sign float32 bounds where lb + ub overflows still emit finite candidates."""
+        from torch_dfo import SHADE, PhasedDFO
+
+        opt = SHADE(
+            dim=3, bounds=(2e38, 3e38), pop_size=6, device="cpu", dtype=torch.float32, seed=0
+        )
+        x = opt.ask()
+        assert torch.isfinite(x).all()
+        assert torch.all(x >= 2e38) and torch.all(x <= 3e38)
+
+        p = PhasedDFO(dim=3, bounds=(2e38, 3e38), budget=10, device="cpu", dtype=torch.float32)
+        xp = p.ask()
+        if xp.shape[0] > 0:
+            assert torch.isfinite(xp).all()
+        assert torch.isfinite(p.best_solution).all()
+
+    def test_dlr_checkpoint_preserves_last_active_and_effective_rng_seed(self) -> None:
+        """DLRPortfolio preserves _last_active across budget-filtered ask and effective RNG seed."""
+        rng = torch.Generator(device="cpu").manual_seed(42)
+        src = DLRPortfolio(dim=4, bounds=5.0, lambdas=(6, 2), rng=rng, device="cpu")
+        x = src.ask(remaining_budget=2)
+        assert x.shape[0] == 2
+        state = src.state_dict()
+        assert state["_rng_seed"] == 42
+
+        dst = DLRPortfolio(dim=4, bounds=5.0, lambdas=(6, 2), seed=99, device="cpu")
+        dst.load_state_dict(state)
+        dst.tell(x, (x**2).sum(dim=-1))
+        assert dst.state_dict()["_rng_seed"] == 42
+
+        c1 = CMAES(dim=3, bounds=5.0, pop_size=6, seed=42, device="cpu")
+        c2 = CMAES(dim=3, bounds=5.0, pop_size=6, seed=99, device="cpu")
+        c2.load_state_dict(c1.state_dict())
+        assert c2.state_dict()["_rng_seed"] == 42
+
+    def test_phased_next_batch_size_matches_ask_without_mutating_state(self) -> None:
+        """PhasedDFO.next_batch_size() predicts exact ask() size without advancing RNG."""
+        from torch_dfo import PhasedDFO
+
+        opt_small = PhasedDFO(dim=2, bounds=1.0, budget=1, device="cpu", seed=0)
+        assert opt_small.next_batch_size() == 0
+        assert opt_small.ask().shape[0] == 0
+
+        opt = PhasedDFO(dim=4, bounds=5.0, budget=2000, device="cpu", seed=7)
+        rng_before = opt._gen.get_state()
+        pred_de = opt.next_batch_size()
+        assert torch.equal(rng_before, opt._gen.get_state())
+        x_de = opt.ask()
+        assert x_de.shape[0] == pred_de
+
+    def test_nm_polish_unbounded_does_not_clip_large_incumbent(self) -> None:
+        """nm_polish with bounds=None evaluates incumbents beyond 1e12 without clipping."""
+        from torch_dfo._polish import nm_polish
+
+        x0 = torch.tensor([2e12], dtype=torch.float64)
+        bx, bf, used = nm_polish(x0, lambda X: ((X - 2e12) ** 2).sum(dim=-1), budget=1, bounds=None)
+        assert used == 1
+        assert bx.item() == pytest.approx(2e12)
+        assert bf.item() == pytest.approx(0.0)
+
+    def test_sanitize_fitness_strictly_dominates_large_float32_finite_values(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """sanitize_fitness uses nextafter when worst + 1.0 rounds back to worst."""
+        import torch_dfo.utils as _utils
+        from torch_dfo.utils import sanitize_fitness
+
+        monkeypatch.setattr(_utils, "_NAN_WARNED", True)
+        f = torch.tensor([float("nan"), float(2**24)], dtype=torch.float32)
+        clean = sanitize_fitness(f)
+        assert clean[0].item() > clean[1].item()
+        assert int(clean.argmin().item()) == 1
+
+    def test_phased_basin_explore_does_not_rewind_objective_global_rng(self) -> None:
+        """Objective-owned torch.rand() draws during basin exploration are not rewound."""
+        from torch_dfo import PhasedDFO
+
+        torch.manual_seed(12345)
+        opt = PhasedDFO(dim=3, bounds=5.0, budget=300, pop_size=12, device="cpu", seed=7)
+        draws: list[float] = []
+
+        def noisy_sphere(x: torch.Tensor) -> torch.Tensor:
+            val = float(torch.rand(1).item())
+            draws.append(val)
+            return (x**2).sum(dim=-1) + 1e-6 * val
+
+        opt.optimize(noisy_sphere)
+        assert len(draws) == len(set(draws)), "Global RNG state was rewound and replayed draws"

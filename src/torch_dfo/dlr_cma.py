@@ -196,11 +196,16 @@ class DLRPortfolio:
         self.sigma_fracs = list(sigma_fracs)
         self.device = device
         self.dtype = dtype
-        self._rng_seed = seed
         self._rng = rng
+        self._rng_seed: int | None = (
+            seed
+            if seed is not None
+            else (int(rng.initial_seed()) if hasattr(rng, "initial_seed") else None)
+        )
         self._rng_device = (
             torch.device(rng.device) if hasattr(rng, "device") else torch.device("cpu")
         )
+        self._last_active: list[int] = list(range(len(lambdas)))
 
         if k_rank is None:
             k_rank = max(4, min(dim // 2, 16))
@@ -280,7 +285,7 @@ class DLRPortfolio:
         self.best_f_per_branch = torch.full((K,), float("inf"), device=device, dtype=dtype)
         self.stag_count = torch.zeros(K, dtype=torch.long, device=device)
 
-        self.best_solution = ((self.lb + self.ub) / 2).clone()
+        self.best_solution = (0.5 * self.lb + 0.5 * self.ub).clone()
         self.best_fitness = torch.tensor(float("inf"), device=device, dtype=dtype)
 
     def ask(self, remaining_budget: int | None = None) -> Tensor:
@@ -367,27 +372,41 @@ class DLRPortfolio:
             selected = cands_k[best_idx]
             w_k = self._weights[ki, :mu_k]
 
+            finfo = torch.finfo(self.dtype)
             old_mean = self.means[ki].clone()
-            new_mean = (w_k.unsqueeze(1) * selected).sum(dim=0)
+            displacements = selected - old_mean.unsqueeze(0)
+            mean_diff = (w_k.unsqueeze(1) * displacements).sum(dim=0)
+            new_mean = old_mean + mean_diff
             self.means[ki] = new_mean
-            mean_diff = new_mean - old_mean
-            sigma_old = self.sigmas[ki].item()
 
-            y_w = mean_diff / sigma_old
+            coord_scale = max(
+                float(old_mean.abs().max().item()),
+                float((self.ub - self.lb).max().item()),
+                1.0,
+            )
+            sigma_floor = max(finfo.tiny * 1e6, 10.0 * finfo.eps * coord_scale)
+            sigma_ceil = max(sigma_floor * 10.0, 10.0 * coord_scale)
+            sigma_old = float(self.sigmas[ki].item())
+            eff_sigma = max(sigma_old, sigma_floor)
+
+            y_w = mean_diff / eff_sigma
 
             c_s = self._c_sigma[ki]
             d_s = self._d_sigma[ki]
             mue = self._mu_eff[ki]
             invsqrt_d = torch.exp(-0.5 * self.log_d[ki])
             whitened = invsqrt_d * y_w
-            self.p_sigma[ki] = (1 - c_s) * self.p_sigma[ki] + math.sqrt(
+            p_sigma_new = (1 - c_s) * self.p_sigma[ki] + math.sqrt(
                 max(c_s * (2 - c_s) * mue, 0.0)
             ) * whitened
+            if torch.isfinite(p_sigma_new).all():
+                self.p_sigma[ki] = p_sigma_new
             ps_norm = torch.linalg.norm(self.p_sigma[ki]).item()
             gen_k = self._generation[ki].item() + 1
             exp_arg = (c_s / d_s) * (ps_norm / self._chi_n - 1)
             exp_arg = max(-20.0, min(20.0, exp_arg))
-            self.sigmas[ki] = sigma_old * math.exp(exp_arg)
+            next_sigma = eff_sigma * math.exp(exp_arg)
+            self.sigmas[ki] = min(max(next_sigma, sigma_floor), sigma_ceil)
 
             denom = math.sqrt(1 - (1 - c_s) ** (2 * gen_k))
             lhs = ps_norm / (denom + 1e-30)
@@ -395,23 +414,31 @@ class DLRPortfolio:
             h_sigma = 1.0 if lhs < rhs else 0.0
 
             c_c_ = self._c_c[ki]
-            self.p_c[ki] = (1 - c_c_) * self.p_c[ki] + h_sigma * math.sqrt(
+            p_c_new = (1 - c_c_) * self.p_c[ki] + h_sigma * math.sqrt(
                 max(c_c_ * (2 - c_c_) * mue, 0.0)
             ) * y_w
+            if torch.isfinite(p_c_new).all():
+                self.p_c[ki] = p_c_new
 
             c1 = self._c_1[ki]
             cmu = self._c_mu[ki]
             delta_h = (1 - h_sigma) * c_c_ * (2 - c_c_)
             d_old = torch.exp(self.log_d[ki])
 
-            y_sel = (selected - old_mean.unsqueeze(0)) / sigma_old
-            diag_mu = (w_k.unsqueeze(1) * y_sel**2).sum(dim=0)
+            y_sel = displacements / eff_sigma
+            y_scale = float(y_sel.abs().max().item())
+            if y_scale > 1.0 and math.isfinite(y_scale):
+                y_normed = y_sel / y_scale
+                diag_mu = (w_k.unsqueeze(1) * (y_normed**2)).sum(dim=0) * (y_scale**2)
+            else:
+                y_normed = y_sel
+                diag_mu = (w_k.unsqueeze(1) * (y_sel**2)).sum(dim=0)
 
             diag_1 = self.p_c[ki] ** 2
 
-            d_new = ((1 - c1 - cmu + c1 * delta_h) * d_old + c1 * diag_1 + cmu * diag_mu).clamp(
-                min=1e-30
-            )
+            d_cap = min(1e30, finfo.max**0.25)
+            d_new = (1 - c1 - cmu + c1 * delta_h) * d_old + c1 * diag_1 + cmu * diag_mu
+            d_new = torch.where(torch.isfinite(d_new), d_new, d_old).clamp(min=1e-30, max=d_cap)
             self.log_d[ki] = torch.log(d_new)
 
             k_half = k // 2
@@ -419,7 +446,7 @@ class DLRPortfolio:
             if k_half > 0:
                 rank1 = torch.roll(self.V[ki, :, :k_half], -1, dims=-1)
                 pc_norm = self.p_c[ki].norm()
-                if pc_norm > 1e-30:
+                if torch.isfinite(pc_norm) and pc_norm > 1e-30:
                     rank1[:, -1] = self.p_c[ki] / pc_norm
                 else:
                     rank1[:, -1] = 0.0
@@ -431,26 +458,32 @@ class DLRPortfolio:
                 v_old = self.V[ki, :, k_half + mu_col]
                 v_old_norm = v_old.norm()
 
-                if v_old_norm < 1e-30:
-                    v_new = (w_k.unsqueeze(1) * y_sel).sum(dim=0)
+                if not torch.isfinite(v_old_norm) or v_old_norm < 1e-30:
+                    v_new = (w_k.unsqueeze(1) * y_normed).sum(dim=0)
                     v_norm = v_new.norm()
-                    if v_norm > 1e-30:
+                    if torch.isfinite(v_norm) and v_norm > 1e-30:
                         self.V[ki, :, k_half + mu_col] = v_new / v_norm
                 else:
-                    dots = y_sel @ v_old
-                    v_new = (w_k * dots) @ y_sel
+                    dots = y_normed @ v_old
+                    v_new = (w_k * dots) @ y_normed
                     v_norm = v_new.norm()
-                    if v_norm > 1e-30:
+                    if torch.isfinite(v_norm) and v_norm > 1e-30:
                         v_new = v_new / v_norm
                         v_blended = (1 - self._oja_alpha) * v_old + self._oja_alpha * v_new
-                        self.V[ki, :, k_half + mu_col] = v_blended / (v_blended.norm() + 1e-30)
+                        vb_norm = v_blended.norm()
+                        if torch.isfinite(vb_norm) and vb_norm > 1e-30:
+                            self.V[ki, :, k_half + mu_col] = v_blended / vb_norm
                 self._rank_mu_col[ki] = (mu_col + 1) % k_mu
 
-            safe_fit_k = torch.where(torch.isnan(fit_k), float("inf"), fit_k)
+            safe_fit_k = (
+                torch.where(torch.isnan(fit_k), float("inf"), fit_k)
+                if fit_k.is_floating_point()
+                else fit_k
+            )
             best_fit_k = safe_fit_k.min().item()
             if best_fit_k < self.best_fitness.item():
                 bi = safe_fit_k.argmin()
-                self.best_fitness = safe_fit_k[bi].clone()
+                self.best_fitness = safe_fit_k[bi].to(dtype=self.dtype).clone()
                 self.best_solution = cands_k[bi].clone()
 
             if best_fit_k < self.best_f_per_branch[ki].item() - 1e-14:
@@ -563,6 +596,7 @@ class DLRPortfolio:
             "best_fitness": self.best_fitness.clone(),
             "_nipop_level": list(self._nipop_level),
             "_rank_mu_col": list(self._rank_mu_col),
+            "_last_active": list(self._last_active),
             "lambdas": list(self.lambdas),
             "_rng_state": self._rng.get_state(),
             "_rng_seed": self._rng_seed,
@@ -584,10 +618,13 @@ class DLRPortfolio:
         self.best_fitness.copy_(state["best_fitness"])
         self._nipop_level = list(state["_nipop_level"])
         self._rank_mu_col = list(state["_rank_mu_col"])
+        self._last_active = list(state.get("_last_active", range(self.K)))
         for ki, new_lam in enumerate(state["lambdas"]):
             if new_lam != self.lambdas[ki]:
                 self._resize_branch(ki, new_lam)
         saved_device_type = state.get("_saved_device_type", self._rng_device.type)
+        if "_rng_seed" in state:
+            self._rng_seed = state["_rng_seed"]
         if saved_device_type == self._rng_device.type:
             self._rng.set_state(state["_rng_state"])
         else:

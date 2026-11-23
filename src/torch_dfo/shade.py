@@ -291,16 +291,26 @@ class SHADE(BaseOptimizer):
             (pop_size,) objective values (lower is better).
 
         """
+        safe_fitness = (
+            torch.where(
+                torch.isnan(fitness),
+                torch.full_like(fitness, float("inf")),
+                fitness,
+            )
+            if fitness.is_floating_point()
+            else fitness.to(dtype=self.dtype)
+        )
+
         if self._generation == 0:
-            self.fitness.copy_(fitness)
+            self.fitness.copy_(safe_fitness)
             self.population.copy_(candidates)
             self._update_best(candidates, fitness)
             self._generation += 1
             return
 
-        improved = fitness < self.fitness
+        improved = safe_fitness < self.fitness
         new_pop = torch.where(improved.unsqueeze(1), candidates, self.population)
-        new_fit = torch.where(improved, fitness, self.fitness)
+        new_fit = torch.where(improved, safe_fitness, self.fitness)
 
         if improved.any():
             replaced_parents = self.population[improved]
@@ -313,7 +323,7 @@ class SHADE(BaseOptimizer):
             succ_F = self._memory._trial_F[improved]
             succ_CR = self._memory._trial_CR[improved]
 
-            delta_f = self.fitness[improved] - fitness[improved]
+            delta_f = self.fitness[improved] - safe_fitness[improved]
             delta_sum = delta_f.sum()
             if torch.isfinite(delta_f).all() and torch.isfinite(delta_sum) and delta_sum > 0:
                 weights = delta_f / delta_sum

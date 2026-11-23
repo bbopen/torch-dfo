@@ -40,7 +40,13 @@ def sanitize_fitness(fitness: torch.Tensor) -> torch.Tensor:
             else torch.tensor(0.0, device=fitness.device, dtype=fitness.dtype)
         )
         fitness = fitness.clone()
-        fitness[nan_mask] = (worst + 1.0).to(dtype=fitness.dtype)
+        replacement = (worst + 1.0).to(dtype=fitness.dtype)
+        if replacement <= worst:
+            replacement = torch.nextafter(
+                worst,
+                torch.tensor(float("inf"), device=fitness.device, dtype=fitness.dtype),
+            )
+        fitness[nan_mask] = replacement
     return fitness
 
 

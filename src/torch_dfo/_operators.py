@@ -154,12 +154,19 @@ def opposition_init(
 
     half = (pop_size + 1) // 2
 
-    rand_pts = torch.rand(half, dim, device=gen_device, dtype=dtype, generator=generator)
+    u = torch.rand(half, dim, device=gen_device, dtype=dtype, generator=generator)
     if gen_device != device:
-        rand_pts = rand_pts.to(device)
-    rand_pts = lb + rand_pts * (ub - lb)
-
-    opposition = lb + ub - rand_pts
+        u = u.to(device)
+    span = ub - lb
+    if torch.isfinite(span).all():
+        rand_pts = torch.clamp(lb + u * span, min=lb, max=ub)
+        opposition = torch.clamp(ub - u * span, min=lb, max=ub)
+    else:
+        mid = 0.5 * lb + 0.5 * ub
+        half_span = 0.5 * ub - 0.5 * lb
+        offset = (2.0 * u - 1.0) * half_span
+        rand_pts = torch.clamp(mid + offset, min=lb, max=ub)
+        opposition = torch.clamp(mid - offset, min=lb, max=ub)
 
     combined = torch.cat([rand_pts, opposition], dim=0)
     return combined[:pop_size]

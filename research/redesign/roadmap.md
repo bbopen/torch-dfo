@@ -15,7 +15,7 @@ Core design principles:
 
 - Synchronous budgeted search (`SearchRun` and `minimize`) supporting `CMAES`, `SHADE`, `NelderMead`, and `RandomSearch`, with fixed repeats, raw observation logs, and planned-pause checkpoints.
 - Self-budgeted `PhasedDFO` pipeline (`optimize()`) and `DLRPortfolio` for higher dimensions.
-- Machine-checked mathematical and IEEE-754 invariants in Lean 4 and Z3 with automated CI checks.
+- Machine-checked mathematical and IEEE-754 invariants in Lean 4 and Z3 (`formal/verify.sh`), paired with automated Tier-2 PyTorch refinement tests (`tests/test_formal_invariants.py`) in CI.
 - Reproducible benchmark harnesses in `benchmarks/` covering compiled CUDA thermal control, CMA-ES cross-library comparison, and simulation calibration.
 
 ## Next priorities

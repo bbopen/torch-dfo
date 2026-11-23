@@ -208,10 +208,11 @@ class CMAES(BaseOptimizer):
         """Initialise or reset all mutable CMA-ES state tensors."""
         dim = self.dim
 
-        self.mean = ((self.lb + self.ub) / 2).clone()
+        self.mean = (0.5 * self.lb + 0.5 * self.ub).clone()
 
         span = (self.ub - self.lb).mean().item()
         self.sigma = sigma0 * span
+        self._initial_sigma = self.sigma
 
         self.sigma_min = 1e-30
         self.sigma_max = float("inf")
@@ -575,7 +576,14 @@ class CMAES(BaseOptimizer):
         else:
             eigenvalues, self.B = torch.linalg.eigh(self.C)
 
-        eigenvalues = torch.clamp(eigenvalues, min=1e-8)
+        finfo = torch.finfo(self.dtype)
+        sigma_ref = getattr(self, "_initial_sigma", 1.0)
+        if self.sigma > 0.0 and math.isfinite(self.sigma):
+            sigma_ratio_sq = (sigma_ref / self.sigma) ** 2
+            eig_floor = min(1e-8, max(finfo.tiny * 1e6, 1e-8 * sigma_ratio_sq))
+        else:
+            eig_floor = 1e-8
+        eigenvalues = torch.clamp(eigenvalues, min=eig_floor)
 
         mean_eig = float(eigenvalues.mean().item())
         need_normalize = self._normalize_on_decomp or (
@@ -587,7 +595,8 @@ class CMAES(BaseOptimizer):
             actual_scale_sqrt = new_sigma / self.sigma
             actual_scale = actual_scale_sqrt * actual_scale_sqrt
             if actual_scale > 0.0 and math.isfinite(actual_scale):
-                eigenvalues = torch.clamp(eigenvalues / actual_scale, min=1e-30)
+                post_floor = max(finfo.tiny * 1e6, eig_floor / actual_scale)
+                eigenvalues = torch.clamp(eigenvalues / actual_scale, min=post_floor)
                 self.sigma = new_sigma
                 self._path.p_c = self._path.p_c / actual_scale_sqrt
 

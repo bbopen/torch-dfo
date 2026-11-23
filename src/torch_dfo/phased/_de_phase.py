@@ -44,7 +44,7 @@ def probe_midpoint(opt: PhasedDFO) -> None:
         return
     if opt._fe_count >= opt._budget:
         return
-    midpoint = (opt.lb + opt.ub) / 2
+    midpoint = 0.5 * opt.lb + 0.5 * opt.ub
     mid_f = opt._fitness_fn(midpoint.unsqueeze(0)).squeeze()
     opt._fe_count += 1
     if torch.isfinite(mid_f):
