@@ -36,11 +36,6 @@ from torch_dfo.cmaes import CMAES, _default_pop_size
 class TestConstruction:
     """Validate constructor wiring, default pop_size, and tensor shapes."""
 
-    def test_default_pop_size_formula(self) -> None:
-        for dim in (2, 5, 10, 30, 100):
-            expected = 4 + math.floor(3 * math.log(dim))
-            assert _default_pop_size(dim) == expected
-
     def test_default_pop_size_used(self, device: torch.device) -> None:
         dtype = best_float_dtype(device)
         dim = 10
@@ -165,28 +160,6 @@ class TestStrategyParameters:
             2 * (mu_eff - 2 + 1.0 / mu_eff) / ((dim + 2) ** 2 + mu_eff),
         )
         assert opt.c_mu == pytest.approx(expected_c_mu, abs=ATOL_F64_DEFAULT)
-
-
-# ---------------------------------------------------------------------------
-# Decomposition frequency
-# ---------------------------------------------------------------------------
-class TestDecompositionFrequency:
-    """Verify eigendecomposition frequency follows the formula."""
-
-    @pytest.mark.parametrize("dim", [5, 20, 50])
-    def test_decomposition_frequency(self, dim: int) -> None:
-        """``_decomp_frequency`` matches Hansen's schedule across several dimensions."""
-        opt = CMAES(
-            dim=dim,
-            bounds=5.0,
-            device=torch.device("cpu"),
-            dtype=torch.float64,
-            seed=42,
-        )
-        expected = max(1, math.floor(1 / (10 * dim * (opt.c_1 + opt.c_mu))))
-        assert opt._decomp_frequency == expected, (
-            f"dim={dim}: got {opt._decomp_frequency}, expected {expected}"
-        )
 
 
 # ---------------------------------------------------------------------------

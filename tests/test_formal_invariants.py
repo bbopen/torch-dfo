@@ -329,11 +329,14 @@ class TestIEEE754BoundarySafety:
 
     def test_sanitize_fitness_uses_finite_max_and_preserves_dtype(self) -> None:
         """sanitize_fitness ignores +inf when computing worst_seen and preserves input dtype."""
+        import torch_dfo.utils as _utils
         from torch_dfo.utils import sanitize_fitness
 
+        _utils._NAN_WARNED = False
         # Mix of finite, +inf, and NaN in float64
         f_mix = torch.tensor([1.0, float("inf"), float("nan"), 3.0], dtype=torch.float64)
-        clean_mix = sanitize_fitness(f_mix)
+        with pytest.warns(UserWarning, match="NaN fitness"):
+            clean_mix = sanitize_fitness(f_mix)
         assert clean_mix.dtype == torch.float64
         assert clean_mix[1].item() == float("inf")
         assert clean_mix[2].item() == pytest.approx(4.0), (

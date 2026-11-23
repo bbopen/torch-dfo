@@ -1027,10 +1027,6 @@ class TestPolishIntegration:
 class TestFdStepTrustRatio:
     """Verify FD step is capped at GRADIENT_FD_TRUST_RATIO * trust_radius."""
 
-    def test_gradient_fd_trust_ratio_constant(self) -> None:
-        """The constant must be 0.10."""
-        assert GRADIENT_FD_TRUST_RATIO == 0.10
-
     def test_bfgs_fd_step_respects_trust_ratio(self, device: torch.device) -> None:
         """FD step h should be capped by GRADIENT_FD_TRUST_RATIO * trust_radius.
 

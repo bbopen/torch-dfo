@@ -17,13 +17,10 @@ def _make_dlr(
     """Helper to build a DLRPortfolio with standard test settings."""
     device = torch.device("cpu")
     dtype = torch.float64
-    lb = torch.full((dim,), -5.0, device=device, dtype=dtype)
-    ub = torch.full((dim,), 5.0, device=device, dtype=dtype)
     rng = torch.Generator(device=device).manual_seed(42)
     return DLRPortfolio(
         dim=dim,
-        lb=lb,
-        ub=ub,
+        bounds=(-5.0, 5.0),
         lambdas=lambdas,
         sigma_fracs=sigma_fracs,
         device=device,
