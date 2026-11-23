@@ -1003,10 +1003,18 @@ class TestReviewRegressions:
 
         p = torch.nn.Parameter(torch.zeros(5, dtype=torch.float64))
         opt = DFOOptimizer([p], algorithm="nelder_mead", bounds=2.0, budget=10, seed=0)
-        opt.step(closure=lambda: (p**2).sum())
+        seen_remaining: list[int] = []
+
+        def tracked_closure() -> torch.Tensor:
+            seen_remaining.append(opt.budget_remaining)
+            return (p**2).sum()
+
+        opt.step(closure=tracked_closure)
+        assert seen_remaining == [9, 8, 7, 6, 5, 4]
         assert opt.budget_remaining == 4
         assert not opt.is_exhausted
-        opt.step(closure=lambda: (p**2).sum())
+        opt.step(closure=tracked_closure)
+        assert seen_remaining[6:] == [3, 2, 1, 0]
         assert opt.budget_remaining == 0
         assert opt.is_exhausted
 
@@ -1121,31 +1129,38 @@ class TestReviewRegressions:
         assert opt2.is_exhausted
 
     def test_dlr_and_cmaes_dim5_large_float32_bounds_have_finite_span_and_samples(self) -> None:
-        """dim=5 float32 bounds (2e38, 3e38) keep span, sigmas, and interior samples finite."""
-        dlr = DLRPortfolio(dim=5, bounds=(2e38, 3e38), seed=0, device="cpu", dtype=torch.float32)
-        assert torch.isfinite(dlr.sigmas).all()
-        xd = dlr.ask()
-        assert torch.isfinite(xd).all()
-        assert ((xd > 2e38) & (xd < 3e38)).any()
+        """dim=5 float32 bounds (2e38, 3e38) and (-2e38, 2e38) keep span and samples finite."""
+        for bounds in ((2e38, 3e38), (-2e38, 2e38)):
+            lo, hi = bounds
+            dlr = DLRPortfolio(dim=5, bounds=bounds, seed=0, device="cpu", dtype=torch.float32)
+            assert torch.isfinite(dlr.sigmas).all()
+            xd = dlr.ask()
+            assert torch.isfinite(xd).all()
+            assert ((xd > lo) & (xd < hi)).any()
 
-        cma = CMAES(
-            dim=5, bounds=(2e38, 3e38), pop_size=8, seed=0, device="cpu", dtype=torch.float32
-        )
-        assert math.isfinite(cma.sigma)
-        cma.restart()
-        assert math.isfinite(cma.sigma)
-        xc = cma.ask()
-        assert torch.isfinite(xc).all()
-        assert ((xc > 2e38) & (xc < 3e38)).any()
+            cma = CMAES(dim=5, bounds=bounds, pop_size=8, seed=0, device="cpu", dtype=torch.float32)
+            assert math.isfinite(cma.sigma)
+            cma.restart()
+            assert math.isfinite(cma.sigma)
+            xc = cma.ask()
+            assert torch.isfinite(xc).all()
+            assert ((xc > lo) & (xc < hi)).any()
 
     def test_nm_polish_unbounded_shrink_does_not_clamp_to_1e12(self) -> None:
-        """Unbounded nm_polish preserves coordinates past 1e12 across simplex shrink steps."""
+        """Unbounded nm_polish preserves simplex coordinates past 1e12 across shrink steps."""
         from torch_dfo._polish import nm_polish
 
         x0 = torch.tensor([1.8e12], dtype=torch.float64)
-        bx, bf, _used = nm_polish(
-            x0, lambda X: torch.ones(X.shape[0], dtype=X.dtype), budget=20, bounds=None
-        )
+        evaluated: list[torch.Tensor] = []
+
+        def plateau(X: torch.Tensor) -> torch.Tensor:
+            evaluated.append(X.clone())
+            return torch.ones(X.shape[0], dtype=X.dtype)
+
+        bx, bf, _used = nm_polish(x0, plateau, budget=20, bounds=None)
+        assert len(evaluated) >= 4
+        for batch in evaluated:
+            assert torch.all(batch >= 1.5e12), f"Shrink clamped simplex vertex: {batch}"
         assert bx.item() >= 1.7e12
         assert bf.item() == pytest.approx(1.0)
 

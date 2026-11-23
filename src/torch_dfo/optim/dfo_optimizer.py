@@ -185,12 +185,11 @@ class DFOOptimizer(torch.optim.Optimizer):
             assert closure is not None
             losses: list[torch.Tensor] = []
             original_params = self._flatten_params().clone()
-            attempted = 0
             try:
                 try:
                     for i in range(pop_size):
                         self._set_params(candidates[i])
-                        attempted += 1
+                        self._evals += 1
                         loss = closure()
                         if not isinstance(loss, torch.Tensor):
                             loss = torch.tensor(
@@ -199,7 +198,6 @@ class DFOOptimizer(torch.optim.Optimizer):
                         losses.append(loss.detach().clone())
                 finally:
                     self._set_params(original_params)
-                    self._evals += attempted
                 fitness = torch.stack(losses).to(device=candidates.device, dtype=candidates.dtype)
                 self._inner.tell(candidates, fitness)
             finally:

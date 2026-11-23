@@ -51,9 +51,12 @@ def sanitize_fitness(fitness: torch.Tensor) -> torch.Tensor:
 
 
 def mean_span(lb: torch.Tensor, ub: torch.Tensor) -> float:
-    """Return mean per-dimension box span without intermediate float32 sum overflow."""
+    """Return mean per-dimension box span without float32 overflow."""
     n = max(lb.numel(), 1)
-    return float(((ub / n) - (lb / n)).sum().item())
+    target_dev = torch.device("cpu") if lb.device.type == "mps" else lb.device
+    lb64 = lb.to(device=target_dev, dtype=torch.float64)
+    ub64 = ub.to(device=target_dev, dtype=torch.float64)
+    return float(((ub64 / n) - (lb64 / n)).sum().item())
 
 
 def resolve_device(device: str | torch.device | None = None) -> torch.device:
