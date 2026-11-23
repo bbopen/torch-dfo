@@ -298,3 +298,111 @@ class TestDLRPortfolioFormalInvariants:
     def test_dlr_no_dead_woodbury_solve(self) -> None:
         """Dead _woodbury_solve helper has been removed."""
         assert not hasattr(dlr_cma_mod, "_woodbury_solve")
+
+
+# ===========================================================================
+# Phase 2: IEEE-754 & Numerical Boundary Safety
+# ===========================================================================
+
+
+class TestIEEE754BoundarySafety:
+    """Refinement tests for Z3-verified NaN, +inf, dtype, and Categorical round-trip invariants."""
+
+    def test_base_update_best_ignores_nan_and_selects_finite_winner(self) -> None:
+        """A single NaN in a batch must never mask a valid improving finite candidate."""
+        opt = CMAES(dim=3, bounds=5.0, pop_size=4, device="cpu", dtype=torch.float64, seed=0)
+        candidates = torch.tensor(
+            [
+                [9.0, 9.0, 9.0],
+                [0.1, 0.0, 0.0],
+                [2.0, 2.0, 2.0],
+                [3.0, 3.0, 3.0],
+            ],
+            dtype=torch.float64,
+        )
+        fitness = torch.tensor([float("nan"), 0.01, 8.0, 18.0], dtype=torch.float64)
+        opt._update_best(candidates, fitness)
+        assert opt.best_fitness.item() == pytest.approx(0.01), (
+            f"NaN masked finite winner: best_fitness={opt.best_fitness.item()}"
+        )
+        assert torch.allclose(opt.best_solution, candidates[1])
+
+    def test_sanitize_fitness_uses_finite_max_and_preserves_dtype(self) -> None:
+        """sanitize_fitness ignores +inf when computing worst_seen and preserves input dtype."""
+        from torch_dfo.utils import sanitize_fitness
+
+        # Mix of finite, +inf, and NaN in float64
+        f_mix = torch.tensor([1.0, float("inf"), float("nan"), 3.0], dtype=torch.float64)
+        clean_mix = sanitize_fitness(f_mix)
+        assert clean_mix.dtype == torch.float64
+        assert clean_mix[1].item() == float("inf")
+        assert clean_mix[2].item() == pytest.approx(4.0), (
+            f"NaN became {clean_mix[2].item()} instead of worst_finite + 1.0 = 4.0"
+        )
+
+        # All-NaN in float64 must preserve float64 dtype
+        f_all_nan = torch.tensor([float("nan"), float("nan")], dtype=torch.float64)
+        clean_all_nan = sanitize_fitness(f_all_nan)
+        assert clean_all_nan.dtype == torch.float64
+        assert torch.allclose(clean_all_nan, torch.tensor([1.0, 1.0], dtype=torch.float64))
+
+    @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+    def test_shade_pos_inf_parent_does_not_poison_memory(self, dtype: torch.dtype) -> None:
+        """Replacing a +inf parent with a finite offspring must never poison SHADE memory."""
+        from torch_dfo.shade import SHADE
+
+        opt = SHADE(dim=4, bounds=5.0, pop_size=6, device="cpu", dtype=dtype, seed=0)
+        x0 = opt.ask()
+        f0 = torch.tensor(
+            [float("inf"), 10.0, 20.0, 30.0, 40.0, 50.0],
+            dtype=dtype,
+        )
+        opt.tell(x0, f0)
+
+        x1 = opt.ask()
+        # Offspring 0 improves over +inf parent (delta_f = +inf), others are worse
+        f1 = torch.tensor([5.0, 100.0, 200.0, 300.0, 400.0, 500.0], dtype=dtype)
+        opt.tell(x1, f1)
+
+        assert torch.isfinite(opt.memory_F).all(), f"memory_F poisoned: {opt.memory_F}"
+        assert torch.isfinite(opt.memory_CR).all(), f"memory_CR poisoned: {opt.memory_CR}"
+        assert not torch.isnan(opt.memory_F).any()
+        assert not torch.isnan(opt.memory_CR).any()
+
+    def test_nelder_mead_tell_sanitizes_nan_fitness(self) -> None:
+        """NelderMead.tell must sanitize NaN fitness to +inf on both full-eval and 4-trial steps."""
+        from torch_dfo.nelder_mead import NelderMead
+
+        opt = NelderMead(dim=2, bounds=5.0, device="cpu", dtype=torch.float64, seed=0)
+        x0 = opt.ask()
+        opt.tell(x0, torch.tensor([1.0, float("nan"), 3.0], dtype=torch.float64))
+        assert not torch.isnan(opt.fitness).any(), f"NaN stored in simplex fitness: {opt.fitness}"
+        assert opt.fitness[1].item() == float("inf")
+        assert opt.best_fitness.item() == pytest.approx(1.0)
+
+        # Now on 4-trial step: all NaN trials must trigger shrink, never store NaN
+        trials = opt.ask()
+        opt.tell(trials, torch.full((4,), float("nan"), dtype=torch.float64))
+        assert opt._needs_full_eval is True, "All-NaN trials should trigger shrink"
+        assert not torch.isnan(opt.fitness).any()
+        assert torch.isfinite(opt.best_fitness)
+
+    @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+    def test_search_space_categorical_roundtrip_all_sizes(self, dtype: torch.dtype) -> None:
+        """Categorical encode/decode round-trip must be exact for all n=1..50 in f32 and f64.
+
+        Specifically guards Z3 counterexamples (n=22, idx=15) in f64 and (n=6, idx=5) in f32.
+        """
+        from torch_dfo.space import Categorical, SearchSpace
+
+        for n in range(1, 51):
+            choices = [f"c{i}" for i in range(n)]
+            space = SearchSpace([Categorical("cat", choices)])
+            configs = [{"cat": c} for c in choices]
+            encoded = space.encode(configs, dtype=dtype)
+            decoded = space.decode(encoded)
+            for idx, (orig, dec) in enumerate(zip(configs, decoded, strict=True)):
+                assert dec["cat"] == orig["cat"], (
+                    f"dtype={dtype}, n={n}, idx={idx}: encoded={encoded[idx, 0].item()} "
+                    f"decoded to {dec['cat']} instead of {orig['cat']}"
+                )

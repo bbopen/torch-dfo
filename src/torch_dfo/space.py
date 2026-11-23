@@ -164,11 +164,9 @@ class SearchSpace:
         choices = p.choices
         # .index() raises ValueError for unknown values — desired behaviour
         idx = choices.index(v)
-        # Categorical encodes to [0, (n-1)/n], never reaching 1.0.
-        # This is intentional: u=1.0 is decoded to the last choice via clamp,
-        # so there is no gap, but encoding avoids emitting 1.0 to prevent
-        # the decode floor() from indexing out of bounds.
-        return idx / len(choices)
+        # Encode at the bin midpoint (idx + 0.5) / n so floor(u * n) == idx
+        # survives both float64 and float32 IEEE-754 rounding without drift.
+        return (idx + 0.5) / len(choices)
 
     @staticmethod
     def _decode_one(p: Float | Int | Categorical, u: float) -> Any:

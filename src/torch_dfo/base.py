@@ -66,9 +66,15 @@ class BaseOptimizer:
 
         Uses torch.where for torch.compile compatibility -- no Python if/else on tensors.
         """
+        # Mask NaN to +inf so a single NaN never masks valid improving finite candidates.
+        safe_fitness = torch.where(
+            torch.isnan(fitness),
+            torch.full_like(fitness, float("inf")),
+            fitness,
+        )
         # Find best in this batch
-        batch_best_idx = fitness.argmin()
-        batch_best_f = fitness[batch_best_idx]
+        batch_best_idx = safe_fitness.argmin()
+        batch_best_f = safe_fitness[batch_best_idx]
         batch_best_x = candidates[batch_best_idx]
 
         # Update global best using torch.where (compile-safe)

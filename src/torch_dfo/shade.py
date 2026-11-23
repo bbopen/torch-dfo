@@ -253,7 +253,9 @@ class SHADE(BaseOptimizer):
         # Pick random memory index for each individual
         mem_idx = self._randint(0, self.memory_size, (self.pop_size,))
 
-        # F_i ~ Normal(memory_F[k], 0.1), clamped to [0.05, 1.0]
+        # F_i ~ Normal(memory_F[k], 0.1), clamped to [0.05, 1.0].
+        # Intentional deviation from Tanabe & Fukunaga (2013) Cauchy sampling:
+        # bounded Normal avoids heavy-tail F spikes on batched GPU populations.
         loc_F = self._memory.memory_F[mem_idx]
         trial_F = loc_F + 0.1 * self._randn(self.pop_size)
         trial_F = trial_F.clamp(0.05, 1.0)
@@ -344,9 +346,16 @@ class SHADE(BaseOptimizer):
             succ_F = self._memory._trial_F[improved]
             succ_CR = self._memory._trial_CR[improved]
 
-            # Improvement weights: delta_f_j = f_parent_j - f_offspring_j
+            # Improvement weights: delta_f_j = f_parent_j - f_offspring_j.
+            # When a +inf parent is replaced by a finite offspring (or delta_f
+            # overflows), delta_f / sum(delta_f) would evaluate inf / inf = NaN.
+            # Fall back to uniform finite weights in that case so memory stays finite.
             delta_f = self.fitness[improved] - fitness[improved]
-            weights = delta_f / delta_f.sum()
+            delta_sum = delta_f.sum()
+            if torch.isfinite(delta_f).all() and torch.isfinite(delta_sum) and delta_sum > 0:
+                weights = delta_f / delta_sum
+            else:
+                weights = torch.full_like(succ_F, 1.0 / succ_F.numel())
 
             # Lehmer mean for F: sum(w * F^2) / sum(w * F)
             wF = weights * succ_F

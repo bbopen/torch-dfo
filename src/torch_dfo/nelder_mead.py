@@ -173,6 +173,14 @@ class NelderMead(BaseOptimizer):
             Objective values for each candidate (lower is better).
 
         """
+        # Treat NaN fitness as +inf (dominated) so NaN never falls through
+        # simplex order comparisons or corrupts self.fitness.
+        fitness = torch.where(
+            torch.isnan(fitness),
+            torch.full_like(fitness, float("inf")),
+            fitness,
+        )
+
         if self._needs_full_eval:
             # Store initial (or post-shrink) simplex evaluation
             self.population[:] = candidates[: self.pop_size]

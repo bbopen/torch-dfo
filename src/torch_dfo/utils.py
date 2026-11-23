@@ -33,10 +33,14 @@ def sanitize_fitness(fitness: torch.Tensor) -> torch.Tensor:
                     stacklevel=2,
                 )
                 _NAN_WARNED = True
-        finite = fitness[~nan_mask]
-        worst = finite.max() if finite.numel() > 0 else torch.tensor(0.0, device=fitness.device)
+        finite = fitness[torch.isfinite(fitness)]
+        worst = (
+            finite.max()
+            if finite.numel() > 0
+            else torch.tensor(0.0, device=fitness.device, dtype=fitness.dtype)
+        )
         fitness = fitness.clone()
-        fitness[nan_mask] = worst + 1.0
+        fitness[nan_mask] = (worst + 1.0).to(dtype=fitness.dtype)
     return fitness
 
 
