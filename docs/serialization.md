@@ -1,8 +1,8 @@
 # Serialization
 
-All optimizers implement `state_dict()` and `load_state_dict()` following PyTorch conventions.
+All optimizers implement PyTorch-style `state_dict()` and `load_state_dict()`.
 
-## Basic round-trip
+## Same-device round-trip
 
 ```python
 import torch
@@ -11,55 +11,25 @@ import torch_dfo
 opt = torch_dfo.CMAES(dim=10, bounds=5.0, device="cuda", seed=42)
 for _ in range(100):
     x = opt.ask()
-    opt.tell(x, (x ** 2).sum(-1))
+    opt.tell(x, (x**2).sum(-1))
 
-# Save
 torch.save(opt.state_dict(), "checkpoint.pt")
 
-# Restore on any compatible optimizer
 opt2 = torch_dfo.CMAES(dim=10, bounds=5.0, device="cuda")
-opt2.load_state_dict(torch.load("checkpoint.pt"))
-
-# Bit-exact continuation (same device)
+opt2.load_state_dict(torch.load("checkpoint.pt", weights_only=False))
 assert torch.allclose(opt.ask(), opt2.ask())
 ```
 
+Same-device restores (`cpu -> cpu`, `cuda -> cuda`) reproduce the candidate stream bit-for-bit. `BaseOptimizer.load_state_dict()` also resizes population buffers when restoring checkpoints saved after `SHADE` population reduction.
+
 ## Cross-device loading
 
-Saving on one device and loading on another is supported:
+Loading a checkpoint onto a different device type (`cpu -> cuda` or `cuda -> cpu`) restores all tensor state and re-seeds the random generator from `_rng_seed` because PyTorch CPU and CUDA generator state buffers are not binary-compatible. Continuation stays deterministic from the stored seed, not bit-identical to the source device. This applies across all optimizers including `DLRPortfolio`.
 
-```python
-# CPU → CUDA
-src = torch_dfo.SHADE(dim=5, bounds=5.0, device="cpu", seed=42)
-state = src.state_dict()
+## PhasedDFO checkpoints
 
-dst = torch_dfo.SHADE(dim=5, bounds=5.0, device="cuda")
-dst.load_state_dict(state)          # population & fitness restored on CUDA
-```
+`PhasedDFO.state_dict()` saves the nested `SHADE`, `CMAES` or portfolio branches, phase counters, and elite pools. `load_state_dict()` restores all nested state and preserves the shared generator reference across nested CMA-ES instances.
 
-**Important:** Cross-device loads are **non-bit-exact**. PyTorch's CPU and CUDA generators use different binary state representations, so the RNG is re-seeded from the stored seed rather than restored byte-for-byte. The optimizer will continue deterministically from the seed, but the sequence will diverge from what the original CPU run would have produced.
+## Security
 
-Same-device round-trips (CPU → CPU, CUDA → CUDA) remain bit-exact.
-
-## PhasedDFO state
-
-`PhasedDFO.state_dict()` captures all nested state:
-- The SHADE sub-optimizer (phase 0)
-- The CMAES sub-optimizer or portfolio (phase 1)
-- All phase-machine fields (phase index, budget counters, stagnation trackers)
-- The elite pool and search pool accumulated across phases
-
-Load `PhasedDFO` state into an optimizer created with the same `dim`, `bounds`, and `budget`:
-
-```python
-opt1 = torch_dfo.PhasedDFO(dim=10, bounds=5.0, budget=50000, seed=42)
-# ... run for a while ...
-state = opt1.state_dict()
-
-opt2 = torch_dfo.PhasedDFO(dim=10, bounds=5.0, budget=50000)
-opt2.load_state_dict(state)         # full state, including nested SHADE/CMAES
-```
-
-## Security note
-
-`load_state_dict` deserialises optimizer state from an arbitrary dict. **Do not call it on untrusted input.** Treat it with the same caution as `torch.load(weights_only=False)`.
+Treat serialized optimizer checkpoints the same as `torch.load(..., weights_only=False)`. Do not load untrusted checkpoint files.

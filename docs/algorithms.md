@@ -1,17 +1,21 @@
 # Algorithms
 
+## RandomSearch
+
+Uniform bounded search with an isolated `torch.Generator`. Useful as a baseline and compatible with partial final batches in `SearchRun`.
+
+```python
+opt = torch_dfo.RandomSearch(dim=20, bounds=(-5.0, 5.0), pop_size=32, device="cpu")
+```
+
 ## CMAES
 
-Covariance Matrix Adaptation Evolution Strategy (Hansen 2001).
-Full-covariance CMA-ES with mirrored sampling, active CMA updates,
-IPOP population-doubling restarts, and an optional limited-memory
-path sampler. Eigendecomposition runs on the target device.
+Full-covariance CMA-ES (Hansen 2016) with mirrored sampling, Mahalanobis-scaled active covariance updates, exact gauge-preserving eigensystem normalization when triggered, and IPOP restarts.
 
 ```python
 opt = torch_dfo.CMAES(
     dim=20,
     bounds=(-5.0, 5.0),
-    pop_size=None,      # default: 4 + floor(3 ln dim)
     sigma0=0.3,
     mirrored=True,
     active=True,
@@ -19,15 +23,11 @@ opt = torch_dfo.CMAES(
 )
 ```
 
-**Ceiling:** O(d³) eigendecomposition per generation; prefer `SHADE` or
-`DLRPortfolio` when full covariance updates dominate runtime at large dimension.
+Eigendecomposition costs `O(d^3)` per decomposition step. Prefer `SHADE` or `DLRPortfolio` when dense covariance updates dominate runtime at high dimension.
 
 ## SHADE
 
-Success-History Based Adaptive Differential Evolution (Tanabe & Fukunaga 2014).
-Self-adaptive F and CR via circular success-history memory.
-Current-to-pbest/1 mutation with JADE-style external archive.
-Scales well to high dimensions when population size is held fixed.
+Success-history adaptive differential evolution (Tanabe & Fukunaga 2014) with current-to-pbest/1 mutation, an external archive, and optional linear population size reduction.
 
 ```python
 opt = torch_dfo.SHADE(
@@ -41,9 +41,7 @@ opt = torch_dfo.SHADE(
 
 ## NelderMead
 
-Classic Nelder-Mead simplex method adapted to the ask/tell protocol
-via a batched `torch.where` decision chain. Best used as a local polisher
-after a global search phase.
+Batched simplex search using branch-free `torch.where` updates. `next_batch_size()` reports `dim + 1` on initial or post-shrink evaluations and `4` on standard iterations.
 
 ```python
 opt = torch_dfo.NelderMead(dim=5, bounds=5.0, device="cpu")
@@ -51,39 +49,32 @@ opt = torch_dfo.NelderMead(dim=5, bounds=5.0, device="cpu")
 
 ## PhasedDFO
 
-Three-phase budget-managed pipeline: SHADE-DE → IPOP-CMA-ES → Polish.
-See {doc}`quickstart` and the README for a full description.
+Self-budgeted three-stage pipeline combining SHADE exploration, CMA-ES adaptation, and local polishing (directional/coordinate basin search, smoothed envelope search, and finite-difference BFGS). Run via `optimize()` rather than `SearchRun`.
 
 ```python
 opt = torch_dfo.PhasedDFO(
     dim=20,
     bounds=5.0,
-    budget=100_000,     # default: dim * 5000
+    budget=100_000,
     device="cuda",
 )
 ```
 
 ## DLRPortfolio
 
-K-branch diagonal-plus-low-rank CMA portfolio (Loshchilov 2014).
-No eigendecomposition — all operations stay on-device.
-Designed for high-dimensional GPU-native optimization.
+Multi-branch diagonal-plus-low-rank CMA portfolio with no eigendecomposition. All branch updates stay on-device.
 
 ```python
 import torch
-from torch_dfo.dlr_cma import DLRPortfolio
-
-dim = 200
-lb  = torch.full((dim,), -5.0, dtype=torch.float64, device="cuda")
-ub  = torch.full((dim,),  5.0, dtype=torch.float64, device="cuda")
-rng = torch.Generator(device="cpu").manual_seed(42)
+from torch_dfo import DLRPortfolio
 
 opt = DLRPortfolio(
-    dim=dim, lb=lb, ub=ub,
+    dim=200,
+    bounds=(-5.0, 5.0),
     lambdas=(24, 12, 12, 12),
     sigma_fracs=(0.200, 0.043, 0.0093, 0.002),
-    device=torch.device("cuda"),
+    device="cuda",
     dtype=torch.float64,
-    rng=rng,
+    seed=42,
 )
 ```

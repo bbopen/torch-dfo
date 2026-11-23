@@ -4,6 +4,30 @@ All notable changes to torch-dfo.
 
 ## [Unreleased]
 
+### Optimizers and numerical invariants
+
+- Fix `CMAES` and `DLRPortfolio` covariance learning rate `c_c` to Hansen (2016) Table 1 so `c_c < 1` holds at all batch sizes.
+- Add Mahalanobis weight scaling and PSD bound to `CMAES` active covariance updates.
+- Default `CMAES._normalize_on_decomp` to `False` and apply an exact three-variable gauge transform (`eigenvalues`, `sigma`, `p_c`) whenever eigensystem normalization triggers, preserving `sigma^2 * C` even under finite `sigma_min`/`sigma_max` bounds.
+- Fix `DLRPortfolio` stationary diagonal variance (`c1 * delta_h`), pre-update `sigma_old` scaling, `restart_branch` generation reset, `K > 4` default sigma factors, `cma_budget` / `lam_max` bounds, unit-norm rank-1 `V` columns, and cross-device RNG serialization.
+- Remove unused `_woodbury_solve` from `dlr_cma.py`.
+- Harden `NaN` and `+inf` handling across `BaseOptimizer._update_best`, `DLRPortfolio.tell`, `NelderMead.tell`, `SHADE.tell`, `sanitize_fitness`, `multistart_basin_explore`, and `nm_polish`.
+- Encode `SearchSpace` `Categorical` parameters at bin midpoints `(idx + 0.5) / len(choices)` for exact `float32`/`float64` round-trips.
+
+### Polishing, orchestration, and wrappers
+
+- Preserve warm-start simplex and per-dimension tensor bounds in `nm_polish`, and reuse accepted finite-difference gradients in `fd_bfgs_polish`.
+- Enforce strict evaluation budgets, per-dimension tensor bounds, isolated RNG threading, and shared generator restoration in `PhasedDFO`.
+- Add `BaseOptimizer.next_batch_size()` (overridden by `NelderMead`) so `SearchRun`, `minimize`, and `DFOOptimizer` support `NelderMead` cleanly across all dimensions; explicitly raise `TypeError` when `PhasedDFO` is passed to `SearchRun`.
+- Restore `DFOOptimizer` parameters inside `try...finally` on closure errors and resize population buffers in `BaseOptimizer.load_state_dict()` when loading checkpoints saved after `SHADE` population reduction.
+- Advance passed `torch.Generator` instances in `random_rotation_matrix` and `random_shift`.
+
+### Verification and maintainability
+
+- Add Lean 4 (`formal/lean/`) and Z3 (`formal/z3/verify_torch_dfo.py`) verification suite with runner `formal/verify.sh` and Tier-2 PyTorch refinement tests in `tests/test_formal_invariants.py`.
+- Strip non-directive inline comments from `src/torch_dfo/` and add static lint guard `tests/test_no_inline_comments.py`.
+- Tighten user documentation and roadmap to match implemented behavior.
+
 ## 0.11.0b1 — 2026-09-19
 
 ### Budgeted search
