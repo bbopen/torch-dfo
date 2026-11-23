@@ -9,10 +9,10 @@ This skill runs the repository's machine-checked Lean 4 proofs (`formal/lean/*.l
 
 ## Sync commit and coverage record
 
-- **Sync commit:** `a90034d` (last confirmed commit where all Lean 4 models, Z3 assertions, and refinement tests match `src/torch_dfo/`).
+- **Sync commit:** `2ac04e0` (last confirmed commit where all Lean 4 models, Z3 assertions, and refinement tests match `src/torch_dfo/`).
 - Check whether covered product code changed since the sync commit:
   ```bash
-  git diff --stat a90034d..HEAD -- \
+  git diff --stat 2ac04e0..HEAD -- \
     src/torch_dfo/base.py \
     src/torch_dfo/cmaes.py \
     src/torch_dfo/dlr_cma.py \
