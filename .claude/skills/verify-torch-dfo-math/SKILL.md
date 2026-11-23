@@ -1,6 +1,6 @@
 ---
 name: verify-torch-dfo-math
-description: "Formally verify torch-dfo's mathematical, state-machine, and IEEE-754 floating-point invariants in Lean 4 and Z3, plus Tier-2 PyTorch refinement tests. Use whenever editing cmaes.py, dlr_cma.py, shade.py, nelder_mead.py, base.py, utils.py, space.py, run.py, optim/dfo_optimizer.py, _operators.py, _polish.py, or examples/06_engineering_control.py."
+description: "Formally verify torch-dfo's mathematical, state-machine, and IEEE-754 floating-point invariants in Lean 4 and Z3, plus Tier-2 PyTorch refinement tests. Use whenever editing cmaes.py, dlr_cma.py, shade.py, nelder_mead.py, base.py, utils.py, space.py, run.py, optim/dfo_optimizer.py, _operators.py, _polish.py, phased/, benchmarks/classical.py, or examples/06_engineering_control.py."
 ---
 
 # Verify `torch-dfo` mathematical and boundary invariants
@@ -9,10 +9,10 @@ This skill runs the repository's machine-checked Lean 4 proofs (`formal/lean/*.l
 
 ## Sync commit and coverage record
 
-- **Sync commit:** `a2b9ed0` (last confirmed commit where all Lean 4 models, Z3 assertions, and refinement tests match `src/torch_dfo/`).
+- **Sync commit:** `c9a2ff4` (last confirmed commit where all Lean 4 models, Z3 assertions, and refinement tests match `src/torch_dfo/`).
 - Check whether covered product code changed since the sync commit:
   ```bash
-  git diff --stat a2b9ed0..HEAD -- \
+  git diff --stat c9a2ff4..HEAD -- \
     src/torch_dfo/base.py \
     src/torch_dfo/cmaes.py \
     src/torch_dfo/dlr_cma.py \
@@ -24,6 +24,8 @@ This skill runs the repository's machine-checked Lean 4 proofs (`formal/lean/*.l
     src/torch_dfo/optim/dfo_optimizer.py \
     src/torch_dfo/_operators.py \
     src/torch_dfo/_polish.py \
+    src/torch_dfo/phased/ \
+    src/torch_dfo/benchmarks/classical.py \
     examples/06_engineering_control.py
   ```
 - Move the sync commit forward **only** after verifying that every changed formula or branch in the covered files is reflected in the Lean/Z3 models and all checks pass.
