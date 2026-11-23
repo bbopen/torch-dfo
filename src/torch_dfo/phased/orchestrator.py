@@ -1112,7 +1112,7 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
     def __init__(
         self,
         dim: int | None = None,
-        bounds: float | tuple[float, float] = 5.0,
+        bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor] = 5.0,
         budget: int | None = None,
         budget_mult: int = 5000,
         pop_size: int | None = None,
@@ -1133,7 +1133,10 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
                     "omit dim when space is provided",
                 )
             actual_dim: int = space.dim
-            actual_bounds: float | tuple[float, float] = (0.0, 1.0)
+            actual_bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor] = (
+                0.0,
+                1.0,
+            )
         else:
             if dim is None:
                 raise ValueError("Either dim or space must be provided")
@@ -1176,7 +1179,7 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         super().__init__(dim, bounds, pop_size, device, dtype, seed)
 
         # Store raw bounds so reset() can re-create SHADE without re-running __init__
-        self._raw_bounds: float | tuple[float, float] = bounds
+        self._raw_bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor] = bounds
         self._polish = PhasedPolishState(
             elite_solutions=[],
             elite_fitness=[],
@@ -1477,6 +1480,14 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
             device=self.device,
             dtype=self.dtype,
         )
+        # Preserve shared RNG reference across restored nested CMA-ES instances.
+        if self._cma.cmaes is not None:
+            self._cma.cmaes._gen = self._gen
+            self._cma.cmaes._gen_device = self._gen_device
+        if self._cma.cmaes_portfolio is not None:
+            for branch in self._cma.cmaes_portfolio:
+                branch._gen = self._gen
+                branch._gen_device = self._gen_device
 
         # Nested SHADE
         self._shade.load_state_dict(state["_shade_state"])
@@ -1758,6 +1769,9 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
 
     def _apply_levy_flights(self) -> None:
         """Perturb worst half of SHADE population with Levy flights."""
+        remaining = self._budget - self._fe_count
+        if remaining <= 0:
+            return
         pop = self._shade.population
         fit = self._shade.fitness
         n = pop.shape[0]
@@ -1766,6 +1780,10 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         # Sort by fitness (ascending = best first)
         sorted_idx = fit.argsort()
         worst_idx = sorted_idx[half:]
+        if worst_idx.numel() > remaining:
+            worst_idx = worst_idx[-remaining:]
+        if worst_idx.numel() == 0:
+            return
 
         # Compute search progress
         progress = min(1.0, self._fe_count / max(1, self._de_budget))
@@ -1863,8 +1881,8 @@ class PhasedDFO(PhasedStateCompatMixin, BaseOptimizer):
         """Restart one CMA-ES portfolio branch from a new random x0."""
         return _cma.restart_portfolio_branch(self, idx)
 
-    def _get_bounds_tuple(self) -> tuple[float, float]:
-        """Return scalar bounds as a tuple for sub-optimizer construction."""
+    def _get_bounds_tuple(self) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return per-dimension tensor bounds for sub-optimizer construction."""
         return _cma.get_bounds_tuple(self)
 
     def _compute_cmaes_phase_budgets(self, total: int) -> list[int]:

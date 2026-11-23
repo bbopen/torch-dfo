@@ -76,7 +76,7 @@ class SHADE(BaseOptimizer):
     def __init__(
         self,
         dim: int,
-        bounds: float | tuple[float, float],
+        bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor],
         pop_size: int = 80,
         memory_size: int = 6,
         p_min: float = 0.1,

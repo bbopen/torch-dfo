@@ -115,7 +115,7 @@ class CMAES(BaseOptimizer):
     def __init__(
         self,
         dim: int,
-        bounds: float | tuple[float, float],
+        bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor],
         pop_size: int | None = None,
         device: str | torch.device | None = None,
         dtype: torch.dtype = torch.float64,

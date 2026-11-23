@@ -96,9 +96,10 @@ def coordinate_basin_search(
     if population is not None and pop_fitness is not None and population.shape[0] >= 4:
         elite_best = population[pop_fitness.argmin()]
 
+    gen_device = generator.device if generator is not None else x.device
     for _pass in range(passes):
         # Random permutation instead of cyclic shift.
-        dim_order = torch.randperm(dim, device=x.device, generator=generator).tolist()
+        dim_order = torch.randperm(dim, device=gen_device, generator=generator).tolist()
 
         for d in dim_order:
             if budget is not None and fe_used >= budget:
@@ -254,12 +255,13 @@ def directional_basin_search(
     num_dirs = directions.shape[0]
 
     # Priority/secondary ordering.
+    gen_device = generator.device if generator is not None else x.device
     if priority_count > 0:
         direction_order = list(range(priority_count))
         if num_dirs > priority_count:
             tail = torch.randperm(
                 num_dirs - priority_count,
-                device=x.device,
+                device=gen_device,
                 generator=generator,
             ).tolist()
             direction_order.extend(priority_count + idx for idx in tail)
@@ -475,19 +477,23 @@ def fd_bfgs_polish(
 
     cur_x = x.clone()
     cur_f = f_x.clone()
+    grad: torch.Tensor | None = None
 
-    while fe_used + 2 * dim <= budget:
-        # --- Central-difference gradient ---
-        grad, grad_fe = _central_diff_gradient(
-            cur_x,
-            fitness_fn,
-            lb,
-            ub,
-            span,
-            fd_step,
-            trust_radius=trust_radius,
-        )
-        fe_used += grad_fe
+    while fe_used < budget:
+        # --- Central-difference gradient (reused from grad_new on accepted steps) ---
+        if grad is None:
+            if fe_used + 2 * dim > budget:
+                break
+            grad, grad_fe = _central_diff_gradient(
+                cur_x,
+                fitness_fn,
+                lb,
+                ub,
+                span,
+                fd_step,
+                trust_radius=trust_radius,
+            )
+            fe_used += grad_fe
 
         if not torch.isfinite(grad).all():
             break
@@ -539,8 +545,9 @@ def fd_bfgs_polish(
             # Break if trust falls below min.
             if trust_radius < min_trust_radius:
                 break
-            # Reset H on failure
+            # Reset H and invalidate cached gradient (FD stencil shrinks with trust_radius)
             H = torch.eye(dim, device=device, dtype=dtype)
+            grad = None
             continue
 
         # Update best tracking
@@ -571,6 +578,7 @@ def fd_bfgs_polish(
             cur_x = new_x
             cur_f = new_f
             H = torch.eye(dim, device=device, dtype=dtype)
+            grad = None
             continue
 
         assert s is not None  # guaranteed by accepted=True path
@@ -715,6 +723,7 @@ def _estimate_envelope_offset(
     budget: int,
     device: torch.device,
     dtype: torch.dtype,
+    generator: torch.Generator | None = None,
 ) -> tuple[torch.Tensor | None, int]:
     """Estimate the offset to the smoothed-envelope center via least-squares.
 
@@ -731,7 +740,13 @@ def _estimate_envelope_offset(
     if pair_count < dim:
         return None, fe_used
 
-    directions = torch.randn(pair_count, dim, device=device, dtype=dtype)
+    gen_device = generator.device if generator is not None else device
+
+    def _draw_dirs(count: int) -> torch.Tensor:
+        d = torch.randn(count, dim, device=gen_device, dtype=dtype, generator=generator)
+        return d.to(device) if gen_device != device else d
+
+    directions = _draw_dirs(pair_count)
     responses: list[float] = []
     used_dirs: list[torch.Tensor] = []
     dir_idx = 0
@@ -739,34 +754,43 @@ def _estimate_envelope_offset(
     attempts = 0
 
     while len(used_dirs) < pair_count and attempts < max_attempts:
-        if fe_used + 2 > budget:
+        max_affordable_pairs = (budget - fe_used) // 2
+        if max_affordable_pairs <= 0:
             break
-        # Generate more directions if we've exhausted the initial batch
-        if dir_idx >= directions.shape[0]:
-            extra = torch.randn(
-                max(1, pair_count - len(used_dirs)),
-                dim,
-                device=device,
-                dtype=dtype,
-            )
-            directions = torch.cat([directions, extra], dim=0)
+        need = min(pair_count - len(used_dirs), max_affordable_pairs)
 
-        d_vec = directions[dir_idx]
-        dir_idx += 1
-        attempts += 1
+        batch_dirs: list[torch.Tensor] = []
+        batch_probes: list[torch.Tensor] = []
+        while len(batch_dirs) < need and attempts < max_attempts:
+            if dir_idx >= directions.shape[0]:
+                extra = _draw_dirs(max(1, pair_count - len(used_dirs) - len(batch_dirs)))
+                directions = torch.cat([directions, extra], dim=0)
 
-        # Skip probes that would be clipped by bounds (biased estimate)
-        plus = point + sigma * d_vec
-        minus = point - sigma * d_vec
-        if (plus < lb).any() or (plus > ub).any() or (minus < lb).any() or (minus > ub).any():
-            continue
+            d_vec = directions[dir_idx]
+            dir_idx += 1
+            attempts += 1
 
-        f_plus = fitness_fn(plus.unsqueeze(0)).squeeze().item()
-        f_minus = fitness_fn(minus.unsqueeze(0)).squeeze().item()
-        fe_used += 2
-        if math.isfinite(f_plus) and math.isfinite(f_minus):
-            responses.append((f_plus - f_minus) / (4.0 * sigma))
-            used_dirs.append(d_vec)
+            # Skip probes that would be clipped by bounds (biased estimate)
+            plus = point + sigma * d_vec
+            minus = point - sigma * d_vec
+            if (plus < lb).any() or (plus > ub).any() or (minus < lb).any() or (minus > ub).any():
+                continue
+
+            batch_dirs.append(d_vec)
+            batch_probes.append(plus)
+            batch_probes.append(minus)
+
+        if not batch_dirs:
+            break
+
+        f_batch = fitness_fn(torch.stack(batch_probes))
+        fe_used += 2 * len(batch_dirs)
+        for j, d_vec in enumerate(batch_dirs):
+            f_plus = float(f_batch[2 * j].item())
+            f_minus = float(f_batch[2 * j + 1].item())
+            if math.isfinite(f_plus) and math.isfinite(f_minus):
+                responses.append((f_plus - f_minus) / (4.0 * sigma))
+                used_dirs.append(d_vec)
 
     if len(used_dirs) < dim:
         return None, fe_used
@@ -806,6 +830,7 @@ def smoothed_envelope_search(
     min_remaining: int = 1600,
     proposal_budget_cap: int = 1800,
     min_dim: int = 20,
+    generator: torch.Generator | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, int]:
     """Jump toward the center of a Gaussian-smoothed objective, then polish.
 
@@ -878,6 +903,7 @@ def smoothed_envelope_search(
         budget,
         device,
         dtype,
+        generator=generator,
     )
     fe_used += offset_fe
     if offset is None:
@@ -913,6 +939,9 @@ def smoothed_envelope_search(
         fe_used += 1
         if not torch.isfinite(f_cand):
             continue
+        if f_cand < best_f:
+            best_x = candidate.clone()
+            best_f = f_cand.clone()
 
         # Polish the candidate with FD-BFGS
         proposal_budget = min(budget - fe_used, proposal_budget_cap)
@@ -945,7 +974,7 @@ def nm_polish(
     x: torch.Tensor,
     fitness_fn: Callable[[torch.Tensor], torch.Tensor],
     budget: int,
-    bounds: tuple[float, float] | None = None,
+    bounds: tuple[float, float] | tuple[torch.Tensor, torch.Tensor] | None = None,
     simplex_scale: float = 0.05,
 ) -> tuple[torch.Tensor, torch.Tensor, int]:
     """Polish via NelderMead simplex. Returns (best_x, best_f, evals_used).
@@ -957,7 +986,8 @@ def nm_polish(
         x: ``(dim,)`` incumbent solution.
         fitness_fn: Callable ``(N, dim) -> (N,)`` for batched evaluation.
         budget: Maximum function evaluations.
-        bounds: ``(lo, hi)`` scalar bounds or ``None`` for unbounded.
+        bounds: ``(lo, hi)`` scalar bounds, ``(lb, ub)`` per-dim tensors,
+            or ``None`` for unbounded.
         simplex_scale: Fraction of the search span used for the initial
             simplex perturbation.
 
@@ -967,6 +997,9 @@ def nm_polish(
     """
     from torch_dfo.nelder_mead import NelderMead
 
+    if budget <= 0:
+        return x.clone(), torch.tensor(float("inf"), device=x.device, dtype=x.dtype), 0
+
     dim = x.shape[0]
     nm = NelderMead(
         dim=dim,
@@ -975,25 +1008,33 @@ def nm_polish(
         dtype=x.dtype,
     )
 
-    # Warm-start simplex around x
-    span = (bounds[1] - bounds[0]) if bounds else 1.0
+    # Warm-start simplex around x respecting per-dim bounds.
+    x_clamped = clamp_to_bounds(x.unsqueeze(0), nm.lb, nm.ub).squeeze(0)
+    span = (
+        (nm.ub - nm.lb) if bounds is not None else torch.ones(dim, device=x.device, dtype=x.dtype)
+    )
     delta = simplex_scale * span
-    simplex = x.unsqueeze(0).repeat(dim + 1, 1)
+    simplex = x_clamped.unsqueeze(0).repeat(dim + 1, 1)
     for i in range(dim):
-        simplex[i + 1, i] += delta
-    nm.population = simplex
-    nm._needs_full_eval = True  # force initial simplex evaluation
+        step = delta[i]
+        cand = x_clamped[i] + step
+        if cand > nm.ub[i]:
+            cand = x_clamped[i] - step
+        simplex[i + 1, i] = torch.clamp(cand, min=nm.lb[i], max=nm.ub[i])
+    nm.population.copy_(simplex)
+    nm._initialized = True
+    nm._needs_full_eval = True  # force initial warm-start simplex evaluation
 
-    best_x, best_f = x.clone(), fitness_fn(x.unsqueeze(0)).squeeze()
+    best_x, best_f = x_clamped.clone(), fitness_fn(x_clamped.unsqueeze(0)).squeeze()
     evals = 1
     while evals < budget:
-        candidates = nm.ask()
-        batch_size = candidates.shape[0]
+        batch_size = nm.next_batch_size()
         if evals + batch_size > budget:
             break
+        candidates = nm.ask()
         fitness = fitness_fn(candidates)
         nm.tell(candidates, fitness)
-        evals += batch_size
+        evals += candidates.shape[0]
         if nm.best_fitness < best_f:
             best_f = nm.best_fitness.clone()
             best_x = nm.best_solution.clone()

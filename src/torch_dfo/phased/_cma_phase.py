@@ -62,11 +62,9 @@ if TYPE_CHECKING:
     from torch_dfo.phased.orchestrator import PhasedDFO
 
 
-def get_bounds_tuple(opt: PhasedDFO) -> tuple[float, float]:
-    """Return scalar bounds as a tuple for sub-optimizer construction."""
-    lb_val = opt.lb[0].item()
-    ub_val = opt.ub[0].item()
-    return (lb_val, ub_val)
+def get_bounds_tuple(opt: PhasedDFO) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return per-dimension tensor bounds for sub-optimizer construction."""
+    return (opt.lb, opt.ub)
 
 
 def enter_cmaes_phase(opt: PhasedDFO) -> None:

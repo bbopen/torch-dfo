@@ -257,19 +257,25 @@ class TestShiftedRotated:
 
         assert torch.allclose(s1, s2)
 
-    def test_random_rotation_reseeds_from_initial_seed(self) -> None:
-        """The source code re-seeds from generator.initial_seed(), meaning
-        the generator state is ignored -- only the initial seed matters.
-        Calling random_rotation_matrix twice with the SAME generator object
-        produces identical results. This is intentional for reproducibility.
+    def test_random_rotation_and_shift_advance_generator(self) -> None:
+        """Calling random_rotation_matrix or random_shift twice with the same generator
+        advances RNG state so consecutive benchmark problems receive distinct draws,
+        while identical initial seeds remain deterministic.
         """
         g = torch.Generator(device="cpu")
         g.manual_seed(456)
         r1 = random_rotation_matrix(D, dtype=torch.float64, generator=g)
         r2 = random_rotation_matrix(D, dtype=torch.float64, generator=g)
-        assert torch.allclose(r1, r2), (
-            "Expected identical results from re-seeded generator -- "
-            "the function uses generator.initial_seed() to create a fresh CPU gen"
+        assert not torch.allclose(r1, r2), (
+            "Expected distinct rotation matrices on consecutive calls with the same generator"
+        )
+
+        g_shift = torch.Generator(device="cpu")
+        g_shift.manual_seed(456)
+        s1 = random_shift(D, -5.0, 5.0, dtype=torch.float64, generator=g_shift)
+        s2 = random_shift(D, -5.0, 5.0, dtype=torch.float64, generator=g_shift)
+        assert not torch.allclose(s1, s2), (
+            "Expected distinct shift vectors on consecutive calls with the same generator"
         )
 
     def test_rotation_matrix_det_abs_is_one(self) -> None:

@@ -141,6 +141,18 @@ def make_rotated(
     return rotated_fn
 
 
+def _cpu_generator_for_draw(generator: torch.Generator | None) -> torch.Generator | None:
+    """Return a CPU generator that advances *generator* on each call."""
+    if generator is None:
+        return None
+    if generator.device.type == "cpu":
+        return generator
+    seed_val = int(
+        torch.randint(0, 2**63 - 1, (1,), device=generator.device, generator=generator).item()
+    )
+    return torch.Generator(device="cpu").manual_seed(seed_val)
+
+
 def random_rotation_matrix(
     dim: int,
     device: torch.device | None = None,
@@ -150,14 +162,11 @@ def random_rotation_matrix(
     """Generate a random orthogonal matrix via QR decomposition.
 
     Returns a ``(dim, dim)`` orthogonal matrix on the requested device/dtype.
+    Advances *generator* so repeated calls produce independent matrices.
     """
     # Generate on CPU (torch.linalg.qr may not be available on all backends for randn)
     # then move to the target device.
-    cpu_gen = None
-    if generator is not None:
-        # Clone generator state to CPU if needed
-        cpu_gen = torch.Generator(device="cpu")
-        cpu_gen.manual_seed(generator.initial_seed())
+    cpu_gen = _cpu_generator_for_draw(generator)
 
     z = torch.randn(dim, dim, dtype=dtype, device="cpu", generator=cpu_gen)
     q, r = torch.linalg.qr(z)
@@ -182,11 +191,9 @@ def random_shift(
 
     Shift is ``(rand - 0.5) * 0.4 * span`` then clamped with a 20% margin
     so the shifted optimum stays well within the search space.
+    Advances *generator* so repeated calls produce independent shift vectors.
     """
-    cpu_gen = None
-    if generator is not None:
-        cpu_gen = torch.Generator(device="cpu")
-        cpu_gen.manual_seed(generator.initial_seed())
+    cpu_gen = _cpu_generator_for_draw(generator)
 
     span = ub - lb
     margin = 0.2 * span

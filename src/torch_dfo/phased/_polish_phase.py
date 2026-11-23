@@ -132,6 +132,7 @@ def run_polish(
                 min_remaining=opt._envelope_min_remaining,
                 proposal_budget_cap=opt._envelope_proposal_cap,
                 min_dim=opt._high_dim_threshold,
+                generator=opt._gen,
             )
             opt._fe_count += fe
             if best_f < opt.best_fitness:
@@ -170,6 +171,7 @@ def run_polish(
                     elite_points=elite_points,
                     priority_hops=priority_hp,
                     priority_hop_scale=opt._config.directional_priority_hop_scale,
+                    generator=opt._gen,
                 )
                 opt._fe_count += fe
                 if best_f < opt.best_fitness:
@@ -193,6 +195,7 @@ def run_polish(
             refinement_points=opt._config.coordinate_refinement_points,
             window_shrink=opt._config.coordinate_window_shrink,
             budget=remaining_coord,
+            generator=opt._gen,
         )
         opt._fe_count += fe
         if best_f < opt.best_fitness:
@@ -253,6 +256,7 @@ def run_polish(
             opt.lb,
             opt.ub,
             budget=powell_budget,
+            generator=opt._gen,
         )
         opt._fe_count += fe
         if best_f < opt.best_fitness:
@@ -283,7 +287,7 @@ def run_polish(
             best_x,
             fitness_fn,
             budget=remaining_final,
-            bounds=(float(opt.lb[0]), float(opt.ub[0])),
+            bounds=(opt.lb, opt.ub),
         )
         opt._fe_count += fe
         if best_f < opt.best_fitness:

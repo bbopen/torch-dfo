@@ -64,7 +64,8 @@ def multistart_basin_explore(
     dim = opt.dim
     device = opt.device
     dtype = opt.dtype
-    search_span = float((opt.ub[0] - opt.lb[0]).item())
+    span_vec = opt.ub - opt.lb
+    search_span = float(span_vec.mean().item())
 
     n_restarts = opt._basin_explore_restarts
     pop_size = min(
@@ -86,9 +87,8 @@ def multistart_basin_explore(
 
     best_fitness_val = float(opt.best_fitness.item())
 
-    # Build a CMAES instance with the isolated RNG.  We pass sigma0 as a
-    # fraction of span (CMAES multiplies sigma0 * span internally).
-    bounds = (float(opt.lb[0].item()), float(opt.ub[0].item()))
+    # Build a CMAES instance with the isolated RNG preserving per-dim bounds.
+    bounds = (opt.lb, opt.ub)
     cma = CMAES(
         dim=dim,
         bounds=bounds,
@@ -113,13 +113,11 @@ def multistart_basin_explore(
         restarts_left = n_restarts - _restart_idx
         restart_budget = min(budget_limit, opt._fe_count + restart_remaining // restarts_left)
 
-        # Random starting point via the isolated generator
-        mean_t = (
-            torch.rand(dim, device=opt._gen_device, dtype=dtype, generator=basin_gen) * search_span
-            + opt.lb[0].item()
-        )
+        # Random starting point via the isolated generator within per-dim [lb, ub]
+        rand_unit = torch.rand(dim, device=opt._gen_device, dtype=dtype, generator=basin_gen)
         if opt._gen_device != device:
-            mean_t = mean_t.to(device)
+            rand_unit = rand_unit.to(device)
+        mean_t = rand_unit * span_vec + opt.lb
 
         cma.restart(new_pop_size=pop_size, mean=mean_t, sigma=sigma_init)
         cma.sigma_min = sigma_min

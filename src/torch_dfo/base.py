@@ -19,7 +19,7 @@ class BaseOptimizer:
     def __init__(
         self,
         dim: int,
-        bounds: float | tuple[float, float],
+        bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor],
         pop_size: int,
         device: str | torch.device | None = None,
         dtype: torch.dtype = torch.float64,
@@ -42,6 +42,10 @@ class BaseOptimizer:
         self.fitness = torch.full((pop_size,), float("inf"), device=self.device, dtype=self.dtype)
         self.best_solution = torch.zeros(dim, device=self.device, dtype=self.dtype)
         self.best_fitness = torch.tensor(float("inf"), device=self.device, dtype=self.dtype)
+
+    def next_batch_size(self) -> int:
+        """Return the exact number of candidates the next ``ask()`` call will produce."""
+        return self.pop_size
 
     def ask(self) -> torch.Tensor:
         """Generate candidate solutions. Returns (pop_size, dim) tensor."""

@@ -42,6 +42,8 @@ def probe_midpoint(opt: PhasedDFO) -> None:
         return
     if opt._fitness_fn is None:
         return
+    if opt._fe_count >= opt._budget:
+        return
     midpoint = (opt.lb + opt.ub) / 2
     mid_f = opt._fitness_fn(midpoint.unsqueeze(0)).squeeze()
     opt._fe_count += 1
@@ -79,12 +81,16 @@ def low_dim_pop_restart(opt: PhasedDFO) -> None:
             dtype=opt.dtype,
         )
 
-        # Re-evaluate if fitness_fn is available
+        # Re-evaluate if fitness_fn is available within remaining budget
         if opt._fitness_fn is not None:
-            new_fit = opt._fitness_fn(new_positions)
-            opt._fe_count += new_positions.shape[0]
-            opt._shade.fitness = new_fit
-            opt._update_best(new_positions, new_fit)
+            remaining = opt._budget - opt._fe_count
+            if remaining > 0:
+                eval_count = min(new_positions.shape[0], remaining)
+                eval_pos = new_positions[:eval_count]
+                new_fit = opt._fitness_fn(eval_pos)
+                opt._fe_count += eval_count
+                opt._shade.fitness[:eval_count] = new_fit
+                opt._update_best(eval_pos, new_fit)
     else:
         # Partial restart: keep elite, randomize the rest
         elite_count = max(2, int(pop_size * opt._config.elite_fraction))
@@ -99,12 +105,17 @@ def low_dim_pop_restart(opt: PhasedDFO) -> None:
         opt._shade.population[restart_idx] = new_positions
         opt._shade.fitness[restart_idx] = float("inf")
 
-        # Re-evaluate new positions if fitness_fn is available
+        # Re-evaluate new positions if fitness_fn is available within remaining budget
         if opt._fitness_fn is not None:
-            new_fit = opt._fitness_fn(new_positions)
-            opt._fe_count += new_positions.shape[0]
-            opt._shade.fitness[restart_idx] = new_fit
-            opt._update_best(new_positions, new_fit)
+            remaining = opt._budget - opt._fe_count
+            if remaining > 0:
+                eval_count = min(new_positions.shape[0], remaining)
+                eval_pos = new_positions[:eval_count]
+                eval_idx = restart_idx[:eval_count]
+                new_fit = opt._fitness_fn(eval_pos)
+                opt._fe_count += eval_count
+                opt._shade.fitness[eval_idx] = new_fit
+                opt._update_best(eval_pos, new_fit)
 
     opt._stagnation_counter = 0
 

@@ -67,7 +67,7 @@ class NelderMead(BaseOptimizer):
     def __init__(
         self,
         dim: int,
-        bounds: float | tuple[float, float],
+        bounds: float | tuple[float, float] | tuple[torch.Tensor, torch.Tensor],
         device: str | torch.device | None = None,
         dtype: torch.dtype = torch.float64,
         seed: int | None = None,
@@ -115,6 +115,12 @@ class NelderMead(BaseOptimizer):
     # ------------------------------------------------------------------
     # ask
     # ------------------------------------------------------------------
+    def next_batch_size(self) -> int:
+        """Return exact size of next ``ask()``: ``dim + 1`` on init/post-shrink, else ``4``."""
+        if not self._initialized or self._needs_full_eval:
+            return self.pop_size
+        return 4
+
     def ask(self) -> torch.Tensor:
         """Return candidate points for evaluation.
 

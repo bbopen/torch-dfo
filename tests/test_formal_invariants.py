@@ -406,3 +406,268 @@ class TestIEEE754BoundarySafety:
                     f"dtype={dtype}, n={n}, idx={idx}: encoded={encoded[idx, 0].item()} "
                     f"decoded to {dec['cat']} instead of {orig['cat']}"
                 )
+
+
+# ===========================================================================
+# Phase 3: Polish, PhasedDFO, SearchRun, DFOOptimizer & Benchmarks
+# ===========================================================================
+
+
+class TestPolishAndOrchestratorInvariants:
+    """Refinement tests for polish warm-start/evals, PhasedDFO budget/bounds/RNG, and wrappers."""
+
+    def test_nm_polish_preserves_warm_start_and_tensor_bounds(self) -> None:
+        """nm_polish evaluates the warm-start simplex around x0 and respects per-dim bounds."""
+        from torch_dfo._polish import nm_polish
+
+        dim = 4
+        lb = torch.tensor([-10.0, 0.0, -2.0, 5.0], dtype=torch.float64)
+        ub = torch.tensor([-5.0, 1.0, 2.0, 10.0], dtype=torch.float64)
+        x0 = torch.tensor([-7.5, 0.5, 0.0, 7.5], dtype=torch.float64)
+
+        seen_batches: list[torch.Tensor] = []
+
+        def spy_fn(X: torch.Tensor) -> torch.Tensor:
+            seen_batches.append(X.clone())
+            return ((X - x0.unsqueeze(0)) ** 2).sum(dim=-1)
+
+        nm_polish(x0, spy_fn, budget=30, bounds=(lb, ub), simplex_scale=0.05)
+
+        # Batch 0 is the single x0 eval; batch 1 must be the warm-start simplex with vertex 0 == x0.
+        assert len(seen_batches) >= 2
+        first_simplex = seen_batches[1]
+        assert first_simplex.shape == (dim + 1, dim)
+        assert torch.allclose(first_simplex[0], x0), (
+            f"nm_polish discarded warm-start x0: simplex[0]={first_simplex[0]}, x0={x0}"
+        )
+        # Every evaluated candidate must lie within asymmetric per-dim [lb, ub].
+        for batch in seen_batches:
+            assert torch.all(batch >= lb - 1e-12), (
+                f"Candidate violated lb: {batch.min(dim=0).values}"
+            )
+            assert torch.all(batch <= ub + 1e-12), (
+                f"Candidate violated ub: {batch.max(dim=0).values}"
+            )
+
+    def test_fd_bfgs_polish_reuses_gradient_without_duplicate_evals(self) -> None:
+        """fd_bfgs_polish reuses grad_new across accepted steps without duplicate gradients."""
+        from torch_dfo._polish import fd_bfgs_polish
+
+        dim = 4
+        lb = torch.full((dim,), -5.0, dtype=torch.float64)
+        ub = torch.full((dim,), 5.0, dtype=torch.float64)
+        x0 = torch.full((dim,), 1.0, dtype=torch.float64)
+        f0 = (x0**2).sum()
+
+        grad_probe_batches: list[torch.Tensor] = []
+
+        def spy_fn(X: torch.Tensor) -> torch.Tensor:
+            if X.shape[0] == 2 * dim:
+                grad_probe_batches.append(X.clone())
+            return (X**2).sum(dim=-1)
+
+        _, best_f, fe = fd_bfgs_polish(x0, f0, spy_fn, lb, ub, budget=200)
+        assert best_f.item() < f0.item()
+        assert fe <= 200
+        # No two consecutive gradient batches should probe the exact same point.
+        assert len(grad_probe_batches) >= 2
+        for i in range(len(grad_probe_batches) - 1):
+            assert not torch.equal(grad_probe_batches[i], grad_probe_batches[i + 1]), (
+                f"Duplicate central-diff gradient computed at iteration {i} -> {i + 1}"
+            )
+
+    def test_smoothed_envelope_search_keeps_candidate_without_bfgs_and_uses_generator(self) -> None:
+        """smoothed_envelope_search accepts improving candidate even when proposal_budget <= 2*dim
+        and stays deterministic via explicit generator without mutating global RNG.
+        """
+        from torch_dfo._polish import smoothed_envelope_search
+
+        dim = 20
+        lb = torch.full((dim,), -5.0, dtype=torch.float64)
+        ub = torch.full((dim,), 5.0, dtype=torch.float64)
+        x0 = torch.full((dim,), 0.5, dtype=torch.float64)
+        f0 = (x0**2).sum()
+
+        # Exact budget so offset estimation uses 2*40=80 evals and leaves <= 2*dim for proposals
+        # (proposal_budget <= 2*dim, so FD-BFGS does NOT run, yet f_cand < best_f must be kept).
+        budget = 95
+
+        global_before = torch.random.get_rng_state()
+        g1 = torch.Generator(device="cpu").manual_seed(123)
+        bx1, bf1, fe1 = smoothed_envelope_search(
+            x0,
+            f0,
+            lambda X: (X**2).sum(dim=-1),
+            lb,
+            ub,
+            budget=budget,
+            min_remaining=budget,
+            proposal_budget_cap=2 * dim,
+            min_dim=dim,
+            generator=g1,
+        )
+        global_after = torch.random.get_rng_state()
+        assert torch.equal(global_before, global_after), "Global torch RNG mutated"
+        assert fe1 <= budget
+        assert bf1.item() < f0.item(), (
+            f"Improving blended candidate was discarded when proposal_budget <= 2*dim: "
+            f"bf={bf1.item()}, f0={f0.item()}"
+        )
+
+        g2 = torch.Generator(device="cpu").manual_seed(123)
+        bx2, bf2, fe2 = smoothed_envelope_search(
+            x0,
+            f0,
+            lambda X: (X**2).sum(dim=-1),
+            lb,
+            ub,
+            budget=budget,
+            min_remaining=budget,
+            proposal_budget_cap=2 * dim,
+            min_dim=dim,
+            generator=g2,
+        )
+        assert fe1 == fe2
+        assert torch.equal(bx1, bx2)
+        assert torch.equal(bf1, bf2)
+
+    def test_phased_strict_budget_asymmetric_bounds_and_rng_isolation(self) -> None:
+        """PhasedDFO.optimize stays within budget, respects per-dim bounds, and isolates RNG."""
+        from torch_dfo import PhasedDFO
+
+        dim = 4
+        lb = torch.tensor([-10.0, 0.0, -1.0, 5.0], dtype=torch.float64)
+        ub = torch.tensor([-5.0, 1.0, 1.0, 8.0], dtype=torch.float64)
+        budget = 250
+
+        actual_evals = 0
+        oob_count = 0
+
+        def checked_fn(pts: torch.Tensor) -> torch.Tensor:
+            nonlocal actual_evals, oob_count
+            actual_evals += pts.shape[0]
+            if (pts < lb - 1e-12).any() or (pts > ub + 1e-12).any():
+                oob_count += 1
+            target = 0.5 * (lb + ub)
+            return ((pts - target.unsqueeze(0)) ** 2).sum(dim=-1)
+
+        global_before = torch.random.get_rng_state()
+        opt = PhasedDFO(
+            dim=dim, bounds=(lb, ub), budget=budget, device="cpu", dtype=torch.float64, seed=42
+        )
+        best_x, best_f = opt.optimize(checked_fn)
+        global_after = torch.random.get_rng_state()
+
+        assert torch.equal(global_before, global_after), (
+            "PhasedDFO.optimize mutated global torch RNG"
+        )
+        assert actual_evals <= budget, f"PhasedDFO overshot budget: {actual_evals} > {budget}"
+        assert opt.fe_count <= budget, (
+            f"PhasedDFO fe_count overshot budget: {opt.fe_count} > {budget}"
+        )
+        assert oob_count == 0, f"PhasedDFO evaluated {oob_count} out-of-bounds batches"
+        assert torch.all(best_x >= lb - 1e-12) and torch.all(best_x <= ub + 1e-12)
+        assert torch.isfinite(best_f)
+
+    def test_phased_load_state_dict_preserves_shared_gen_reference(self) -> None:
+        """PhasedDFO.load_state_dict keeps opt._cmaes._gen bound to opt._gen."""
+        from torch_dfo import PhasedDFO
+
+        opt1 = PhasedDFO(dim=4, bounds=5.0, budget=2000, device="cpu", dtype=torch.float64, seed=7)
+        opt1._enter_cmaes_phase()
+        assert opt1._cmaes is not None
+        assert opt1._cmaes._gen is opt1._gen
+
+        state = opt1.state_dict()
+        opt2 = PhasedDFO(dim=4, bounds=5.0, budget=2000, device="cpu", dtype=torch.float64, seed=99)
+        opt2.load_state_dict(state)
+        assert opt2._cmaes is not None
+        assert opt2._cmaes._gen is opt2._gen
+
+    @pytest.mark.parametrize("dim", [1, 2, 3, 5])
+    def test_search_run_and_minimize_support_nelder_mead_all_dims(self, dim: int) -> None:
+        """SearchRun / minimize work with NelderMead across all dim >= 1 using next_batch_size()."""
+        from torch_dfo import NelderMead, minimize
+
+        opt = NelderMead(dim=dim, bounds=5.0, device="cpu", dtype=torch.float64, seed=0)
+        res = minimize(lambda X: (X**2).sum(dim=-1), opt, max_evals=40)
+        assert res.stop_reason == "budget exhausted", f"Unexpected stop: {res.stop_reason}"
+        assert res.failures == ()
+        assert res.charged_evals <= 40
+        assert res.charged_evals >= dim + 1 + 4
+        assert res.best_x is not None and res.best_value is not None
+
+    def test_search_run_rejects_phased_dfo_with_type_error(self) -> None:
+        """SearchRun explicitly rejects PhasedDFO with TypeError directing to optimize()."""
+        from torch_dfo import PhasedDFO, SearchRun
+
+        opt = PhasedDFO(dim=3, bounds=5.0, budget=100, device="cpu", dtype=torch.float64, seed=0)
+        with pytest.raises(TypeError, match="optimize"):
+            SearchRun(opt, max_evals=100)
+
+    @pytest.mark.parametrize("dim", [1, 2])
+    def test_dfo_optimizer_nelder_mead_low_dim_terminal_budget_no_crash(self, dim: int) -> None:
+        """DFOOptimizer + NelderMead must not hit AssertionError when remaining == dim + 1 < 4."""
+        from torch_dfo.optim import DFOOptimizer
+
+        # Initial simplex uses dim + 1 evals; total budget = 2 * (dim + 1) leaves exactly dim + 1
+        # evals (< 4 for dim in {1, 2}) for step 2.
+        params = [torch.zeros(dim, dtype=torch.float64)]
+        budget = 2 * (dim + 1)
+        opt = DFOOptimizer(
+            params,
+            algorithm="nelder_mead",
+            bounds=(-5.0, 5.0),
+            budget=budget,
+            seed=0,
+        )
+        while not opt.is_exhausted:
+            opt.step(closure_batched=lambda c: (c**2).sum(dim=-1))
+        assert opt._evals <= budget
+
+    def test_dfo_optimizer_sequential_closure_restores_params_on_exception(self) -> None:
+        """If sequential closure() raises midway, DFOOptimizer restores original parameters."""
+        from torch_dfo.optim import DFOOptimizer
+
+        p = torch.tensor([1.5, -2.5, 3.5], dtype=torch.float64)
+        orig = p.clone()
+        opt = DFOOptimizer(
+            [p], algorithm="cmaes", bounds=(-5.0, 5.0), budget=100, pop_size=4, seed=0
+        )
+        calls = 0
+
+        def failing_closure() -> torch.Tensor:
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise RuntimeError("boom")
+            return (p**2).sum()
+
+        with pytest.raises(RuntimeError, match="boom"):
+            opt.step(closure=failing_closure)
+
+        assert torch.equal(p, orig), (
+            f"Model params corrupted after closure exception: {p} != {orig}"
+        )
+
+    def test_benchmark_suite_full_uses_distinct_rotations_and_shifts(self) -> None:
+        """random_rotation_matrix and random_shift advance generator for distinct suite draws."""
+        from torch_dfo.benchmarks import BenchmarkSuite, random_rotation_matrix, random_shift
+
+        g = torch.Generator(device="cpu").manual_seed(42)
+        r1 = random_rotation_matrix(6, dtype=torch.float64, generator=g)
+        r2 = random_rotation_matrix(6, dtype=torch.float64, generator=g)
+        assert not torch.allclose(r1, r2), "random_rotation_matrix reused same matrix"
+
+        g_s = torch.Generator(device="cpu").manual_seed(42)
+        s1 = random_shift(6, -5.0, 5.0, dtype=torch.float64, generator=g_s)
+        s2 = random_shift(6, -5.0, 5.0, dtype=torch.float64, generator=g_s)
+        assert not torch.allclose(s1, s2), "random_shift reused same shift"
+
+        # Deterministic for identical seeds
+        suite_a = BenchmarkSuite.full(dims=(5,), stress_dim=6, seed=123)
+        suite_b = BenchmarkSuite.full(dims=(5,), stress_dim=6, seed=123)
+        x = torch.ones(1, 6, dtype=torch.float64)
+        for pa, pb in zip(suite_a, suite_b, strict=True):
+            if pa.dim == 6:
+                assert torch.allclose(pa.fn(x), pb.fn(x))

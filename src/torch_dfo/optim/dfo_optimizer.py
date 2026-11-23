@@ -180,23 +180,16 @@ class DFOOptimizer(torch.optim.Optimizer):
                 "Guard calls to step() with `if not opt.is_exhausted:` or raise the budget."
             )
 
-        # ``ask()`` may advance internal state (for example, it can draw a
-        # new population).  All supported inner optimizers return no more
-        # than ``pop_size`` candidates.  Snapshot only at the terminal
-        # residue, so normal generations do not pay serialization overhead.
-        inner_state = None
-        if self.budget_remaining < self._inner.pop_size:
-            inner_state = self._inner.state_dict()
-        candidates = self._inner.ask()
-        pop_size = candidates.shape[0]
-
-        if pop_size > self.budget_remaining:
-            assert inner_state is not None
-            self._inner.load_state_dict(inner_state)
+        # Query exact next batch size before advancing inner optimizer state.
+        next_size = self._inner.next_batch_size()
+        if next_size > self.budget_remaining:
             self._stopped_early = True
             # Do not call either closure.  The underlying optimizer cannot
             # accept a partial generation, so preserve the completed state.
             return self._inner.best_fitness.clone()
+
+        candidates = self._inner.ask()
+        pop_size = candidates.shape[0]
 
         if closure_batched is not None:
             fitness = closure_batched(candidates)
@@ -204,15 +197,17 @@ class DFOOptimizer(torch.optim.Optimizer):
             assert closure is not None
             losses: list[torch.Tensor] = []
             original_params = self._flatten_params().clone()
-            for i in range(pop_size):
-                self._set_params(candidates[i])
-                loss = closure()
-                if not isinstance(loss, torch.Tensor):
-                    loss = torch.tensor(loss, device=candidates.device, dtype=candidates.dtype)
-                losses.append(loss.detach())
+            try:
+                for i in range(pop_size):
+                    self._set_params(candidates[i])
+                    loss = closure()
+                    if not isinstance(loss, torch.Tensor):
+                        loss = torch.tensor(loss, device=candidates.device, dtype=candidates.dtype)
+                    losses.append(loss.detach())
+            finally:
+                # Always restore original params before tell or if closure raises.
+                self._set_params(original_params)
             fitness = torch.stack(losses).to(device=candidates.device, dtype=candidates.dtype)
-            # Restore before tell so _set_params to best below is clean
-            self._set_params(original_params)
 
         self._inner.tell(candidates, fitness)
         self._evals += pop_size
@@ -226,16 +221,7 @@ class DFOOptimizer(torch.optim.Optimizer):
         """Mark exhausted if the next atomic ask/tell cannot fit the residue."""
         if self.budget_remaining == 0:
             return
-        if self.budget_remaining >= self._inner.pop_size:
-            return
-
-        # Nelder-Mead can produce a four-point operation after its larger
-        # initial simplex.  Probe and restore at the terminal residue instead
-        # of assuming every inner optimizer always uses ``pop_size``.
-        inner_state = self._inner.state_dict()
-        candidates = self._inner.ask()
-        self._inner.load_state_dict(inner_state)
-        if candidates.shape[0] > self.budget_remaining:
+        if self._inner.next_batch_size() > self.budget_remaining:
             self._stopped_early = True
 
     # ------------------------------------------------------------------

@@ -120,6 +120,13 @@ class SearchRun:
         evaluator_id: str = "tensor",
         repeats: int = 1,
     ):
+        from torch_dfo.phased import PhasedDFO
+
+        if isinstance(optimizer, PhasedDFO):
+            raise TypeError(
+                "PhasedDFO manages its own multi-phase budget and polish loop; "
+                "call PhasedDFO.optimize() instead of SearchRun"
+            )
         if not isinstance(optimizer, BaseOptimizer):
             raise TypeError("optimizer must be a torch_dfo BaseOptimizer")
         if isinstance(max_evals, bool) or not isinstance(max_evals, int) or max_evals < 0:
@@ -526,8 +533,9 @@ class SearchRun:
     def _next_batch_size(self) -> int:
         if isinstance(self.optimizer, RandomSearch):
             return min(self.optimizer.pop_size, self.remaining_evals // self.repeats)
-        required = self.optimizer.pop_size * self.repeats
-        return self.optimizer.pop_size if required <= self.remaining_evals else 0
+        batch_size = self.optimizer.next_batch_size()
+        required = batch_size * self.repeats
+        return batch_size if required <= self.remaining_evals else 0
 
     def _objective_values(self, output: torch.Tensor, count: int) -> torch.Tensor:
         if not isinstance(output, torch.Tensor):
